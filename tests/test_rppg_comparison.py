@@ -1,5 +1,8 @@
 import csv
+import json
+from pathlib import Path
 import numpy as np
+import pytest
 from research.rppg.compare_algorithms import compare,evaluate_recording
 
 def make_csv(path, n=900, missing=True):
@@ -31,6 +34,15 @@ def test_reference_metrics_require_provenance_and_include_agreement(tmp_path):
     metrics=result['aggregate_metrics']['forehead_green']['pooled_window_metrics']
     assert metrics['n_windows']>0
     assert {'mae_bpm','rmse_bpm','bias_bpm','loa_lower_95_bpm','loa_upper_95_bpm'}<=set(metrics)
+
+def test_shared_fixture_matches_documented_python_algorithm_outputs():
+    fixture=Path(__file__).parent/'fixtures/rppg_rgb_fixture.csv'
+    expected=json.loads((Path(__file__).parent/'fixtures/rppg_rgb_fixture_expected.json').read_text())
+    result=evaluate_recording(fixture)
+    estimates=result['windows'][0]['estimates_bpm']
+    for key,value in expected['reference_free_expected_python_estimates_bpm'].items():
+        assert estimates[key] == pytest.approx(value,abs=.1)
+
 
 def test_manifest_yields_recording_level_summaries(tmp_path):
     one=make_csv(tmp_path/'one.csv',missing=False)

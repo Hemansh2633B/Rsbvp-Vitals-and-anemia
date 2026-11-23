@@ -30,6 +30,8 @@ npm run dev -- --host 0.0.0.0
 
 The frontend proxies `/api` and `/ws` to the local FastAPI service. The live view now offers browser-local `getUserMedia()` + MediaPipe acquisition with in-browser ROI/rPPG analysis and timestamped RGB CSV export; it does not upload frames. The legacy local OpenCV camera and optional serial/CMS50D functionality remain available and use the **backend host's** hardware. Browser use requires camera permission and reachable MediaPipe model/WASM endpoints. Numeric live estimates are experimental and require browser/hardware validation.
 
+Browser exports a timestamped RGB CSV plus JSON run metadata; schema and the offline comparison path are documented in [RGB trace format](docs/RGB_TRACE_FORMAT.md) and [MediaPipe asset notes](docs/MEDIAPIPE_ASSETS.md).
+
 Run tests from the repository root after installing test dependencies:
 
 ```bash

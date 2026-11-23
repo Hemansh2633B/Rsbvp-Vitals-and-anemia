@@ -1,0 +1,6 @@
+import {describe,it,expect} from 'vitest'
+import {readFileSync} from 'node:fs'
+import {resolve} from 'node:path'
+import {analyzeSamples,type TraceSample} from './liveDsp'
+function fixture():TraceSample[]{const text=readFileSync(resolve(process.cwd(),'../../tests/fixtures/rppg_rgb_fixture.csv'),'utf8').trim().split(/\r?\n/);const headers=text[0].split(',');return text.slice(1).map(line=>{const row=Object.fromEntries(line.split(',').map((v,i)=>[headers[i],v]));return{t:Number(row.timestamp_s),rois:{forehead:[Number(row.forehead_r),Number(row.forehead_g),Number(row.forehead_b)],left_cheek:[Number(row.left_cheek_r),Number(row.left_cheek_g),Number(row.left_cheek_b)],right_cheek:[Number(row.right_cheek_r),Number(row.right_cheek_g),Number(row.right_cheek_b)]}} as TraceSample})}
+describe('shared Python/TypeScript DSP fixture',()=>{it('matches the Python frequency-bin reference on identical synthetic samples',()=>{const samples=fixture().filter(s=>s.t<12),expected=JSON.parse(readFileSync(resolve(process.cwd(),'../../tests/fixtures/rppg_rgb_fixture_expected.json'),'utf8')).reference_free_expected_python_estimates_bpm;const result=analyzeSamples(samples);expect(result.status).toBe('valid');for(const key of ['forehead_green','forehead_pos','forehead_chrom'])expect(result.estimates[key]).toBeCloseTo(expected[key],1)})})
