@@ -567,3 +567,7 @@ pre.log {
   line-height: 1.45;
   white-space: pre-wrap;
 }
+
+@media (max-width: 800px) {
+  .subcards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}

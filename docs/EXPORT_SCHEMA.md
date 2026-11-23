@@ -35,6 +35,9 @@ Schema `rsbvp.rgb-trace.v1`. Fields:
 | `measurement_status`, `measurement_reason` | composite verdict at export time |
 | `estimates_bpm` | per `<roi>_<method>` estimates; `null` = unavailable |
 | `valid_consensus_bpm` | consensus only when quality gates pass; else `null` |
+| `quality_concepts` | six separated concepts (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`), each `pass` / `fail` / `not_evaluated`; never a blended score |
+| `roi_coverage` | per-ROI fraction of samples with a usable skin ROI in the exported window |
+| `roi_coverage_overall` | union coverage: fraction of samples with at least one usable skin ROI (gate: >= 0.50 for a `valid` verdict) |
 | `browser`, `frame_images_included: false`, `frames_uploaded: false` | provenance |
 | `notes` | honesty note: browser variants are not guaranteed numerically identical to Python (see §3.3 parity tests for what *is* demonstrated) |
 
@@ -63,7 +66,9 @@ Per record:
 | `consistency_bpm` | max−min spread across valid estimator BPMs |
 | `availability_status` | one of `warming_up, valid, low_signal_quality, excessive_motion, face_not_detected, roi_lost, insufficient_frames, irregular_timestamps, reacquiring, processing_error` |
 | `rejection_reason` | human-readable explanation; `null` iff status `valid` |
-| `spectral` | `{fsHz, durationS, maxGapS, peakFraction, snrDb, separationRatio}` — diagnostic scores; uncalibrated research metrics |
+| `spectral` | `{fsHz, durationS, maxGapS, peakFraction, snrDb, separationRatio, roiCoverage, roiCoverageOverall}` — diagnostic scores; uncalibrated research metrics |
+| `roi_coverage`, `roi_coverage_overall` | per-ROI and union ROI coverage fractions for the window |
+| `quality_concepts` | six separated concepts, each `pass` / `fail` / `not_evaluated` |
 | `selected_display_algorithm` | the algorithm chosen in the UI dropdown at analysis time (`green`, `pos`, `chrom`) |
 
 ## Honest limitations

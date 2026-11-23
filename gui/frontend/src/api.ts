@@ -146,6 +146,7 @@ export interface LiveState {
   quality_status?: string | null
   quality_reason?: string | null
   quality_reasons?: string[] | null
+  quality_concepts?: Record<string, string> | null
   spo2?: number | null
   hardware_hr?: number | null
   // motion-segment mode extras

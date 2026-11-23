@@ -190,3 +190,50 @@ def test_low_light_clipped_acquisition_never_reports_valid():
                         spectral=spectral_quality(pulse(), FS),
                         agreement=agreement_report({"green": 70.0, "pos": 70.0}))
     assert out.status == "low_signal_quality" and not out.available
+
+
+# Sprint 8 regression coverage: the six quality concepts are reported
+# separately on every verdict path; nothing is blended into a single number.
+CONCEPT_KEYS = ("face_tracking", "roi_extraction", "temporal_acquisition",
+                "pulse_signal", "algorithm_agreement", "availability")
+
+
+def test_concepts_present_and_separated_on_face_failure():
+    out = assess_window(face_detected=False)
+    assert set(out.concepts) == set(CONCEPT_KEYS)
+    assert out.concepts["face_tracking"] == "fail"
+    assert out.concepts["availability"] == "fail"
+    assert all(v in ("pass", "fail", "not_evaluated") for v in out.concepts.values())
+
+
+def test_concepts_all_pass_on_clean_window():
+    t = np.arange(int(12 * FS)) / FS
+    out = assess_window(trace=trace_report(t), spectral=spectral_quality(pulse(), FS),
+                        roi_coverage=0.9)
+    assert out.status == "valid"
+    assert out.concepts == {k: "pass" for k in CONCEPT_KEYS}
+
+
+def test_concepts_roi_extraction_fails_below_coverage():
+    t = np.arange(int(12 * FS)) / FS
+    out = assess_window(trace=trace_report(t), spectral=spectral_quality(pulse(), FS),
+                        roi_coverage=0.30)
+    assert out.concepts["roi_extraction"] == "fail"
+    assert out.concepts["availability"] == "fail"
+    assert out.status == "low_signal_quality"
+    assert any("insufficient_roi_coverage" in r for r in out.reasons)
+
+
+def test_concepts_temporal_acquisition_fails_on_gap():
+    t = np.arange(int(12 * FS)) / FS
+    t = np.concatenate([t[t < 5], t[t > 7]])  # 2 s hole: exceeds the 0.25 s gap gate
+    out = assess_window(trace=trace_report(t))
+    assert out.status == "irregular_timestamps"
+    assert out.concepts["temporal_acquisition"] == "fail"
+
+
+def test_concepts_not_evaluated_when_not_applicable():
+    out = assess_window(excessive_motion=True)
+    assert out.concepts["pulse_signal"] == "fail"          # cannot be trusted mid-motion
+    assert out.concepts["algorithm_agreement"] == "not_evaluated"  # never reaches agreement
+    assert out.concepts["availability"] == "fail"

@@ -10,8 +10,11 @@ export type LiveAnalysis = {
   waveforms: Record<string, number[]>
   fs: number | null
   /** Per-window spectral diagnostics behind the verdict (uncalibrated research metrics). */
-  scores?: { fsHz: number | null; durationS: number | null; maxGapS: number | null; peakFraction: number | null; snrDb: number | null; separationRatio: number | null }
+  scores?: { fsHz: number | null; durationS: number | null; maxGapS: number | null; peakFraction: number | null; snrDb: number | null; separationRatio: number | null; roiCoverage: Record<string, number> | null; roiCoverageOverall: number | null }
+  /** Six explicitly separated quality concepts; each is pass | fail | not_evaluated. */
+  concepts?: { face_tracking: QualityConcept; roi_extraction: QualityConcept; temporal_acquisition: QualityConcept; pulse_signal: QualityConcept; algorithm_agreement: QualityConcept; availability: QualityConcept }
 }
+export type QualityConcept = 'pass' | 'fail' | 'not_evaluated'
 const ROI_NAMES = ['forehead', 'left_cheek', 'right_cheek'] as const
 const METHODS = ['green', 'pos', 'chrom'] as const
 const LOW = 0.7
@@ -61,6 +64,19 @@ function filterBand(x:number[]) {
   return x.map(v=>v-mean)
 }
 function chrom(rgb:number[][],fs:number) {
+  // Match gui/rppg_core/research.py::chrom_rppg input contract: at least 8
+  // finite, strictly positive RGB means and a finite fs > 2*HIGH. Rejected
+  // input throws; callers convert that to an explicit unavailable estimate.
+  // NOTE: the Python chrom_rppg additionally applies a zero-phase Butterworth
+  // bandpass (scipy). The browser cannot call scipy, so the in-band Hann
+  // periodogram in spectralDiagnostics performs the band restriction instead;
+  // the two pathways are parity-tested on shared fixtures, not interchangeable.
+  if(rgb.length<8) throw new Error('CHROM requires at least 8 samples')
+  for(const row of rgb){
+    if(!Array.isArray(row)||row.length!==3) throw new Error('CHROM requires RGB triples')
+    if(!row.every(v=>Number.isFinite(v)&&v>0)) throw new Error('CHROM requires finite positive RGB means')
+  }
+  if(!Number.isFinite(fs)||fs<=2*HIGH) throw new Error('CHROM requires fs > 7 Hz')
   const c=rgb.map(row=>row.map((v,i)=>v / (rgb.reduce((s,r)=>s+r[i],0)/rgb.length)-1))
   const xs=c.map(v=>3*v[0]-2*v[1]), ys=c.map(v=>1.5*v[0]+v[1]-1.5*v[2])
   const win=Math.max(8,Math.round(fs*1.6)), out=Array(xs.length).fill(0), weight=Array(xs.length).fill(0)
@@ -74,6 +90,7 @@ function chrom(rgb:number[][],fs:number) {
 function std(x:number[]) { const m=x.reduce((s,v)=>s+v,0)/x.length; return Math.sqrt(x.reduce((s,v)=>s+(v-m)**2,0)/x.length) }
 const SPECTRAL_MIN_CONCENTRATION=0.20, SPECTRAL_MIN_SNR_DB=3.0, SPECTRAL_MIN_SEPARATION=1.5
 const PEAK_GUARD_RADIUS_HZ=0.15, COMPETITOR_MIN_DISTANCE_HZ=0.25
+const MIN_ROI_COVERAGE=0.50 // union of usable skin ROI coverage required per window
 function hann(n:number){const w=new Array(n);for(let i=0;i<n;i++)w[i]=0.5-0.5*Math.cos(2*Math.PI*i/(n-1));return w}
 export function spectralDiagnostics(x:number[],fs:number):{bpm:number|null;quality:number;snrDb:number|null;separationRatio:number|null;waveform:number[]} {
   if(x.length<8*fs || !x.every(Number.isFinite)) return {bpm:null,quality:0,snrDb:null,separationRatio:null,waveform:x}
@@ -106,6 +123,11 @@ export function spectralDiagnostics(x:number[],fs:number):{bpm:number|null;quali
 // POS projection on the complete buffered window; experimental in-browser
 // variant. The original rolling-window Python method is retained.
 export function posProjection(rgb:number[][]):number[] {
+  if(rgb.length<8) throw new Error('POS requires at least 8 samples')
+  for(const row of rgb){
+    if(!Array.isArray(row)||row.length!==3) throw new Error('POS requires RGB triples')
+    if(!row.every(v=>Number.isFinite(v))) throw new Error('POS requires finite RGB means')
+  }
   const means=[0,1,2].map(i=>rgb.reduce((s,r)=>s+r[i],0)/rgb.length)
   const normalized=rgb.map(r=>r.map((v,i)=>v/Math.max(means[i],1e-8)-1))
   const s1=normalized.map(v=>v[1]-v[2]),s2=normalized.map(v=>v[1]+v[2]-2*v[0])
@@ -134,7 +156,11 @@ export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAn
     fs=rate
     const matrix=rgb[0]!.values.map((_,i)=>[rgb[0]!.values[i],rgb[1]!.values[i],rgb[2]!.values[i]])
     for(const method of METHODS) {
-      const key=`${roi}_${method}`, result=process(matrix,rate,method)
+      const key=`${roi}_${method}`
+      // A failing estimator must not kill the window: report that estimator
+      // unavailable (bpm null) and keep evaluating the others.
+      let result
+      try{result=process(matrix,rate,method)}catch{result={bpm:null,quality:0,snrDb:null,separationRatio:null,waveform:[] as number[]}}
       estimates[key]=result.bpm; waveforms[key]=result.waveform.slice(-240); qualities.push(result.quality)
       if(result.snrDb!==null) worstSnr=worstSnr===null?result.snrDb:Math.min(worstSnr,result.snrDb)
       if(result.separationRatio!==null) worstSeparation=worstSeparation===null?result.separationRatio:Math.min(worstSeparation,result.separationRatio)
@@ -148,21 +174,40 @@ export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAn
   // the capture is irregular (frame drops, tab throttling) even if resampling
   // could hide it — report it explicitly, never as a quiet sample count issue.
   let irregular=false, maxGapS:number|null=null, durationS:number|null=null
+  const roiCoverage:Record<string,number>={}
   for(const roi of ROI_NAMES){
     const diag=traceDiagnostics(samples,roi)
+    roiCoverage[roi]=samples.length?diag.n/samples.length:0
     if(diag.n<2)continue
     durationS=durationS===null?diag.durationS:Math.max(durationS,diag.durationS)
     if(diag.maxGapS!==null){maxGapS=maxGapS===null?diag.maxGapS:Math.max(maxGapS,diag.maxGapS);if(diag.maxGapS>0.25)irregular=true}
   }
+  // Union coverage: fraction of samples with at least one usable skin ROI.
+  // Per-ROI traces may be valid even at partial coverage, so the *window*
+  // verdict requires the union, not individual ROI completeness.
+  const unionCoverage=samples.length?samples.filter(s=>ROI_NAMES.some(roi=>s.rois[roi]&&Number.isFinite(s.rois[roi]![0])&&Number.isFinite(s.rois[roi]![1])&&Number.isFinite(s.rois[roi]![2]))).length/samples.length:0
+  const roiCoveragePass=unionCoverage>=MIN_ROI_COVERAGE
   const snrPass=worstSnr!==null && worstSnr>=SPECTRAL_MIN_SNR_DB
   const sepPass=worstSeparation===null || worstSeparation>=SPECTRAL_MIN_SEPARATION
   const concentrationPass=quality>=SPECTRAL_MIN_CONCENTRATION
   const spectralPass=snrPass && sepPass && concentrationPass
-  const valid=bpm!==null && consistency<=12 && spectralPass
+  const agreementPass=values.length>=2 && consistency<=12
+  const valid=bpm!==null && agreementPass && spectralPass && roiCoveragePass
   const noRoi=Object.keys(estimates).length===0
   const insufficient=fs===null
   const spectralReason=concentrationPass?(snrPass?(sepPass?'':'peak separation too weak'):'pulse SNR below 3 dB'):'spectral concentration below 20%'
-  const reason=valid?'Independent ROI/method estimates agree':irregular?'Timestamp gaps exceed 0.25 s (dropped frames or tab throttling)':noRoi?'All skin ROIs are lost or unavailable':insufficient?'Insufficient frames or irregular sampling':values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':spectralReason
+  const coverageReason=`ROI coverage ${(unionCoverage*100).toFixed(0)}% below ${MIN_ROI_COVERAGE*100}%`
+  const reason=valid?'Independent ROI/method estimates agree':irregular?'Timestamp gaps exceed 0.25 s (dropped frames or tab throttling)':noRoi?'All skin ROIs are lost or unavailable':insufficient?'Insufficient frames or irregular sampling':!roiCoveragePass?coverageReason:values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':spectralReason
   const status=valid?'valid':irregular?'irregular_timestamps':noRoi?'roi_lost':insufficient?'insufficient_frames':'low_signal_quality'
-  return {status,reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs,scores:{fsHz:fs,durationS,maxGapS,peakFraction:qualities.length?quality:null,snrDb:worstSnr,separationRatio:worstSeparation}}
+  // Six explicitly separated quality concepts. Availability is the composite;
+  // the other five are components, never a single blended score.
+  const concepts:NonNullable<LiveAnalysis['concepts']>={
+    face_tracking:'pass' as QualityConcept, // tracking failure short-circuits earlier (status face_not_detected)
+    roi_extraction:roiCoveragePass?'pass':'fail',
+    temporal_acquisition:(fs!==null && !irregular)?'pass':'fail',
+    pulse_signal:spectralPass?'pass':(qualities.length?'fail':'not_evaluated'),
+    algorithm_agreement:agreementPass?'pass':(values.length>=2?'fail':'not_evaluated'),
+    availability:valid?'pass':'fail',
+  }
+  return {status,reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs,concepts,scores:{fsHz:fs,durationS,maxGapS,peakFraction:qualities.length?quality:null,snrDb:worstSnr,separationRatio:worstSeparation,roiCoverage,roiCoverageOverall:unionCoverage}}
 }

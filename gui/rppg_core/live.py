@@ -414,6 +414,7 @@ def estimate_live_rppg_from_buffer(rgb_times, rgb_values, selected_pipeline,
         "quality_reason": verdict.reason,
         "quality_reasons": list(verdict.reasons),
         "quality_scores": verdict.scores,
+        "quality_concepts": verdict.concepts,
     }
 
 
@@ -963,6 +964,7 @@ class LiveSession:
             "quality_status": r.get("quality_status"),
             "quality_reason": r.get("quality_reason"),
             "quality_reasons": r.get("quality_reasons"),
+            "quality_concepts": r.get("quality_concepts"),
             # CMS50D (oximeter) — null unless connected
             "cms_connected": self.cms_connected,
             "spo2": spo2,

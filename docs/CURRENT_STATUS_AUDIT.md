@@ -1,5 +1,7 @@
 # Current status audit — capability matrix (Sprint 7, 2026-11-23)
 
+> **Sprint 8 note (2026-11-23):** six separated quality concepts and the union ROI-coverage gate replaced the five-concept decomposition described below; see `docs/IMPLEMENTATION_STATUS.md` for the current authoritative matrix. The baseline provenance line (`4930efe`, PR #5 unmerged) remains accurate.
+
 This is the **living** capability statement for the repository. It is distinct from the [initial repository audit](INITIAL_REPOSITORY_AUDIT.md), which is a historical record of the baseline state. Numbers below were captured on this date against branch `arena/ae4b6f9b-rsbvp-vitals-and-anemia`; consult commit history for the exact tree.
 
 ## How to read the matrix
@@ -17,7 +19,7 @@ This is the **living** capability statement for the repository. It is distinct f
 | Green / POS / CHROM transforms (Python) | Implemented | TESTED-SOFTWARE (`tests/test_rppg_*`, `test_backends_reference`) | Rolling POS retained; CHROM independent transform; 0.7–3.5 Hz passband |
 | Green / POS / CHROM (browser TS) | Implemented (experimental variants) | TESTED-FIXTURE (`liveDsp.parity.test.ts`) | In-browser POS/CHROM are documented experimental variants; agreement **demonstrated only on one synthetic fixture** |
 | Python↔TypeScript DSP parity | Implemented | TESTED-FIXTURE (`tests/fixtures/generate_rppg_rgb_fixture_expected.py`) | Peak frequency, peak fraction, SNR dB, separation asserted to tight tolerance on the shared fixture; not evidence beyond it |
-| Quality verdicts per window (Python + browser) | Implemented | TESTED-SOFTWARE (`tests/test_quality.py`, `test_reliability.py`) | Five separated concepts; status tokens incl. `irregular_timestamps`, `processing_error`; unavailable ⇒ no number |
+| Quality verdicts per window (Python + browser) | Implemented | TESTED-SOFTWARE (`tests/test_quality.py`, `test_reliability.py`) | Six separated concepts (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`) + union ROI-coverage gate ≥ 0.50; status tokens incl. `irregular_timestamps`, `processing_error`; unavailable ⇒ no number |
 | Low-light false-accept handling | Partially implemented | TESTED-FIXTURE | Diagnostics flag marginal low-light POS windows (native 0.556 / reference 0.630 quality-ok). Forehead of the perfectly periodic fixture still passes — an artifact of idealized input, not robustness evidence. Cross-estimator agreement is the remaining mitigation; **no real-world light validation exists** (NOT RUN) |
 | Multi-ROI extraction (browser) | Implemented | TESTED-SOFTWARE (roi.ts tests) + HARDWARE-UNTESTED | 3 ROIs, RGB skin heuristic, eye/lip/brow exclusion; **not** MediaPipe segmentation; dropout accounting in exports |
 | Offline 3-region RGB extraction (Python) | Implemented (heuristic) | TESTED-SOFTWARE | Skin-heuristic; documented as heuristic; not landmark segmentation |

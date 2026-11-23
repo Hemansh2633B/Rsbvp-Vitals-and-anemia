@@ -207,12 +207,28 @@ def trace_report(timestamps) -> TraceReport:
     return TraceReport(n, float(t[-1] - t[0]), fs, float(d.max()), dropped)
 
 
+PASS, FAIL, NOT_EVALUATED = "pass", "fail", "not_evaluated"
+
+#: The six explicitly separated quality concepts. These are components of the
+#: verdict, never a blended score; each is reported independently by
+#: :func:`assess_window` as ``concepts`` in the returned assessment.
+QUALITY_CONCEPTS = ("face_tracking", "roi_extraction", "temporal_acquisition",
+                    "pulse_signal", "algorithm_agreement", "availability")
+
+
+def _concepts(face, roi, temporal, pulse, agreement, availability):
+    return {"face_tracking": face, "roi_extraction": roi,
+            "temporal_acquisition": temporal, "pulse_signal": pulse,
+            "algorithm_agreement": agreement, "availability": availability}
+
+
 @dataclass(frozen=True)
 class QualityAssessment:
     status: str           # one of the canonical tokens below
     reason: str           # human-readable explanation
     reasons: tuple[str, ...]  # machine tokens naming every failing check
     scores: dict[str, float | None] = field(default_factory=dict)
+    concepts: dict[str, str] = field(default_factory=dict)
 
     @property
     def available(self) -> bool:
@@ -239,29 +255,40 @@ def assess_window(*, trace: TraceReport | None = None,
 
     if not face_detected:
         return QualityAssessment("face_not_detected", "No usable face in the camera frame",
-                                 ("face_not_detected",), scores)
+                                 ("face_not_detected",), scores,
+                                 _concepts(FAIL, NOT_EVALUATED, NOT_EVALUATED,
+                                           NOT_EVALUATED, NOT_EVALUATED, FAIL))
     if tracking_lost or (roi_coverage is not None and roi_coverage <= 0.0):
         return QualityAssessment("roi_lost", "Tracked skin regions are lost or occluded",
-                                 ("roi_lost",), scores)
+                                 ("roi_lost",), scores,
+                                 _concepts(PASS, FAIL, NOT_EVALUATED,
+                                           NOT_EVALUATED, NOT_EVALUATED, FAIL))
     if trace is not None:
         scores.update({"fs_hz": trace.fs_hz, "max_gap_s": trace.max_gap_s,
                        "duration_s": trace.duration_s,
                        "dropped_interval_fraction": trace.dropped_interval_fraction})
+        roi_state = NOT_EVALUATED if roi_coverage is None else (PASS if roi_coverage >= MIN_ROI_COVERAGE else FAIL)
         if trace.fs_hz is None or trace.fs_hz < MIN_SAMPLING_RATE_HZ:
             return QualityAssessment("insufficient_frames",
                                      f"Effective sampling rate too low or invalid (fs={trace.fs_hz})",
-                                     ("insufficient_frames",), scores)
+                                     ("insufficient_frames",), scores,
+                                     _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
         if trace.max_gap_s is not None and trace.max_gap_s > MAX_GAP_SECONDS:
             return QualityAssessment("irregular_timestamps",
                                      f"Timestamp gap {trace.max_gap_s:.2f}s exceeds {MAX_GAP_SECONDS}s",
-                                     ("irregular_timestamps",), scores)
+                                     ("irregular_timestamps",), scores,
+                                     _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
         if trace.duration_s < min_window_s:
             remaining = min_window_s - trace.duration_s
             return QualityAssessment("warming_up", f"Acquire {remaining:.1f} more seconds",
-                                     ("warming_up",), scores)
+                                     ("warming_up",), scores,
+                                     _concepts(PASS, roi_state, NOT_EVALUATED,
+                                               NOT_EVALUATED, NOT_EVALUATED, FAIL))
     if excessive_motion:
         return QualityAssessment("excessive_motion", "Excessive face displacement; hold still",
-                                 ("excessive_motion",), scores)
+                                 ("excessive_motion",), scores,
+                                 _concepts(PASS, PASS if roi_coverage is None or roi_coverage >= MIN_ROI_COVERAGE else FAIL,
+                                           PASS, FAIL, NOT_EVALUATED, FAIL))
     if acquisition is not None:
         scores.update({"clip_fraction": acquisition.clip_fraction,
                        "dynamic_range": acquisition.dynamic_range,
@@ -271,23 +298,35 @@ def assess_window(*, trace: TraceReport | None = None,
         if not acquisition.passing:
             reasons.append("acquisition_clipping_or_flat" if acquisition.clip_fraction > CLIP_MAX_FRACTION
                            else "acquisition_low_dynamic_range")
+    roi_state = NOT_EVALUATED if roi_coverage is None else (PASS if roi_coverage >= MIN_ROI_COVERAGE else FAIL)
     if roi_coverage is not None:
         scores["roi_coverage"] = float(roi_coverage)
         if roi_coverage < MIN_ROI_COVERAGE:
             reasons.append(f"insufficient_roi_coverage_{roi_coverage:.2f}")
+    pulse_state = NOT_EVALUATED
     if spectral is not None:
         scores.update({"peak_fraction": spectral.peak_fraction, "snr_db": spectral.snr_db,
                        "separation_ratio": spectral.separation_ratio, "peak_hz": spectral.peak_hz})
+        pulse_state = PASS if spectral.passing else FAIL
         if not spectral.passing:
             reasons.extend(spectral.failing_checks)
+    if acquisition is not None and not acquisition.passing:
+        pulse_state = FAIL
+    agreement_state = NOT_EVALUATED
     if agreement is not None:
         scores.update({"agreement_spread_bpm": agreement.spread_bpm,
                        "estimators_within_tolerance": float(agreement.within_tolerance)})
-        if agreement.n_valid >= 2 and agreement.spread_bpm is not None and agreement.spread_bpm > AGREEMENT_TOLERANCE_BPM:
-            reasons.append(f"estimator_disagreement_{agreement.spread_bpm:.1f}bpm")
+        if agreement.n_valid >= 2 and agreement.spread_bpm is not None:
+            agreement_state = PASS if agreement.spread_bpm <= AGREEMENT_TOLERANCE_BPM else FAIL
+            if agreement.spread_bpm > AGREEMENT_TOLERANCE_BPM:
+                reasons.append(f"estimator_disagreement_{agreement.spread_bpm:.1f}bpm")
     if reasons:
         return QualityAssessment("low_signal_quality",
                                  "Inadequate signal quality: " + ", ".join(reasons),
-                                 tuple(reasons), scores)
+                                 tuple(reasons), scores,
+                                 _concepts(PASS, roi_state, PASS, pulse_state, agreement_state, FAIL))
     return QualityAssessment("valid", "Signal, acquisition and estimator agreement all pass",
-                             (), scores)
+                             (), scores,
+                             _concepts(PASS, roi_state, PASS,
+                                       pulse_state if pulse_state != NOT_EVALUATED else PASS,
+                                       agreement_state if agreement_state != NOT_EVALUATED else PASS, PASS))

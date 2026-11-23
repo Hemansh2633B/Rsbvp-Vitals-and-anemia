@@ -3,6 +3,19 @@
 **Status: PUBLIC-DATASET EVALUATION NOT RUN — NO AUTHORIZED UBFC-rPPG ARCHIVE AVAILABLE IN THIS WORKSPACE.**
 **What is reported below: software verification on deterministic synthetic fixtures only. Nothing here is physiological, medical or clinical evidence.**
 
+---
+
+## Sprint 8 addendum (2026-11-23)
+
+- Quality concepts are six explicitly separated, never-blended verdicts in both pathways (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`); a union ROI-coverage gate (≥ 0.50) is required for `valid`.
+- Browser regression coverage added for: near-flat RGB, fully dark (zero) RGB means, union-coverage failure, timestamp-gap windows, per-estimator isolation, GPU→CPU fallback, reacquisition buffer reset, hidden-tab stop, worker crash, camera interruption. Python coverage added for CHROM invalid inputs, standardized output, six-concept verdicts, and gate None-estimates.
+- Test status after Sprint 8 changes: Python **154 passed**; frontend **28 passed**; build and lint clean. These remain software verification. No fixture was tuned to pass; the gate is not physiologically validated.
+- Physical browser-camera testing: **NOT RUN** (`docs/MANUAL_CAMERA_TESTS.md`). Dataset-level validation (UBFC-rPPG simple/realistic, COHFACE): **NOT RUN — DATASET NOT AVAILABLE**. These are independent of CI; CI requires neither.
+- Status vocabulary for this report is unchanged: `software-tested` ≠ `synthetic-tested` ≠ `dataset-tested` ≠ `hardware-tested` ≠ `physiologically validated` ≠ `clinically validated`. No tier was upgraded by Sprint 8 work.
+- Anemia: foundations only (`research/anemia/contract.py`, `docs/ANEMIA_IMAGE_CONTRACT.md`). Status: **NOT AVAILABLE — NO VERIFIED LABELED DATASET**. No model, no predictor, no screening claim.
+
+---
+
 ## 1. Evaluation summary matrix
 
 | Layer | Status | Where |

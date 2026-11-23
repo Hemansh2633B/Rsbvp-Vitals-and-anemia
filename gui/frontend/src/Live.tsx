@@ -259,6 +259,14 @@ export function Live() {
                   : `unavailable: ${state.quality_reason ?? state.quality_status}`}
               </div>
             )}
+            {state?.quality_concepts && (
+              <div className="metric-sub muted">
+                concepts:{' '}
+                {Object.entries(state.quality_concepts)
+                  .map(([k, v]) => `${k.replace(/_/g, ' ')}=${v}`)
+                  .join(' · ')}
+              </div>
+            )}
           </div>
           <div className="metric-card" style={{ borderTopColor: '#2E7D32' }}>
             <div className="metric-label">Respiratory rate</div>
