@@ -28,7 +28,7 @@ npm ci
 npm run dev -- --host 0.0.0.0
 ```
 
-The frontend proxies `/api` and `/ws` to the local FastAPI service. Existing live camera capture is performed by OpenCV on the **backend host**. It is not browser-camera capture and will not work against a remote server as access to the user's webcam. Optional serial/CMS50D functionality also requires local hardware.
+The frontend proxies `/api` and `/ws` to the local FastAPI service. The live view now offers browser-local `getUserMedia()` + MediaPipe acquisition with in-browser ROI/rPPG analysis and timestamped RGB CSV export; it does not upload frames. The legacy local OpenCV camera and optional serial/CMS50D functionality remain available and use the **backend host's** hardware. Browser use requires camera permission and reachable MediaPipe model/WASM endpoints. Numeric live estimates are experimental and require browser/hardware validation.
 
 Run tests from the repository root after installing test dependencies:
 

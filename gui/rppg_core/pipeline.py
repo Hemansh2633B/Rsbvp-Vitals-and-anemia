@@ -1841,9 +1841,10 @@ def extract_rppg_rgb_signals(video_path, max_preview_frames=5):
 
     cap.release()
 
-    times = np.asarray(times)
-    rgb_signal = np.asarray(rgb_signal)
-    green_signal = np.asarray(green_signal)
+    times = np.asarray(times, dtype=float)
+    rgb_signal = np.asarray(rgb_signal, dtype=float)
+    green_signal = np.asarray(green_signal, dtype=float)
+    roi_arrays = {name: np.asarray(values, dtype=float) for name, values in roi_rgb_signals.items()}
 
     if len(rgb_signal) < 60:
         raise RuntimeError("Not enough valid samples. Try clearer video, better lighting, or larger face.")
@@ -1853,13 +1854,21 @@ def extract_rppg_rgb_signals(video_path, max_preview_frames=5):
     if duration <= 0:
         raise RuntimeError("Invalid timestamps.")
 
-    sampling_rate = (len(times) - 1) / duration
+    from .research import resample_rgb_traces
+    try:
+        times, regularized, sampling_rate = resample_rgb_traces(
+            times, {"combined": rgb_signal, **roi_arrays}, max_gap_seconds=0.25
+        )
+    except ValueError as exc:
+        raise RuntimeError(f"Irregular sampling / long face-loss gap: {exc}. Analyze continuous segments separately.") from exc
+    rgb_signal = regularized["combined"]
+    green_signal = rgb_signal[:, 1]
 
     return {
         "times": times,
         "rgb_signal": rgb_signal,
         "green_signal": green_signal,
-        "roi_rgb_signals": {name: np.asarray(values, dtype=float) for name, values in roi_rgb_signals.items()},
+        "roi_rgb_signals": {name: regularized[name] for name in roi_arrays},
         "dropped_intervals": dropped_intervals,
         "sampling_rate": sampling_rate,
         "duration": duration,
@@ -2058,6 +2067,12 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
 
     from .research import chrom_rppg
     chrom_signal, chrom_metadata = chrom_rppg(rgb_signal, sampling_rate)
+    chrom_info = summarize_channel_fft(
+        chrom_signal, sampling_rate, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
+        trim_start_seconds=TRIM_START_SECONDS, top_n_peaks=FFT_TOP_N_PEAKS,
+        window_seconds=WINDOW_SECONDS, step_seconds=WINDOW_STEP_SECONDS
+    )
+    hr_chrom_fft = chrom_info["window_hr"]
 
     pos_signal_raw = pos_rppg(
         rgb_signal,
@@ -2149,6 +2164,18 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
             peak_guidance_hr
         )
 
+    # Quality gate applies after all legacy motion corrections so a heuristic
+    # rescue cannot override disagreement between independently extracted signals.
+    from .research import measurement_gate
+    quality_gate = measurement_gate(
+        [green_info.get("window_hr"), pos_info.get("window_hr"), hr_chrom_fft],
+        [green_info.get("reliability"), pos_info.get("reliability"), chrom_info.get("reliability")],
+        duration, candidate=hr_consensus
+    )
+    legacy_corrected_hr = hr_consensus
+    if not quality_gate["valid"]:
+        hr_consensus = None
+
     print("\n===== Smart Green-only rPPG Results =====")
     print(f"HR Green FFT: {hr_green_fft:.2f} bpm" if hr_green_fft is not None else "HR Green FFT: Not available")
     print(f"HR Green Peak: {hr_green_peak:.2f} bpm" if hr_green_peak is not None else "HR Green Peak: Not available")
@@ -2215,11 +2242,17 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
     "selected_pipeline"             : selected_pipeline,
 
     # HR estimates
-    "consensus_hr"                  : hr_consensus,      # ← canonical name for eval script
+    "consensus_hr"                  : hr_consensus,      # canonical valid output
+    "legacy_corrected_hr_candidate" : legacy_corrected_hr,
+    "measurement_valid"             : quality_gate["valid"],
+    "measurement_state"             : quality_gate["state"],
+    "measurement_reason"            : quality_gate["reason"],
     "hr_green_fft"                  : hr_green_fft,
     "hr_green_peak"                 : hr_green_peak,
     "hr_pos_fft"                    : hr_pos_fft,
     "hr_pos_peak"                   : hr_pos_peak,
+    "hr_chrom_fft"                  : hr_chrom_fft,
+    "chrom_reliability"             : chrom_info["reliability"],
     "peak_guidance_hr"              : peak_guidance_hr,
 
     # Correction flags
@@ -2264,8 +2297,9 @@ def _json_safe(v):
 
 def _build_summary(rppg_results, predicted_class, confidence, out_dir):
     keys = [
-        "consensus_hr", "hr_green_fft", "hr_pos_fft", "hr_green_peak",
-        "hr_pos_peak", "peak_guidance_hr", "rr_final", "rr_welch_bpm",
+        "consensus_hr", "legacy_corrected_hr_candidate", "measurement_valid",
+        "measurement_state", "measurement_reason", "hr_green_fft", "hr_pos_fft", "hr_green_peak",
+        "hr_pos_peak", "hr_chrom_fft", "chrom_reliability", "peak_guidance_hr", "rr_final", "rr_welch_bpm",
         "rr_hilbert_bpm", "green_reliability", "pos_reliability",
         "green_window_mad", "pos_window_mad", "sampling_rate", "duration",
         "selected_pipeline", "motion_peak_corrected", "left_right_corrected",
