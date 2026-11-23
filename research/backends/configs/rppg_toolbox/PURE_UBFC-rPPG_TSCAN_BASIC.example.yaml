@@ -1,0 +1,54 @@
+# EXAMPLE ONLY — do not commit checkpoints or personal paths.
+# Adapted from rPPG-Toolbox configs/infer_configs/PURE_UBFC-rPPG_TSCAN_BASIC.yaml
+# (ubicomplab/rPPG-Toolbox @ b7500b848f84ad7f86e277b4612563b69f4f88f9, RAIL-1.1).
+# TS-CAN (Tscan) pretrained on PURE, evaluated on UBFC-rPPG — the toolbox's own
+# published cross-dataset example. Weights are NOT redistributed in this repo;
+# place PURE_TSCAN.pth inside the toolbox checkout or configure RSBVP_MODEL_ROOT.
+BASE: ['']
+TOOLBOX_MODE: "only_test"
+TEST:
+  METRICS: ['MAE', 'RMSE', 'MAPE', 'Pearson', 'SNR', 'BA']
+  USE_LAST_EPOCH: False
+  DATA:
+    FS: 30
+    DATASET: UBFC-rPPG
+    DO_PREPROCESS: True   # first run only; set False afterwards
+    DATA_FORMAT: NDCHW
+    DATA_PATH: "<ABSOLUTE_PATH_TO_UBFC-rPPG_RAWDATA>"
+    CACHED_PATH: "<ABSOLUTE_PATH_TO_WRITABLE_CACHE>"
+    EXP_DATA_NAME: "rsbvp_adapter"
+    BEGIN: 0.0
+    END: 1.0
+    PREPROCESS:
+      DATA_TYPE: ['DiffNormalized', 'Standardized']
+      LABEL_TYPE: DiffNormalized
+      DO_CHUNK: True
+      CHUNK_LENGTH: 180
+      CROP_FACE:
+        DO_CROP_FACE: True
+        BACKEND: 'HC'
+        USE_LARGE_FACE_BOX: True
+        LARGE_BOX_COEF: 1.5
+        DETECTION:
+          DO_DYNAMIC_DETECTION: False
+          DYNAMIC_DETECTION_FREQUENCY : 30
+          USE_MEDIAN_FACE_BOX: False
+      RESIZE:
+        H: 72
+        W: 72
+DEVICE: cuda:0
+NUM_OF_GPU_TRAIN: 1
+LOG:
+  PATH: runs/exp_rsbvp_tscan
+MODEL:
+  DROP_RATE: 0.2
+  NAME: Tscan
+  TSCAN:
+    FRAME_DEPTH: 10
+INFERENCE:
+  BATCH_SIZE: 4
+  EVALUATION_METHOD: "FFT"
+  EVALUATION_WINDOW:
+    USE_SMALLER_WINDOW: False
+    WINDOW_SIZE: 10
+  MODEL_PATH: "<ABSOLUTE_PATH_TO_PURE_TSCAN.pth>"

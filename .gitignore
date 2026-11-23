@@ -228,3 +228,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Model checkpoints and local model stores (never commit weights)
+*.pth
+*.onnx
+*.ckpt
+/rsbvp_model_root/

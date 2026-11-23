@@ -1,0 +1,374 @@
+{
+  "schema_version": "rsbvp.benchmark-summary.v1",
+  "reference_metrics_authorized": true,
+  "reference_source": "deterministic synthetic fixture (software verification only)",
+  "reference_windows_available": 9,
+  "inputs": [
+    {
+      "recording_id": "synthetic_70bpm",
+      "source": "reports/research_backends/synthetic/inputs/synthetic_70bpm.csv",
+      "participant_id": null,
+      "sampling_rate_hz": 30.00030000299978,
+      "dropped_interval_fraction": 0.0
+    }
+  ],
+  "windowing": {
+    "window_seconds": 12.0,
+    "step_seconds": 6.0
+  },
+  "passband_hz": [
+    0.7,
+    3.5
+  ],
+  "backends": [
+    {
+      "backend": {
+        "name": "rsbvp_native",
+        "version": "1.0.0",
+        "backend_type": "native-inprocess",
+        "license_id": "MIT",
+        "source": "gui/rppg_core (this repository)",
+        "pinned_commit": null,
+        "integration": "import (read-only)",
+        "notes": "Reuses the shipped Green/POS/CHROM implementations; HR estimation is shared benchmark-side (hann-periodogram-v1) for cross-backend fairness."
+      },
+      "status": "completed",
+      "latency_s": 0.5936665309998261,
+      "memory_peak_mb": 176.65234375
+    },
+    {
+      "backend": {
+        "name": "rsbvp_reference",
+        "version": "1.0.0",
+        "backend_type": "reference-inprocess",
+        "license_id": "MIT",
+        "source": "research/backends/reference_methods.py (this repository)",
+        "pinned_commit": null,
+        "integration": "import",
+        "notes": "Independent trace-domain implementations from the published algorithms; not bit-exact ports of rPPG-Toolbox/pyVHR. PBV is a signature-gated chrominance approximation."
+      },
+      "status": "completed",
+      "latency_s": 0.7377923809999629,
+      "memory_peak_mb": 180.9375
+    }
+  ],
+  "backend_errors": [],
+  "algorithms_requested": null,
+  "availability": {
+    "rsbvp_native:CHROM": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    },
+    "rsbvp_native:GREEN": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    },
+    "rsbvp_native:POS": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    },
+    "rsbvp_reference:CHROM": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    },
+    "rsbvp_reference:GREEN": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    },
+    "rsbvp_reference:ICA": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    },
+    "rsbvp_reference:PBV": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    },
+    "rsbvp_reference:POS": {
+      "windows_total": 45,
+      "windows_with_estimate": 45,
+      "rejected_or_unavailable": 0,
+      "estimate_availability": 1.0
+    }
+  },
+  "pairing_metrics": {
+    "rsbvp_native:CHROM": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    },
+    "rsbvp_native:GREEN": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    },
+    "rsbvp_native:POS": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    },
+    "rsbvp_reference:CHROM": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    },
+    "rsbvp_reference:GREEN": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    },
+    "rsbvp_reference:ICA": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    },
+    "rsbvp_reference:PBV": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    },
+    "rsbvp_reference:POS": {
+      "pooled_window_metrics_descriptive_only": {
+        "n_pairs": 45,
+        "mae_bpm": 0.0007000069994944624,
+        "rmse_bpm": 0.0007000069994944624,
+        "bias_bpm": 0.0007000069994944624,
+        "loa_lower_95_bpm": 0.0007000069994944624,
+        "loa_upper_95_bpm": 0.0007000069994944624,
+        "pearson_r": null,
+        "mape_percent": 0.0010000099992778034,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "recording_metrics": {
+        "synthetic_70bpm": {
+          "n_pairs": 45,
+          "mae_bpm": 0.0007000069994944624,
+          "rmse_bpm": 0.0007000069994944624,
+          "bias_bpm": 0.0007000069994944624,
+          "loa_lower_95_bpm": 0.0007000069994944624,
+          "loa_upper_95_bpm": 0.0007000069994944624,
+          "pearson_r": null,
+          "mape_percent": 0.0010000099992778034,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        }
+      },
+      "participant_metrics": {},
+      "participant_bootstrap": null,
+      "windows_paired": 45,
+      "reference_source": "deterministic synthetic fixture (software verification only)"
+    }
+  },
+  "aggregate_records": [],
+  "notes": [
+    "Identical recordings and identical time windows were used for every in-process backend.",
+    "Native and reference backends share the same passband (0.7-3.5 Hz default) and HR estimator (hann-periodogram-v1); differences reflect the transform, not the estimator.",
+    "Overlapping windows are correlated; pooled metrics are descriptive only. Prefer participant-level metrics and the participant bootstrap CI.",
+    "Subprocess backends (rppg_toolbox, pyvhr) report aggregate records only and are excluded from window-level pairing statistics.",
+    "Reference measurements were never passed to any backend; they were joined after prediction.",
+    "Synthetic fixtures are software verification only; no physiological validation is claimed."
+  ]
+}
