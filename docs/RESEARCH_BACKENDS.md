@@ -84,9 +84,23 @@ The canonical, lossless export is `records.json`. `configuration_hash` covers
 `{backend, backend_version, algorithm, roi, window_seconds, step_seconds, passband_hz,
 estimator, hr_selection, missing_data}` — identical configs hash identically.
 
-**Timestamps and gaps are never repaired.** In-process backends reject any window
-containing non-finite samples (`rejected:nonfinite_samples`); short traces simply yield
-fewer windows; tail windows shorter than the full window are dropped, not padded.
+**Timestamps and gaps are never invented across.** In-process backends reject any
+window containing non-finite samples (`rejected:nonfinite_samples`); any window with a
+gap longer than 0.25 s is rejected (`rejected:excessive_gaps`); windows with only
+short-range irregularity are linearly interpolated onto a uniform grid at the measured
+rate (the same convention as `gui/rppg_core/research.py::resample_rgb_traces`); tail
+windows shorter than the full window are dropped, not padded. Configuration hashes
+record the effective `missing_data` policy.
+
+Two Sprint 6 additions extend the reliability story without touching dataset claims:
+
+- `research/rppg/ubfcrppg_probe.py` — local-only UBFC-rPPG readiness probe; reports
+  archive structure/gaps without inferring units, rates or clock offsets; exits 2 when
+  no data root is configured; writes `reports/research_validation/data_readiness.{json,md}`.
+- `research/backends/reliability.py` — deterministic synthetic degradation suite
+  (low light, unscaled read noise, motion transients, 20% frame drops, 15/10 Hz,
+  ROI dropout); outputs `reports/research_validation/synthetic/` (software verification
+  only — never validation).
 
 ## 4. Setup
 

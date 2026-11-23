@@ -117,6 +117,38 @@ def iter_windows(
         yield start, start + window
 
 
+MAX_INTERPOLATION_GAP_S = 0.25  # seconds; mirrors gui/rppg_core/research.py convention
+
+
+def regularize_segment(t_win: np.ndarray, segment: np.ndarray, fs: float,
+                       max_gap_s: float = MAX_INTERPOLATION_GAP_S):
+    """Return a gap-consistent view of one window, or None if a long gap exists.
+
+    Regular (evenly sampled) windows are returned unchanged. Windows with
+    short-range irregularity (all gaps <= ``max_gap_s``) are linearly
+    interpolated onto a uniform grid at ``fs`` — the same convention used by
+    ``gui/rppg_core/research.py::resample_rgb_traces``. Any gap longer than
+    ``max_gap_s`` invalidates the window entirely; samples are never invented
+    across it.
+    """
+    t = np.asarray(t_win, dtype=float)
+    x = np.asarray(segment, dtype=float)
+    if len(t) < 2 or not np.isfinite(t).all() or not np.isfinite(x).all():
+        return None
+    d = np.diff(t)
+    if d.size == 0 or np.any(d <= 0):
+        return None
+    if float(d.max() - d.min()) <= 1e-6 * max(1.0, float(np.median(d))):
+        return x  # already regular; no interpolation, no fabricated samples
+    if d.max() > max_gap_s:
+        return None
+    grid = np.arange(t[0], t[-1] + 0.5 / fs, 1.0 / fs)
+    out = np.empty((len(grid), x.shape[1]), dtype=float)
+    for channel in range(x.shape[1]):
+        out[:, channel] = np.interp(grid, t, x[:, channel])
+    return out
+
+
 @dataclass
 class WindowResult:
     """Raw result of evaluating one window (internal; pre-schema)."""
@@ -210,7 +242,7 @@ def _quality_token(peak_fraction: float | None, threshold: float = 0.20) -> str:
     if peak_fraction is None:
         return "unavailable:no_spectral_peak"
     if peak_fraction < threshold:
-        return f"low_quality:spectral_concentration={peak_fraction:.3f}"
+        return f"low_quality:spectral_concentration_{peak_fraction:.3f}"
     return "ok"
 
 
@@ -235,7 +267,7 @@ class TraceBackend(ResearchBackend):
             "passband_hz": [float(passband_hz[0]), float(passband_hz[1])],
             "estimator": "hann-periodogram-v1",
             "hr_selection": "max-power-in-passband",
-            "missing_data": "window-rejected",
+            "missing_data": "nonfinite-window-rejected|short-gap-linear-interp<=0.25s|long-gap-window-rejected",
         }
 
     def run(self, recording, algorithms=None, window_seconds=12.0, step_seconds=6.0,
@@ -290,8 +322,15 @@ class TraceBackend(ResearchBackend):
                             pulse_signal=None, estimated_hr_bpm=None,
                             signal_quality="rejected:nonfinite_samples", **base_kwargs))
                         continue
+                    t_win = recording.timestamps_s[start:stop]
+                    regularized = regularize_segment(t_win, window, fs)
+                    if regularized is None:
+                        records.append(BenchmarkRecord(
+                            pulse_signal=None, estimated_hr_bpm=None,
+                            signal_quality="rejected:excessive_gaps", **base_kwargs))
+                        continue
                     try:
-                        waveform, _metadata = transform(window, fs, min_s, max_s)
+                        waveform, _metadata = transform(regularized, fs, min_s, max_s)
                         bpm, peak_fraction = reference_methods.estimate_hr_bpm(
                             np.asarray(waveform, dtype=float), fs, min_s, max_s)
                         raw_signal = [float(v) if np.isfinite(v) else None for v in np.asarray(waveform, dtype=float)]

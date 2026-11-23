@@ -33,8 +33,8 @@
         "notes": "Reuses the shipped Green/POS/CHROM implementations; HR estimation is shared benchmark-side (hann-periodogram-v1) for cross-backend fairness."
       },
       "status": "completed",
-      "latency_s": 0.5936665309998261,
-      "memory_peak_mb": 176.65234375
+      "latency_s": 0.6639897719996952,
+      "memory_peak_mb": 176.87109375
     },
     {
       "backend": {
@@ -48,8 +48,8 @@
         "notes": "Independent trace-domain implementations from the published algorithms; not bit-exact ports of rPPG-Toolbox/pyVHR. PBV is a signature-gated chrominance approximation."
       },
       "status": "completed",
-      "latency_s": 0.7377923809999629,
-      "memory_peak_mb": 180.9375
+      "latency_s": 0.7729090080001697,
+      "memory_peak_mb": 181.15625
     }
   ],
   "backend_errors": [],

@@ -272,7 +272,7 @@ def write_records_csv(records: Sequence[BenchmarkRecord], path: str | Path) -> P
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=_RECORD_CSV_COLUMNS)
+        writer = csv.DictWriter(handle, fieldnames=_RECORD_CSV_COLUMNS, lineterminator="\n")
         writer.writeheader()
         for row in records_to_csv_rows(records):
             writer.writerow(row)
@@ -283,7 +283,7 @@ def write_waveforms_csv(records: Sequence[BenchmarkRecord], path: str | Path) ->
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=_WAVEFORM_CSV_COLUMNS)
+        writer = csv.DictWriter(handle, fieldnames=_WAVEFORM_CSV_COLUMNS, lineterminator="\n")
         writer.writeheader()
         for row in waveform_samples_to_csv_rows(records):
             writer.writerow(row)

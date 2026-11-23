@@ -74,6 +74,10 @@ python research/backends/benchmark.py tests/fixtures/rppg_rgb_fixture.csv \
 
 See [research backends guide](docs/RESEARCH_BACKENDS.md) for setup (toolbox/pyVHR/`RSBVP_MODEL_ROOT`), the fair-comparison protocol, and the pretrained-checkpoint policy; [open-source audit](docs/OPEN_SOURCE_RESEARCH_AUDIT.md); [license register](docs/OPEN_SOURCE_LICENSE_REGISTER.md). A committed synthetic benchmark summary lives in `reports/research_backends/`. No dataset evaluation is claimed: the UBFC-rPPG archive is not present and `reports/validation/validation.md` remains NOT RUN.
 
+## Evidence before deployment (Sprint 6)
+
+RSBVP stays honest about what is actually established. The UBFC-rPPG official page was verified (2026-11-23) but the archive is **not present**; [data readiness report](reports/research_validation/DATA_READINESS.md) documents provenance, terms and the steps required before any dataset run. [research validation](reports/research_validation/validation_report.md) separates software verification (deterministic synthetic fixtures, committed) from dataset evidence (none). [Reliability analysis](docs/RELIABILITY.md) covers failure modes (low light, motion, ROI loss, gaps, frame rate) with every claim marked SOFTWARE / HARDWARE-UNTESTED / NOT RUN. [Public-interest safeguards](docs/PUBLIC_INTEREST_SAFEGUARDS.md) state hard limits: pulse rate is not blood pressure, PRV is not ECG HRV, conjunctival appearance is not a hemoglobin measurement, and the anemia module is not a validated predictor of anything. The interface carries the same “what this cannot tell you” statements.
+
 ## Anemia dataset inventory
 
 No images are included. After verifying dataset terms and local permission, inventory a local dataset without downloading anything:
@@ -101,6 +105,8 @@ The Sprint 3 intake tools read only local files. Configure `RSBVP_DATA_ROOT` or 
 - [Initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md)
 - [Open-source research audit](docs/OPEN_SOURCE_RESEARCH_AUDIT.md)
 - [Research backends guide](docs/RESEARCH_BACKENDS.md)
+- [Reliability and failure analysis](docs/RELIABILITY.md)
+- [Public-interest safeguards](docs/PUBLIC_INTEREST_SAFEGUARDS.md)
 - [Open-source license register](docs/OPEN_SOURCE_LICENSE_REGISTER.md)
 - [Methodology and status](docs/RESEARCH_METHODOLOGY.md)
 - [Anemia model card](docs/ANEMIA_MODEL_CARD.md)

@@ -1,0 +1,1878 @@
+{
+  "conditions": [
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 81,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.3645325059997049,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 81,
+          "windows_with_estimate": 81
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 135,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.40306537200012826,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 135,
+          "windows_with_estimate": 135
+        }
+      },
+      "condition": "baseline",
+      "effective_fs_hz": 30.000000000000107,
+      "n_samples": 1800
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 81,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.35864666599991324,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 81,
+          "windows_with_estimate": 81
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 135,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.414274512999782,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 135,
+          "windows_with_estimate": 135
+        }
+      },
+      "condition": "low_light_gain_0.30",
+      "effective_fs_hz": 30.000000000000107,
+      "n_samples": 1800
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 4.876543209876817,
+            "loa_lower_95_bpm": -36.439939167612614,
+            "loa_upper_95_bpm": 46.19302558736624,
+            "mae_bpm": 4.876543209876817,
+            "mape_percent": 6.966490299824023,
+            "n_pairs": 81,
+            "pearson_r": null,
+            "rmse_bpm": 21.50940075845118,
+            "within_3_bpm_fraction": 0.9382716049382716,
+            "within_5_bpm_fraction": 0.9382716049382716
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.36287393600014184,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 14.629629629629937,
+                "loa_lower_95_bpm": -53.80464311882353,
+                "loa_upper_95_bpm": 83.0639023780834,
+                "mae_bpm": 14.629629629629937,
+                "mape_percent": 20.89947089947134,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 37.255374953997986,
+                "within_3_bpm_fraction": 0.8148148148148148,
+                "within_5_bpm_fraction": 0.8148148148148148
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 81,
+          "windows_with_estimate": 81
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.3333333333335973,
+            "loa_lower_95_bpm": -22.973934220568392,
+            "loa_upper_95_bpm": 27.64060088723559,
+            "mae_bpm": 2.3333333333335973,
+            "mape_percent": 3.333333333333709,
+            "n_pairs": 135,
+            "pearson_r": null,
+            "rmse_bpm": 13.073864230820524,
+            "within_3_bpm_fraction": 0.9629629629629629,
+            "within_5_bpm_fraction": 0.9629629629629629
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.4103181290001885,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 11.666666666666963,
+                "loa_lower_95_bpm": -41.872334214789866,
+                "loa_upper_95_bpm": 65.20566754812378,
+                "mae_bpm": 11.666666666666963,
+                "mape_percent": 16.666666666667087,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 29.23404914871769,
+                "within_3_bpm_fraction": 0.8148148148148148,
+                "within_5_bpm_fraction": 0.8148148148148148
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 135,
+          "windows_with_estimate": 135
+        }
+      },
+      "condition": "low_light_gain_0.15",
+      "effective_fs_hz": 30.000000000000107,
+      "n_samples": 1800
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 81,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.3578319729999748,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 81,
+          "windows_with_estimate": 81
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 135,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.4067837670004337,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 135,
+          "windows_with_estimate": 135
+        }
+      },
+      "condition": "high_noise_sigma_3.0",
+      "effective_fs_hz": 30.000000000000107,
+      "n_samples": 1800
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 81,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.35836184600020715,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 81,
+          "windows_with_estimate": 81
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 135,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.37838242599991645,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 135,
+          "windows_with_estimate": 135
+        }
+      },
+      "condition": "motion_transients",
+      "effective_fs_hz": 30.000000000000107,
+      "n_samples": 1800
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 0.274167397454723,
+            "loa_lower_95_bpm": -1.9492936430797159,
+            "loa_upper_95_bpm": 2.497628437989162,
+            "mae_bpm": 1.0479617693051608,
+            "mape_percent": 1.4970882418645157,
+            "n_pairs": 54,
+            "pearson_r": null,
+            "rmse_bpm": 1.1568242742600912,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.3056172530000367,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 0.274167397454723,
+                "loa_lower_95_bpm": -1.992471675049089,
+                "loa_upper_95_bpm": 2.540806469958535,
+                "mae_bpm": 1.0479617693051608,
+                "mape_percent": 1.4970882418645157,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 1.1568242742600912,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 0.274167397454723,
+                "loa_lower_95_bpm": -1.992471675049089,
+                "loa_upper_95_bpm": 2.540806469958535,
+                "mae_bpm": 1.0479617693051608,
+                "mape_percent": 1.4970882418645157,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 1.1568242742600912,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 0.274167397454723,
+                "loa_lower_95_bpm": -1.992471675049089,
+                "loa_upper_95_bpm": 2.540806469958535,
+                "mae_bpm": 1.0479617693051608,
+                "mape_percent": 1.4970882418645157,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 1.1568242742600912,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 54,
+          "windows_with_estimate": 54
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": -0.02370494297080986,
+            "loa_lower_95_bpm": -6.243066685862506,
+            "loa_upper_95_bpm": 6.195656799920886,
+            "mae_bpm": 1.3458341097306936,
+            "mape_percent": 1.9226201567581342,
+            "n_pairs": 90,
+            "pearson_r": null,
+            "rmse_bpm": 3.1555549663641504,
+            "within_3_bpm_fraction": 0.9888888888888889,
+            "within_5_bpm_fraction": 0.9888888888888889
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.2902192560000003,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 0.274167397454723,
+                "loa_lower_95_bpm": -1.992471675049089,
+                "loa_upper_95_bpm": 2.540806469958535,
+                "mae_bpm": 1.0479617693051608,
+                "mape_percent": 1.4970882418645157,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 1.1568242742600912,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 0.274167397454723,
+                "loa_lower_95_bpm": -1.992471675049089,
+                "loa_upper_95_bpm": 2.540806469958535,
+                "mae_bpm": 1.0479617693051608,
+                "mape_percent": 1.4970882418645157,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 1.1568242742600912,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 0.274167397454723,
+                "loa_lower_95_bpm": -1.992471675049089,
+                "loa_upper_95_bpm": 2.540806469958535,
+                "mae_bpm": 1.0479617693051608,
+                "mape_percent": 1.4970882418645157,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 1.1568242742600912,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -1.2151943046729414,
+                "loa_lower_95_bpm": -14.43392433526789,
+                "loa_upper_95_bpm": 12.003535725922006,
+                "mae_bpm": 2.5373234714328254,
+                "mape_percent": 3.6247478163326083,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 6.665933252190404,
+                "within_3_bpm_fraction": 0.9444444444444444,
+                "within_5_bpm_fraction": 0.9444444444444444
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 0.274167397454723,
+                "loa_lower_95_bpm": -1.992471675049089,
+                "loa_upper_95_bpm": 2.540806469958535,
+                "mae_bpm": 1.0479617693051608,
+                "mape_percent": 1.4970882418645157,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 1.1568242742600912,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 18,
+              "windows_with_estimate": 18
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 90,
+          "windows_with_estimate": 90
+        }
+      },
+      "condition": "frame_drops_20pct",
+      "effective_fs_hz": 30.000000000000107,
+      "n_samples": 1405
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 81,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.2080894199998511,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 81,
+          "windows_with_estimate": 81
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 135,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.3794729140004165,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 135,
+          "windows_with_estimate": 135
+        }
+      },
+      "condition": "low_fs_15hz",
+      "effective_fs_hz": 15.000000000000053,
+      "n_samples": 900
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": -9.947598300641403e-13,
+            "loa_lower_95_bpm": -9.947598300641403e-13,
+            "loa_upper_95_bpm": -9.947598300641403e-13,
+            "mae_bpm": 9.947598300641403e-13,
+            "mape_percent": 1.4210854715202004e-12,
+            "n_pairs": 81,
+            "pearson_r": null,
+            "rmse_bpm": 9.947598300641403e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.15977131799991184,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 81,
+          "windows_with_estimate": 81
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": -9.947598300641403e-13,
+            "loa_lower_95_bpm": -9.947598300641403e-13,
+            "loa_upper_95_bpm": -9.947598300641403e-13,
+            "mae_bpm": 9.947598300641403e-13,
+            "mape_percent": 1.4210854715202004e-12,
+            "n_pairs": 135,
+            "pearson_r": null,
+            "rmse_bpm": 9.947598300641403e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 1.0,
+          "latency_s_total": 0.37801687199998923,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": -9.947598300641403e-13,
+                "loa_lower_95_bpm": -9.947598300641403e-13,
+                "loa_upper_95_bpm": -9.947598300641403e-13,
+                "mae_bpm": 9.947598300641403e-13,
+                "mape_percent": 1.4210854715202004e-12,
+                "n_pairs": 27,
+                "pearson_r": null,
+                "rmse_bpm": 9.947598300641403e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 1.0,
+              "rejection_or_unavailability_reasons": {},
+              "windows_rejected_or_unavailable": 0,
+              "windows_total": 27,
+              "windows_with_estimate": 27
+            }
+          },
+          "rejection_or_unavailability_reasons": {},
+          "status": "completed",
+          "windows_rejected_or_unavailable": 0,
+          "windows_total": 135,
+          "windows_with_estimate": 135
+        }
+      },
+      "condition": "low_fs_10hz",
+      "effective_fs_hz": 9.999999999999858,
+      "n_samples": 600
+    },
+    {
+      "backends": {
+        "rsbvp_native": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.654219783909085e-13,
+            "n_pairs": 54,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 0.6666666666666666,
+          "latency_s_total": 0.24217013800034692,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            }
+          },
+          "rejection_or_unavailability_reasons": {
+            "nonfinite_samples": 27
+          },
+          "status": "completed",
+          "windows_rejected_or_unavailable": 27,
+          "windows_total": 81,
+          "windows_with_estimate": 54
+        },
+        "rsbvp_reference": {
+          "error_vs_synthetic_truth": {
+            "bias_bpm": 2.5579538487363607e-13,
+            "loa_lower_95_bpm": 2.5579538487363607e-13,
+            "loa_upper_95_bpm": 2.5579538487363607e-13,
+            "mae_bpm": 2.5579538487363607e-13,
+            "mape_percent": 3.6542197839090863e-13,
+            "n_pairs": 90,
+            "pearson_r": null,
+            "rmse_bpm": 2.5579538487363607e-13,
+            "within_3_bpm_fraction": 1.0,
+            "within_5_bpm_fraction": 1.0
+          },
+          "estimate_availability": 0.6666666666666666,
+          "latency_s_total": 0.2732836690001932,
+          "per_algorithm": {
+            "CHROM": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            },
+            "GREEN": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            },
+            "ICA": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            },
+            "PBV": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            },
+            "POS": {
+              "error_vs_synthetic_truth": {
+                "bias_bpm": 2.5579538487363607e-13,
+                "loa_lower_95_bpm": 2.5579538487363607e-13,
+                "loa_upper_95_bpm": 2.5579538487363607e-13,
+                "mae_bpm": 2.5579538487363607e-13,
+                "mape_percent": 3.6542197839090863e-13,
+                "n_pairs": 18,
+                "pearson_r": null,
+                "rmse_bpm": 2.5579538487363607e-13,
+                "within_3_bpm_fraction": 1.0,
+                "within_5_bpm_fraction": 1.0
+              },
+              "estimate_availability": 0.6666666666666666,
+              "rejection_or_unavailability_reasons": {
+                "nonfinite_samples": 9
+              },
+              "windows_rejected_or_unavailable": 9,
+              "windows_total": 27,
+              "windows_with_estimate": 18
+            }
+          },
+          "rejection_or_unavailability_reasons": {
+            "nonfinite_samples": 45
+          },
+          "status": "completed",
+          "windows_rejected_or_unavailable": 45,
+          "windows_total": 135,
+          "windows_with_estimate": 90
+        }
+      },
+      "condition": "roi_dropout_left_cheek",
+      "effective_fs_hz": 30.000000000000107,
+      "n_samples": 1800
+    }
+  ],
+  "duration_s": 60.0,
+  "fs": 30.0,
+  "schema": "rsbvp.reliability-synthetic.v1",
+  "seed": 20261123,
+  "truth_bpm": 70.0,
+  "windowing": {
+    "step_seconds": 6.0,
+    "window_seconds": 12.0
+  }
+}

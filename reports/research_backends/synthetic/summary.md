@@ -18,8 +18,8 @@
 
 | Backend | Status | License | Latency (s) |
 |---|---|---|---|
-| rsbvp_native | completed | MIT | 0.594 |
-| rsbvp_reference | completed | MIT | 0.738 |
+| rsbvp_native | completed | MIT | 0.664 |
+| rsbvp_reference | completed | MIT | 0.773 |
 
 ## Availability and rejection accounting
 
