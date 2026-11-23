@@ -29,7 +29,11 @@ def _write_tiny_avi(path: Path, *, frames: int = 24, size=(48, 36), fps=30.0) ->
         frame = rng.integers(90, 160, size=(height, width, 3), dtype=np.uint8)
         writer.write(frame)
     writer.release()
-    return True
+    # verify the file is actually decodable in this OpenCV build; skip if not
+    cap = cv2.VideoCapture(str(path))
+    frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) if cap.isOpened() else 0
+    cap.release()
+    return frames > 0
 
 
 def _stand_in_archive(root: Path) -> Path:
