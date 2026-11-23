@@ -63,7 +63,7 @@ export function Results({ result }: { result: AnalysisResult }) {
         <Card
           label="Heart rate"
           value={fmt(s.consensus_hr, 1, 'BPM')}
-          sub="consensus"
+          sub={s.measurement_valid === false ? `${s.measurement_state ?? 'unavailable'} · ${s.measurement_reason ?? 'quality gate rejected estimate'}` : 'quality-gated consensus'}
           accent="#C62828"
         />
         <Card
@@ -92,6 +92,7 @@ export function Results({ result }: { result: AnalysisResult }) {
             <tbody>
               <tr><td>Green FFT</td><td>{fmt(s.hr_green_fft, 1, 'BPM')}</td></tr>
               <tr><td>POS FFT</td><td>{fmt(s.hr_pos_fft, 1, 'BPM')}</td></tr>
+              <tr><td>CHROM FFT (independent)</td><td>{fmt(s.hr_chrom_fft, 1, 'BPM')}</td></tr>
               <tr><td>Green peak</td><td>{fmt(s.hr_green_peak, 1, 'BPM')}</td></tr>
               <tr><td>POS peak</td><td>{fmt(s.hr_pos_peak, 1, 'BPM')}</td></tr>
               <tr><td>Peak guidance</td><td>{fmt(s.peak_guidance_hr, 1, 'BPM')}</td></tr>

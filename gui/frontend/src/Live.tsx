@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { BrowserPulse } from './rppg/BrowserPulse'
 import {
   listDevices,
   type Devices,
@@ -123,8 +124,10 @@ export function Live() {
 
   return (
     <div className="live">
+      <BrowserPulse />
       <section className="panel">
-        <h2>Live capture</h2>
+        <h2>Local host capture (legacy)</h2>
+        <p className="muted">This optional mode uses the webcam attached to the FastAPI host and is suitable for local research runs. For a remote browser user's camera, use the browser-local capture above.</p>
         <div className="mode-switch">
           <button
             className={mode === 'original' ? 'mode active' : 'mode'}

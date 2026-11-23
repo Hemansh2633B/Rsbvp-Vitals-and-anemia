@@ -2,8 +2,13 @@ export interface Summary {
   motion_class: string | null
   motion_confidence: number | null
   consensus_hr: number | null
+  measurement_valid?: boolean | null
+  measurement_state?: string | null
+  measurement_reason?: string | null
   hr_green_fft: number | null
   hr_pos_fft: number | null
+  hr_chrom_fft: number | null
+  chrom_reliability: number | null
   hr_green_peak: number | null
   hr_pos_peak: number | null
   peak_guidance_hr: number | null

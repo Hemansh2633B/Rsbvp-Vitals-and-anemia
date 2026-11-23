@@ -54,8 +54,54 @@ def timestamps_to_fs(timestamps):
     return float(1.0 / np.median(d)), float(np.mean(d > 1.5 * np.median(d)))
 
 
+def resample_rgb_traces(timestamps, traces, *, max_gap_seconds=0.25):
+    """Regularize timestamped Nx3 traces at median rate without crossing long gaps."""
+    t = np.asarray(timestamps, dtype=float)
+    fs, _ = timestamps_to_fs(t)
+    if not np.isfinite(max_gap_seconds) or max_gap_seconds <= 0:
+        raise ValueError("max_gap_seconds must be positive")
+    if np.max(np.diff(t)) > max_gap_seconds:
+        raise ValueError("timestamp discontinuity exceeds interpolation limit")
+    grid = np.arange(t[0], t[-1] + 0.25 / fs, 1.0 / fs)
+    result = {}
+    for name, values in traces.items():
+        x = np.asarray(values, dtype=float)
+        if x.shape != (len(t), 3):
+            raise ValueError(f"trace {name} must have shape (n, 3)")
+        out = np.full((len(grid), 3), np.nan)
+        for channel in range(3):
+            good = np.isfinite(x[:, channel])
+            tg, vg = t[good], x[good, channel]
+            if len(tg) < 2:
+                continue
+            right = np.searchsorted(tg, grid, side="right")
+            lo, hi = np.clip(right-1, 0, len(tg)-1), np.clip(right, 0, len(tg)-1)
+            gaps = tg[hi] - tg[lo]
+            ok = (grid >= tg[0]) & (grid <= tg[-1]) & (gaps <= max_gap_seconds)
+            frac = np.divide(grid-tg[lo], gaps, out=np.zeros_like(grid), where=gaps>0)
+            out[ok, channel] = vg[lo[ok]]*(1-frac[ok]) + vg[hi[ok]]*frac[ok]
+        result[name] = out
+    return grid, result, fs
+
+
+def measurement_gate(estimates, reliabilities, duration_seconds, *, candidate=None, agreement_bpm=12.0, minimum_reliability=0.25):
+    """Conservative cross-estimator gate; corrections cannot override rejection."""
+    if duration_seconds < 8:
+        return {"valid": False, "state": "warming_up", "reason": "At least 8 seconds of usable trace are required"}
+    pairs = [(float(v), float(q)) for v, q in zip(estimates, reliabilities)
+             if v is not None and q is not None and np.isfinite(v) and np.isfinite(q)]
+    trustworthy = [(v, q) for v, q in pairs if q >= minimum_reliability]
+    if len(trustworthy) < 2:
+        return {"valid": False, "state": "low_signal_quality", "reason": "Fewer than two estimators passed the reliability threshold"}
+    values = [v for v, _ in trustworthy]
+    if max(values) - min(values) > agreement_bpm:
+        return {"valid": False, "state": "low_signal_quality", "reason": "Independent estimator disagreement exceeds the configured tolerance"}
+    if candidate is not None and (not np.isfinite(candidate) or abs(float(candidate)-float(np.median(values))) > agreement_bpm):
+        return {"valid": False, "state": "low_signal_quality", "reason": "Legacy correction candidate disagrees with uncorrected estimators"}
+    return {"valid": True, "state": "valid", "reason": "Independent estimates agree and pass reliability checks"}
+
+
 def quality_status(*, face_detected, frame_count, required_frames, motion_score=0.0, signal_valid=True):
-    """Conservative finite-state quality gate; never manufactures an estimate."""
     if not face_detected:
         return "face_not_detected"
     if frame_count < required_frames:
