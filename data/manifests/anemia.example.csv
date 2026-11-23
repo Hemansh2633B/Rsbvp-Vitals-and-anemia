@@ -1,0 +1,2 @@
+dataset,dataset_version,participant_id,recording_id,image_path,label_path,label_type,source_citation,license_verified
+REQUIRES_SEPARATE_SPRINT,UNVERIFIED,participant-pseudonym,recording-pseudonym,DO_NOT_COMMIT_IMAGES,DO_NOT_COMMIT_LABELS,REQUIRES_VERIFIED_SCHEMA,REPLACE_WITH_OFFICIAL_CITATION,false

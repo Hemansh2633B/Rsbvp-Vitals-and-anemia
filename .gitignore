@@ -167,6 +167,18 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# Local research datasets and derived participant data (never commit)
+/data/raw/
+/data/processed/
+/data/local/
+*.avi
+*.mp4
+*.mov
+*.h5
+*.hdf5
+*.npz
+*.npy
+
 # mypy
 .mypy_cache/
 .dmypy.json
