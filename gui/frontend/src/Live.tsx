@@ -252,6 +252,13 @@ export function Live() {
             <div className="metric-sub muted">
               G {fmt(state?.hr_green_fft, 0)} · P {fmt(state?.hr_pos_fft, 0)}
             </div>
+            {state?.quality_status && (
+              <div className="metric-sub muted" role="status">
+                {state.quality_status === 'valid'
+                  ? 'quality checks passed'
+                  : `unavailable: ${state.quality_reason ?? state.quality_status}`}
+              </div>
+            )}
           </div>
           <div className="metric-card" style={{ borderTopColor: '#2E7D32' }}>
             <div className="metric-label">Respiratory rate</div>

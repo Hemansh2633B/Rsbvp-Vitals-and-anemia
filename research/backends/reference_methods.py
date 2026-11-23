@@ -24,7 +24,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
-from scipy.signal import butter, sosfiltfilt, periodogram
+from scipy.signal import butter, sosfiltfilt
 
 DEFAULT_PASSBAND_HZ = (0.7, 3.5)
 DEFAULT_WINDOW_SECONDS = 1.6
@@ -51,31 +51,83 @@ def bandpass(signal, fs, low_hz=DEFAULT_PASSBAND_HZ[0], high_hz=DEFAULT_PASSBAND
         return x - x.mean()
 
 
-def estimate_hr_bpm(signal, fs, min_hz=DEFAULT_PASSBAND_HZ[0], max_hz=DEFAULT_PASSBAND_HZ[1]):
-    """Hann-periodogram peak estimate. Returns (bpm, peak_fraction) or (None, None).
+SPECTRAL_MIN_CONCENTRATION = 0.20   # peak / passband total (quasi-flat reject)
+SPECTRAL_MIN_SNR_DB = 3.0            # peak vs median passband power (excl. peak bins)
+SPECTRAL_MIN_SEPARATION = 1.5        # peak vs best competing local maximum (>= 0.25 Hz away)
+PEAK_GUARD_RADIUS_HZ = 0.15
+COMPETITOR_MIN_DISTANCE_HZ = 0.25
 
-    ``peak_fraction`` is the peak power divided by the total in-band power; it
-    is a coarse, uncalibrated spectral-concentration measure — not a validated
-    quality score.
+
+def spectral_features(signal, fs, min_hz=DEFAULT_PASSBAND_HZ[0], max_hz=DEFAULT_PASSBAND_HZ[1]):
+    """Full spectral characterization of one window (Hann periodogram, no filtering).
+
+    Returns ``(bpm, peak_fraction, snr_db, separation_ratio)`` — any entry is
+    ``None`` when it cannot be computed. ``snr_db`` compares the peak against
+    the median passband power outside a 0.15 Hz guard radius. ``separation_ratio``
+    compares the peak against the strongest competing local maximum at least
+    0.25 Hz away; ``None`` means "no competitor found" (treated as passing).
+    These are coarse, uncalibrated diagnostics — not validated quality scores.
     """
     x = np.asarray(signal, dtype=float)
     if x.ndim != 1 or len(x) < max(8, int(4 * fs)) or not np.isfinite(x).all():
-        return None, None
+        return None, None, None, None
     centered = x - x.mean()
     if np.std(centered) < 1e-10:
-        return None, None
-    freqs, power = periodogram(centered, fs=fs, window="hann")
+        return None, None, None, None
+    n = len(centered)
+    window = 0.5 - 0.5 * np.cos(2.0 * np.pi * np.arange(n) / (n - 1))
+    power = np.abs(np.fft.rfft(centered * window)) ** 2
+    freqs = np.arange(power.size) * float(fs) / n
     mask = (freqs >= min_hz) & (freqs <= max_hz)
     if not mask.any():
-        return None, None
-    band = power[mask]
+        return None, None, None, None
+    band_freqs, band = freqs[mask], power[mask]
     total = float(band.sum())
     if not np.isfinite(total) or total <= 0:
-        return None, None
+        return None, None, None, None
     peak_index = int(np.argmax(band))
+    peak_hz = float(band_freqs[peak_index])
+    peak_power = float(band[peak_index])
     peak_fraction = float(band[peak_index] / total)
-    peak_hz = float(freqs[mask][peak_index])
-    return peak_hz * 60.0, peak_fraction
+
+    guard = np.abs(band_freqs - peak_hz) > PEAK_GUARD_RADIUS_HZ
+    floor_bins = band[guard]
+    if floor_bins.size == 0 or float(np.median(floor_bins)) <= 0.0:
+        snr_db = None
+    else:
+        snr_db = float(10.0 * np.log10(peak_power / np.median(floor_bins)))
+
+    separation_ratio = None
+    for i in range(1, len(band) - 1):
+        if abs(band_freqs[i] - peak_hz) < COMPETITOR_MIN_DISTANCE_HZ:
+            continue
+        if band[i] >= band[i - 1] and band[i] >= band[i + 1]:
+            ratio = peak_power / max(float(band[i]), 1e-30)
+            separation_ratio = ratio if separation_ratio is None else min(separation_ratio, ratio)
+    return peak_hz * 60.0, peak_fraction, snr_db, separation_ratio
+
+
+def quality_failures(peak_fraction, snr_db, separation_ratio):
+    """Name every failed spectral check (machine-readable, charset-safe tokens)."""
+    failing = []
+    if peak_fraction is None:
+        return ["no_spectral_peak"]
+    if peak_fraction < SPECTRAL_MIN_CONCENTRATION:
+        failing.append(f"low_concentration_{peak_fraction:.3f}")
+    if snr_db is None or snr_db < SPECTRAL_MIN_SNR_DB:
+        failing.append(f"low_snr_{(snr_db if snr_db is not None else float('nan')):.1f}db")
+    if separation_ratio is not None and separation_ratio < SPECTRAL_MIN_SEPARATION:
+        failing.append(f"weak_separation_{separation_ratio:.2f}")
+    return failing
+
+
+def estimate_hr_bpm(signal, fs, min_hz=DEFAULT_PASSBAND_HZ[0], max_hz=DEFAULT_PASSBAND_HZ[1]):
+    """Hann-periodogram peak estimate. Returns (bpm, peak_fraction) or (None, None).
+
+    Kept for backward compatibility; new callers should use :func:`spectral_features`.
+    """
+    bpm, peak_fraction, _snr_db, _separation = spectral_features(signal, fs, min_hz, max_hz)
+    return bpm, peak_fraction
 
 
 def _check_rgb(rgb):

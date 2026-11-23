@@ -143,6 +143,9 @@ export interface LiveState {
   pos_reliability?: number | null
   rr_final?: number | null
   sampling_rate?: number | null
+  quality_status?: string | null
+  quality_reason?: string | null
+  quality_reasons?: string[] | null
   spo2?: number | null
   hardware_hr?: number | null
   // motion-segment mode extras

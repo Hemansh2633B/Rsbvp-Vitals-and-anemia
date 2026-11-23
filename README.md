@@ -30,7 +30,7 @@ npm run dev -- --host 0.0.0.0
 
 The frontend proxies `/api` and `/ws` to the local FastAPI service. The live view now offers browser-local `getUserMedia()` + MediaPipe acquisition with in-browser ROI/rPPG analysis and timestamped RGB CSV export; it does not upload frames. The legacy local OpenCV camera and optional serial/CMS50D functionality remain available and use the **backend host's** hardware. Browser use requires camera permission and reachable MediaPipe model/WASM endpoints. Numeric live estimates are experimental and require browser/hardware validation.
 
-Browser exports a timestamped RGB CSV plus JSON run metadata; schema and the offline comparison path are documented in [RGB trace format](docs/RGB_TRACE_FORMAT.md) and [MediaPipe asset notes](docs/MEDIAPIPE_ASSETS.md).
+Browser exports a timestamped RGB CSV plus JSON run metadata, and a per-window analysis JSON (effective sampling rate, per-estimator BPMs, quality score, availability status, rejection reason); schemas are documented in [export schema](docs/EXPORT_SCHEMA.md) and [MediaPipe asset notes](docs/MEDIAPIPE_ASSETS.md).
 
 Run tests from the repository root after installing test dependencies:
 
@@ -78,6 +78,10 @@ See [research backends guide](docs/RESEARCH_BACKENDS.md) for setup (toolbox/pyVH
 
 RSBVP stays honest about what is actually established. The UBFC-rPPG official page was verified (2026-11-23) but the archive is **not present**; [data readiness report](reports/research_validation/DATA_READINESS.md) documents provenance, terms and the steps required before any dataset run. [research validation](reports/research_validation/validation_report.md) separates software verification (deterministic synthetic fixtures, committed) from dataset evidence (none). [Reliability analysis](docs/RELIABILITY.md) covers failure modes (low light, motion, ROI loss, gaps, frame rate) with every claim marked SOFTWARE / HARDWARE-UNTESTED / NOT RUN. [Public-interest safeguards](docs/PUBLIC_INTEREST_SAFEGUARDS.md) state hard limits: pulse rate is not blood pressure, PRV is not ECG HRV, conjunctival appearance is not a hemoglobin measurement, and the anemia module is not a validated predictor of anything. The interface carries the same “what this cannot tell you” statements.
 
+## Live signal quality (Sprint 7)
+
+A conservative, explainable quality layer now governs when pulse estimates are reported. It separates five concepts — acquisition quality (clipping/exposure/dynamic range), ROI tracking coverage, physiological signal quality (spectral concentration, SNR vs the passband floor, peak separation), estimator agreement, and final availability — and reports explicit per-window statuses: `warming_up`, `valid`, `low_signal_quality`, `excessive_motion`, `face_not_detected`, `roi_lost`, `insufficient_frames`, `irregular_timestamps`, `reacquiring`, `processing_error`. Inadequate quality ⇒ the estimate is unavailable with a human-readable reason — never a plausible-looking number, never a silent zero/previous substitution. The legacy Python live pipeline and the browser DSP both apply these gates; browser and Python use matching spectral diagnostics (documented Python↔TypeScript parity tests run on a shared synthetic fixture; no claim is made beyond that fixture). Low-light POS false-accepts (12–15 BPM with unverifiable correctness) are now flagged as low-quality in synthetic fixtures rather than passed silently — see [reliability analysis](docs/RELIABILITY.md). Quality thresholds are documented research heuristics, not clinical cut-offs; a strong spectral peak is not proof of pulse origin.
+
 ## Anemia dataset inventory
 
 No images are included. After verifying dataset terms and local permission, inventory a local dataset without downloading anything:
@@ -102,7 +106,8 @@ The Sprint 3 intake tools read only local files. Configure `RSBVP_DATA_ROOT` or 
 
 ## Documentation
 
-- [Initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md)
+- [Current status audit](docs/CURRENT_STATUS_AUDIT.md)
+- [Initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md) (historical)
 - [Open-source research audit](docs/OPEN_SOURCE_RESEARCH_AUDIT.md)
 - [Research backends guide](docs/RESEARCH_BACKENDS.md)
 - [Reliability and failure analysis](docs/RELIABILITY.md)

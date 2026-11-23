@@ -57,6 +57,8 @@ def availability_summary(records: Iterable) -> dict:
     usable = 0
     rejected = 0
     reasons: dict[str, int] = {}
+    low_quality = 0
+    ok = 0
     for record in records:
         if getattr(record, "backend_output_type", "window") != "window":
             continue
@@ -65,6 +67,10 @@ def availability_summary(records: Iterable) -> dict:
             usable += 1
         quality = record.signal_quality or "unknown"
         head = quality.split(":", 1)[0]
+        if head == "ok":
+            ok += 1
+        elif head == "low_quality":
+            low_quality += 1
         if head in {"rejected", "unavailable"}:
             rejected += 1
             reason = quality.split(":", 1)[1] if ":" in quality else quality
@@ -75,6 +81,9 @@ def availability_summary(records: Iterable) -> dict:
         "windows_total": total,
         "windows_with_estimate": usable,
         "estimate_availability": (usable / total) if total else None,
+        "windows_quality_ok": ok,
+        "windows_low_quality": low_quality,
+        "quality_ok_fraction": (ok / total) if total else None,
         "windows_rejected_or_unavailable": rejected,
         "rejection_or_unavailability_reasons": reasons,
     }

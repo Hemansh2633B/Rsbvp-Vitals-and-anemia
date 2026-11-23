@@ -162,8 +162,8 @@ def render_markdown(report: dict) -> str:
         "> These measurements exercise the pipelines and quality gates under controlled",
         "> corruption. They say nothing about real cameras, skin, motion or patients.",
         "",
-        "| Condition | Backend | Algo | Availability | Rejected/unavailable | MAE vs truth (BPM) |",
-        "|---|---|---|---|---|---|",
+        "| Condition | Backend | Algo | Availability | Quality-OK | Rejected/unavailable | MAE vs truth (BPM) |",
+        "|---|---|---|---|---|---|---|",
     ]
     for condition in report["conditions"]:
         backends = condition["backends"]
@@ -176,10 +176,12 @@ def render_markdown(report: dict) -> str:
                 mae = err["mae_bpm"]
                 availability = algo_summary["estimate_availability"]
                 availability_cell = f"{availability:.3f}" if availability is not None else "—"
+                ok = algo_summary["quality_ok_fraction"]
+                ok_cell = f"{ok:.3f}" if ok is not None else "—"
                 mae_cell = f"{mae:.4f}" if mae is not None else "—"
                 lines.append(
                     f"| {condition['condition']} | {backend_name} | {algo} "
-                    f"| {availability_cell} | {algo_summary['windows_rejected_or_unavailable']} | {mae_cell} |"
+                    f"| {availability_cell} | {ok_cell} | {algo_summary['windows_rejected_or_unavailable']} | {mae_cell} |"
                 )
     lines += ["", "## Rejection reasons (aggregate)", ""]
     for condition in report["conditions"]:

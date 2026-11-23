@@ -1,8 +1,7 @@
 export type RGB = [number, number, number]
 export type TraceSample = { t: number; rois: Partial<Record<'forehead' | 'left_cheek' | 'right_cheek', RGB | null>> }
-export type AlgorithmResult = { bpm: number | null; quality: number; waveform: number[] }
 export type LiveAnalysis = {
-  status: 'warming_up' | 'valid' | 'low_signal_quality' | 'excessive_motion' | 'face_not_detected' | 'roi_lost' | 'insufficient_frames' | 'reacquiring'
+  status: 'warming_up' | 'valid' | 'low_signal_quality' | 'excessive_motion' | 'face_not_detected' | 'roi_lost' | 'insufficient_frames' | 'irregular_timestamps' | 'reacquiring' | 'processing_error'
   reason: string
   bpm: number | null
   estimates: Record<string, number | null>
@@ -10,6 +9,8 @@ export type LiveAnalysis = {
   quality: number
   waveforms: Record<string, number[]>
   fs: number | null
+  /** Per-window spectral diagnostics behind the verdict (uncalibrated research metrics). */
+  scores?: { fsHz: number | null; durationS: number | null; maxGapS: number | null; peakFraction: number | null; snrDb: number | null; separationRatio: number | null }
 }
 const ROI_NAMES = ['forehead', 'left_cheek', 'right_cheek'] as const
 const METHODS = ['green', 'pos', 'chrom'] as const
@@ -40,6 +41,18 @@ export function resampleTrace(samples: TraceSample[], roi: typeof ROI_NAMES[numb
   }
   return {values, fs}
 }
+export function traceDiagnostics(samples:TraceSample[],roi:typeof ROI_NAMES[number]):{n:number;fsHz:number|null;durationS:number;maxGapS:number|null;droppedIntervalFraction:number|null} {
+  const available=samples.filter(s=>s.rois[roi]&&Number.isFinite(s.rois[roi]![0])&&Number.isFinite(s.rois[roi]![1])&&Number.isFinite(s.rois[roi]![2]))
+  const n=available.length
+  if(n<2) return {n,fsHz:null,durationS:0,maxGapS:null,droppedIntervalFraction:null}
+  const intervals=available.slice(1).map((s,i)=>s.t-available[i].t)
+  const sorted=[...intervals].filter(d=>d>0).sort((a,b)=>a-b)
+  const fs=sorted.length?1/sorted[Math.floor(sorted.length/2)]:null
+  const maxGapS=intervals.length?Math.max(...intervals):null
+  const typical=sorted.length?sorted[Math.floor(sorted.length/2)]:null
+  const dropped=typical?intervals.filter(d=>d>1.5*typical).length/intervals.length:null
+  return {n,fsHz:fs!==null&&Number.isFinite(fs)?fs:null,durationS:available[n-1].t-available[0].t,maxGapS,droppedIntervalFraction:dropped}
+}
 function median(a:number[]) { const x=[...a].sort((u,v)=>u-v); return x[Math.floor(x.length/2)] }
 function filterBand(x:number[]) {
   // DC removal plus Hann-windowed spectral selection in the estimator. Retain
@@ -59,36 +72,59 @@ function chrom(rgb:number[][],fs:number) {
   return out.map((v,i)=>v/Math.max(1,weight[i]))
 }
 function std(x:number[]) { const m=x.reduce((s,v)=>s+v,0)/x.length; return Math.sqrt(x.reduce((s,v)=>s+(v-m)**2,0)/x.length) }
-function spectral(x:number[],fs:number):AlgorithmResult {
-  if(x.length<8*fs || !x.every(Number.isFinite)) return {bpm:null,quality:0,waveform:x}
-  const y=filterBand(x), n=y.length
+const SPECTRAL_MIN_CONCENTRATION=0.20, SPECTRAL_MIN_SNR_DB=3.0, SPECTRAL_MIN_SEPARATION=1.5
+const PEAK_GUARD_RADIUS_HZ=0.15, COMPETITOR_MIN_DISTANCE_HZ=0.25
+function hann(n:number){const w=new Array(n);for(let i=0;i<n;i++)w[i]=0.5-0.5*Math.cos(2*Math.PI*i/(n-1));return w}
+export function spectralDiagnostics(x:number[],fs:number):{bpm:number|null;quality:number;snrDb:number|null;separationRatio:number|null;waveform:number[]} {
+  if(x.length<8*fs || !x.every(Number.isFinite)) return {bpm:null,quality:0,snrDb:null,separationRatio:null,waveform:x}
+  const y=filterBand(x), n=y.length, win=hann(n)
   let best=-1,bestPower=0,total=0
+  const band:Array<{f:number;power:number}>=[]
   for(let i=0;i<Math.floor(n/2);i++) {
     const f=i*fs/n
-    if(f<LOW || f>HIGH) continue
     let re=0,im=0
-    for(let j=0;j<n;j++) { const v=y[j]*(0.5-0.5*Math.cos(2*Math.PI*j/(n-1))); re+=v*Math.cos(2*Math.PI*i*j/n); im-=v*Math.sin(2*Math.PI*i*j/n) }
-    const p=re*re+im*im; total+=p; if(p>bestPower){bestPower=p;best=f}
+    for(let j=0;j<n;j++) { const v=y[j]*win[j]; re+=v*Math.cos(2*Math.PI*i*j/n); im-=v*Math.sin(2*Math.PI*i*j/n) }
+    const p=re*re+im*im
+    if(f>=LOW && f<=HIGH) { total+=p; band.push({f,power:p}); if(p>bestPower){bestPower=p;best=f} }
   }
-  const bpm=best>0?best*60:null
-  const quality=total>0?bestPower/total:0
-  return {bpm,quality,waveform:y}
+  if(best<=0 || total<=0) return {bpm:null,quality:0,snrDb:null,separationRatio:null,waveform:y}
+  const peakPower=bestPower, peakHz=best
+  const floorBins=band.filter(b=>Math.abs(b.f-peakHz)>PEAK_GUARD_RADIUS_HZ)
+  let snrDb:number|null=null
+  if(floorBins.length){const sorted=floorBins.map(b=>b.power).sort((a,b)=>a-b);const m=sorted.length;const median=m%2?sorted[(m-1)/2]:(sorted[m/2-1]+sorted[m/2])/2;if(median>0)snrDb=10*Math.log10(peakPower/median)}
+  let separationRatio:number|null=null
+  for(let i=1;i<band.length-1;i++) {
+    const cur=band[i]
+    if(Math.abs(cur.f-peakHz)<COMPETITOR_MIN_DISTANCE_HZ) continue
+    if(cur.power>=band[i-1].power && cur.power>=band[i+1].power) {
+      const ratio=peakPower/Math.max(cur.power,1e-30)
+      separationRatio=separationRatio===null?ratio:Math.min(separationRatio,ratio)
+    }
+  }
+  return {bpm:best*60,quality:bestPower/total,snrDb,separationRatio,waveform:y}
 }
-function process(rgb:number[][],fs:number,method:typeof METHODS[number]) {
-  if(method==='green') return spectral(rgb.map(v=>v[1]),fs)
-  if(method==='chrom') return spectral(chrom(rgb,fs),fs)
-  // POS projection on the complete buffered window; treated as experimental
-  // in-browser variant. The original rolling-window Python method is retained.
+// POS projection on the complete buffered window; experimental in-browser
+// variant. The original rolling-window Python method is retained.
+export function posProjection(rgb:number[][]):number[] {
   const means=[0,1,2].map(i=>rgb.reduce((s,r)=>s+r[i],0)/rgb.length)
   const normalized=rgb.map(r=>r.map((v,i)=>v/Math.max(means[i],1e-8)-1))
   const s1=normalized.map(v=>v[1]-v[2]),s2=normalized.map(v=>v[1]+v[2]-2*v[0])
   const alpha=std(s1)/Math.max(std(s2),1e-8)
-  return spectral(s1.map((v,i)=>v+alpha*s2[i]),fs)
+  return s1.map((v,i)=>v+alpha*s2[i])
+}
+export function chromProjection(rgb:number[][],fs:number):number[] {
+  return chrom(rgb,fs)
+}
+function process(rgb:number[][],fs:number,method:typeof METHODS[number]) {
+  if(method==='green') return spectralDiagnostics(rgb.map(v=>v[1]),fs)
+  if(method==='chrom') return spectralDiagnostics(chromProjection(rgb,fs),fs)
+  return spectralDiagnostics(posProjection(rgb),fs)
 }
 export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAnalysis {
   const end=samples.at(-1)?.t ?? 0, start=samples[0]?.t ?? 0, duration=end-start
   if(duration<requiredSeconds) return {status:'warming_up',reason:`Acquire ${Math.ceil(requiredSeconds-duration)} more seconds`,bpm:null,estimates:{},consistencyBpm:null,quality:0,waveforms:{},fs:null}
   const estimates:Record<string,number|null>={}, waveforms:Record<string,number[]>={}, qualities:number[]=[]
+  let worstSnr:number|null=null, worstSeparation:number|null=null
   let fs:number|null=null
   for(const roi of ROI_NAMES) {
     const rgb=([0,1,2] as const).map(ch=>resampleTrace(samples,roi,ch))
@@ -100,15 +136,33 @@ export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAn
     for(const method of METHODS) {
       const key=`${roi}_${method}`, result=process(matrix,rate,method)
       estimates[key]=result.bpm; waveforms[key]=result.waveform.slice(-240); qualities.push(result.quality)
+      if(result.snrDb!==null) worstSnr=worstSnr===null?result.snrDb:Math.min(worstSnr,result.snrDb)
+      if(result.separationRatio!==null) worstSeparation=worstSeparation===null?result.separationRatio:Math.min(worstSeparation,result.separationRatio)
     }
   }
   const values=Object.values(estimates).filter((v):v is number=>v!==null && Number.isFinite(v))
   const bpm=values.length>=2?median(values):null
   const consistency=values.length>=2?Math.max(...values)-Math.min(...values):Infinity
   const quality=qualities.length?median(qualities):0
-  const valid=bpm!==null && consistency<=12 && quality>=0.12
+  // Cross-window timestamp integrity: any ROI trace with a > 0.25 s gap means
+  // the capture is irregular (frame drops, tab throttling) even if resampling
+  // could hide it — report it explicitly, never as a quiet sample count issue.
+  let irregular=false, maxGapS:number|null=null, durationS:number|null=null
+  for(const roi of ROI_NAMES){
+    const diag=traceDiagnostics(samples,roi)
+    if(diag.n<2)continue
+    durationS=durationS===null?diag.durationS:Math.max(durationS,diag.durationS)
+    if(diag.maxGapS!==null){maxGapS=maxGapS===null?diag.maxGapS:Math.max(maxGapS,diag.maxGapS);if(diag.maxGapS>0.25)irregular=true}
+  }
+  const snrPass=worstSnr!==null && worstSnr>=SPECTRAL_MIN_SNR_DB
+  const sepPass=worstSeparation===null || worstSeparation>=SPECTRAL_MIN_SEPARATION
+  const concentrationPass=quality>=SPECTRAL_MIN_CONCENTRATION
+  const spectralPass=snrPass && sepPass && concentrationPass
+  const valid=bpm!==null && consistency<=12 && spectralPass
   const noRoi=Object.keys(estimates).length===0
   const insufficient=fs===null
-  const reason=valid?'Independent ROI/method estimates agree':noRoi?'All skin ROIs are lost or unavailable':insufficient?'Insufficient frames or irregular sampling':values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':'Weak pulse spectral concentration'
-  return {status:valid?'valid':noRoi?'roi_lost':insufficient?'insufficient_frames':'low_signal_quality',reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs}
+  const spectralReason=concentrationPass?(snrPass?(sepPass?'':'peak separation too weak'):'pulse SNR below 3 dB'):'spectral concentration below 20%'
+  const reason=valid?'Independent ROI/method estimates agree':irregular?'Timestamp gaps exceed 0.25 s (dropped frames or tab throttling)':noRoi?'All skin ROIs are lost or unavailable':insufficient?'Insufficient frames or irregular sampling':values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':spectralReason
+  const status=valid?'valid':irregular?'irregular_timestamps':noRoi?'roi_lost':insufficient?'insufficient_frames':'low_signal_quality'
+  return {status,reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs,scores:{fsHz:fs,durationS,maxGapS,peakFraction:qualities.length?quality:null,snrDb:worstSnr,separationRatio:worstSeparation}}
 }

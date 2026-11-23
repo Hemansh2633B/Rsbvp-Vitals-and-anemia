@@ -1,4 +1,6 @@
-# Reliability and failure analysis — investigation notes (Sprint 6)
+# Reliability and failure analysis — investigation notes (Sprint 6; updated Sprint 7)
+
+**Sprint 7 update.** The per-window quality verdict is now decomposed into five separately reported concepts: acquisition quality, trace/ROI quality, physiological signal quality, estimator agreement, availability (`gui/rppg_core/quality.py`; mirrored in `gui/frontend/src/rppg/liveDsp.ts` and `research/backends/reference_methods.py`). Spectral diagnostics added: spectral concentration (≥ 0.20), SNR vs the out-of-peak passband median (≥ 3 dB, guard radius 0.15 Hz), peak separation vs the strongest competing in-band local maximum ≥ 0.25 Hz away (≥ 1.5×). Token `low_quality:<check>` is now emitted when any check fails; `quality_ok_fraction` / `windows_quality_ok` / `windows_low_quality` appear in backend summary accounting. The Python and browser estimators use the identical formulation (symmetric Hann, explicit DFT) and are parity-tested on a shared synthetic fixture (assertions on peak frequency, fraction, SNR and separation; `tests/fixtures/rppg_rgb_fixture.csv`). Browser status set extended: `irregular_timestamps`, `processing_error`. Python live pipeline gates `consensus_hr`/`rr_final` on the composite verdict (per-estimator values stay visible). Synthetic low-light POS false-accept is now flagged as low-quality on the marginal windows (native POS quality-ok 0.556, reference POS 0.630) — the forehead windows of the perfectly periodic synthetic fixture still pass, which is expected of an idealized signal and is not evidence of real-world robustness. Acquisition-clipping acquisitions (near-black/near-white rails) are rejected regardless of spectral peak quality. Calibration of these heuristics to real camera physiology: NOT RUN.
 
 Scope: poor illumination, face movement, ROI tracking failure, missing/irregular frames, camera frame-rate variation, browser/camera configurations, and failure/unavailable states — with the evidence tier of every statement marked.
 
@@ -60,7 +62,10 @@ Scope: poor illumination, face movement, ROI tracking failure, missing/irregular
 | `error` | getUserMedia/model/worker failure | No — error banner |
 | `rejected:nonfinite_samples` / `rejected:excessive_gaps` (backends) | NaN in window / gap > 0.25 s | Never estimated |
 | `unavailable:*` (neural/toolbox/pyvhr) | backend not installed / checkpoint absent / unsupported method | Never estimated |
-| `low_quality:spectral_concentration_*` | peak < 0.20 spectral concentration | Estimate emitted but flagged; browser treats as not-usable |
+| `low_signal_quality` + `quality_reasons` | any of acquisition/spectral/agreement/ROI checks fail | No — reason spelled out (e.g. `low_concentration_0.191`, `weak_separation_1.37`, `low_snr_11.7db`, `estimator_disagreement_22.0bpm`) |
+| `irregular_timestamps` | any ROI trace gap > 0.25 s | No — capture integrity reported |
+| `insufficient_frames` | effective fs < 12 Hz or too few samples | No |
+| `low_quality:<check>` (backends) | spectral checks fail | Estimate emitted but flagged; backend summary counts `quality_ok_fraction` |
 
 Acceptance invariant: **a poor-quality result is unavailable, never silently plausible.** Any code path violating this is a P0 defect — report it.
 

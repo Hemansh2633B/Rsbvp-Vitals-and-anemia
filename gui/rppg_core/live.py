@@ -22,6 +22,7 @@ from scipy.interpolate import CubicSpline
 from scipy.signal import welch
 
 from . import pipeline as P
+from . import quality as Q
 from .device import CMS50D
 
 # ------------------------------------------------------------
@@ -383,6 +384,22 @@ def estimate_live_rppg_from_buffer(rgb_times, rgb_values, selected_pipeline,
 
     rr_final = estimate_live_rr_from_pos(pos_filt, times, sampling_rate)
 
+    # Sprint-7 quality layer: five explicit concepts composed into one
+    # window verdict. The legacy estimator outputs (green/pos, FFT/peak,
+    # adaptive rescues) are preserved verbatim; this layer only decides
+    # whether the consensus estimate may be reported.
+    trace = Q.trace_report(times)
+    acquisition = Q.acquisition_report(rgb_signal)
+    spectral = Q.spectral_quality(np.asarray(pos_filt, dtype=float), sampling_rate)
+    agreement = Q.agreement_report({"green_fft": hr_green_fft, "pos_fft": hr_pos_fft})
+    verdict = Q.assess_window(trace=trace, acquisition=acquisition, spectral=spectral,
+                              agreement=agreement, min_window_s=min_seconds_for_hr)
+    if not verdict.available:
+        # Unavailable, never a plausible-looking number. Per-estimator
+        # values stay visible so disagreement is never hidden.
+        hr_consensus = None
+        rr_final = None
+
     return {
         "sampling_rate": sampling_rate,
         "consensus_hr": hr_consensus,
@@ -393,6 +410,10 @@ def estimate_live_rppg_from_buffer(rgb_times, rgb_values, selected_pipeline,
         "green_reliability": green_info["reliability"],
         "pos_reliability": pos_info["reliability"],
         "rr_final": rr_final,
+        "quality_status": verdict.status,
+        "quality_reason": verdict.reason,
+        "quality_reasons": list(verdict.reasons),
+        "quality_scores": verdict.scores,
     }
 
 
@@ -937,6 +958,11 @@ class LiveSession:
             "pos_reliability": _f(r.get("pos_reliability")),
             "rr_final": _f(r.get("rr_final")),
             "sampling_rate": _f(r.get("sampling_rate")),
+            # Sprint-7 quality verdict for the window behind this frame.
+            # "valid" only when trace/acquisition/spectral/agreement all pass.
+            "quality_status": r.get("quality_status"),
+            "quality_reason": r.get("quality_reason"),
+            "quality_reasons": r.get("quality_reasons"),
             # CMS50D (oximeter) — null unless connected
             "cms_connected": self.cms_connected,
             "spo2": spo2,

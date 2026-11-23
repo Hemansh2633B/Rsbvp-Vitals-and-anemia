@@ -26,13 +26,16 @@ function Trace({values,label}:{values:number[];label:string}) {
 export function BrowserPulse(){
   const video=useRef<HTMLVideoElement>(null), canvas=useRef<HTMLCanvasElement>(null), overlay=useRef<HTMLCanvasElement>(null)
   const sessionId=useRef(0),stream=useRef<MediaStream|null>(null), landmarker=useRef<FaceLandmarker|null>(null), worker=useRef<Worker|null>(null), pendingJob=useRef(false), jobId=useRef(0), raf=useRef(0), lastSample=useRef(0), lastAnalysis=useRef(0), lastUi=useRef(0),lastVideoTime=useRef(-1), lastPlaybackCount=useRef<number|null>(null), lastPlaybackTime=useRef(0), lostAt=useRef<number|null>(null), samples=useRef<TraceSample[]>([]),exportSamples=useRef<TraceSample[]>([]),exportDropped=useRef(0),acquisitionStart=useRef<number|null>(null), previousCenter=useRef<{x:number;y:number}|null>(null), centers=useRef<Array<{t:number;x:number;y:number}>>([]), smoothed=useRef<Array<{x:number;y:number;z:number}>>([])
+  const windowLog=useRef<Array<Record<string,unknown>>>([]),pendingWindow=useRef<{start_s:number;end_s:number;n_samples:number}|null>(null)
   const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[deviceId,setDeviceId]=useState(''),[track,setTrack]=useState<Track>('idle'),[error,setError]=useState(''),[analysis,setAnalysis]=useState(initial),[duration,setDuration]=useState(0),[roiState,setRoiState]=useState('Waiting for face'),[algorithm,setAlgorithm]=useState('green'),[cameraFps,setCameraFps]=useState<number|null>(null)
+  const algorithmRef=useRef(algorithm);algorithmRef.current=algorithm
+  const windowsDropped=useRef(0)
   const stop=()=>{sessionId.current++;cancelAnimationFrame(raf.current);worker.current?.terminate();worker.current=null;pendingJob.current=false;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;landmarker.current?.close();landmarker.current=null;if(video.current)video.current.srcObject=null;setTrack('idle');setRoiState('Camera stopped');setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped; no live estimate is available'}))}
   useEffect(()=>{void refreshDevices();const onVisibility=()=>{if(document.hidden&&stream.current){stop();setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped because the browser tab became hidden'}))}};document.addEventListener('visibilitychange',onVisibility);return()=>{document.removeEventListener('visibilitychange',onVisibility);stop()}},[])
   async function refreshDevices(){try{setDevices(await navigator.mediaDevices.enumerateDevices().then(d=>d.filter(x=>x.kind==='videoinput')))}catch{setDevices([])}}
   async function start(){
     const session=++sessionId.current
-    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);setTrack('loading')
+    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);setTrack('loading')
     try{
       if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera API unavailable. Use HTTPS or localhost in a supported browser.')
       const videoConstraint:MediaTrackConstraints=deviceId?{deviceId:{exact:deviceId},width:{ideal:640},height:{ideal:480}}:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}}
@@ -41,10 +44,11 @@ export function BrowserPulse(){
       stream.current=s;setTrack('model_loading');s.getVideoTracks().forEach(track=>{track.addEventListener('ended',()=>{stop();setError('Camera stream ended or was interrupted.');setAnalysis({...initial,status:'low_signal_quality',reason:'Camera stream ended'});setTrack('error')},{once:true});track.addEventListener('mute',()=>{jobId.current++;pendingJob.current=false;setAnalysis({...initial,status:'reacquiring',reason:'Camera temporarily interrupted; reacquiring signal'});setTrack('reacquiring')});track.addEventListener('unmute',()=>{samples.current=[];centers.current=[];acquisitionStart.current=null;setDuration(0);setAnalysis({...initial,status:'reacquiring',reason:'Camera resumed; collecting a fresh window'});setTrack('reacquiring')})});if(video.current){video.current.srcObject=s;await video.current.play()}
       if(session!==sessionId.current)return
       await refreshDevices()
-      const vision=await FilesetResolver.forVisionTasks(WASM)
+      let vision:Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>
+      try{vision=await FilesetResolver.forVisionTasks(WASM)}catch{throw new Error(`MediaPipe WASM runtime failed to load from ${WASM}. Check your network or set VITE_MEDIAPIPE_WASM_URL to a reviewed mirror (see docs/MEDIAPIPE_ASSETS.md).`)}
       if(session!==sessionId.current)return
       let tracker:FaceLandmarker
-      try{tracker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:'GPU'},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false})}catch{tracker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:'CPU'},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false})}
+      try{tracker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:'GPU'},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false})}catch{try{tracker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:'CPU'},runningMode:'VIDEO',numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false})}catch{throw new Error(`Face Landmarker model failed to load from ${MODEL}. Check your network or set VITE_FACE_LANDMARKER_MODEL_URL to a reviewed mirror (see docs/MEDIAPIPE_ASSETS.md).`)}}
       if(session!==sessionId.current){tracker.close();return}
       landmarker.current=tracker
       if(typeof Worker==='undefined')throw new Error('Web Workers are unavailable; browser DSP cannot run safely in this browser.')
@@ -53,7 +57,12 @@ export function BrowserPulse(){
         pendingJob.current=false
         if(event.data.id!==jobId.current)return
         if(event.data.error){stop();setError(`Signal-processing worker failed: ${event.data.error}`);setAnalysis({...initial,status:'low_signal_quality',reason:'DSP worker failed; no current estimate'});setTrack('error');return}
-        if(event.data.result)setAnalysis(event.data.result)
+        if(event.data.result){
+          const result=event.data.result,win=pendingWindow.current
+          windowLog.current.push({window_index:windowLog.current.length + windowsDropped.current,window_start_s:win?.start_s??null,window_end_s:win?.end_s??null,n_samples:win?.n_samples??null,analyzed_utc:new Date().toISOString(),effective_sampling_rate_hz:result.fs,consensus_bpm:result.bpm,per_estimator_bpm:result.estimates,quality_score:result.quality,consistency_bpm:result.consistencyBpm,availability_status:result.status,rejection_reason:result.status==='valid'?null:result.reason,spectral:result.scores??null,selected_display_algorithm:algorithmRef.current})
+          if(windowLog.current.length>3600){windowLog.current.shift();windowsDropped.current++}
+          setAnalysis(result)
+        }
       }
       worker.current.onerror=()=>{stop();setError('Signal-processing worker crashed; no current estimate is available.');setAnalysis({...initial,status:'low_signal_quality',reason:'DSP worker failed'});setTrack('error')}
       setTrack('tracking');lastSample.current=0
@@ -100,7 +109,7 @@ export function BrowserPulse(){
             const elapsed=acquisitionStart.current===null?0:now/1000-acquisitionStart.current;if(now-lastUi.current>=250){lastUi.current=now;setDuration(elapsed)}
             const spread=centers.current.length?Math.hypot(Math.max(...centers.current.map(p=>p.x))-Math.min(...centers.current.map(p=>p.x)),Math.max(...centers.current.map(p=>p.y))-Math.min(...centers.current.map(p=>p.y))):0
             if(spread>.08){jobId.current++;pendingJob.current=false;if(now-lastUi.current>=250){lastUi.current=now;setAnalysis({...initial,status:'excessive_motion',reason:'Excessive face displacement; hold still'})}}
-            else if(elapsed>=10&&now-lastAnalysis.current>=500&&!pendingJob.current&&worker.current){lastAnalysis.current=now;pendingJob.current=true;const id=++jobId.current;try{worker.current.postMessage({id,samples:samples.current})}catch(e){pendingJob.current=false;setAnalysis({...initial,status:'low_signal_quality',reason:e instanceof Error?e.message:'DSP worker postMessage failed'})}}
+            else if(elapsed>=10&&now-lastAnalysis.current>=500&&!pendingJob.current&&worker.current){lastAnalysis.current=now;pendingJob.current=true;const id=++jobId.current;pendingWindow.current={start_s:samples.current[0]?.t??0,end_s:samples.current[samples.current.length-1]?.t??0,n_samples:samples.current.length};try{worker.current.postMessage({id,samples:samples.current})}catch(e){pendingJob.current=false;setAnalysis({...initial,status:'processing_error',reason:e instanceof Error?e.message:'DSP worker postMessage failed'})}}
           }
         }
         raf.current=requestAnimationFrame(frame)
@@ -114,8 +123,9 @@ export function BrowserPulse(){
     const fields=['timestamp_s',...Object.keys(regions).flatMap(name=>['r','g','b'].map(c=>`${name}_${c}`))]
     const lines=[fields.join(','),...exportSamples.current.map(s=>[s.t,...Object.keys(regions).flatMap(name=>s.rois[name as keyof typeof regions]??[null,null,null])].map(v=>v===null?'':String(v)).join(','))]
     const metadata={schema:'rsbvp.rgb-trace.v1',created_utc:new Date().toISOString(),sample_count:exportSamples.current.length,earlier_samples_dropped_due_to_buffer_limit:exportDropped.current,trace_start_timestamp_s:exportSamples.current[0]?.t??null,trace_end_timestamp_s:exportSamples.current.at(-1)?.t??null,acquisition_duration_seconds:duration,camera_fps_reported:cameraFps,sample_rate_median_hz:measuredFps,dropped_interval_fraction:droppedFraction,passband_hz:[0.7,3.5],roi_method:'MediaPipe Face Landmarker polygons + explicit eye/lip/brow exclusion + RGB skin heuristic',algorithms:['Green','POS (window projection)','CHROM'],measurement_status:analysis.status,measurement_reason:analysis.reason,estimates_bpm:analysis.estimates,valid_consensus_bpm:analysis.bpm,browser:navigator.userAgent,frame_images_included:false,frames_uploaded:false,notes:'Local exploratory signal output. Browser POS/CHROM variants are not yet clinically validated or guaranteed numerically identical to Python.'}
+    const windows={schema:'rsbvp.window-analysis.v1',created_utc:new Date().toISOString(),window_count:windowLog.current.length,dropped_windows_due_to_buffer_limit:windowsDropped.current,window_records:windowLog.current,frames_images_included:false,frames_uploaded:false,notes:'One record per analyzed window; window_start_s/window_end_s delimit the RGB window in trace timestamps. availability_status is the composite verdict; rejection_reason repeats it for convenience. See docs/EXPORT_SCHEMA.md.'}
     const download=(content:BlobPart,type:string,name:string)=>{const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000)}
-    download(lines.join('\n'),'text/csv',`${base}.csv`);download(JSON.stringify(metadata,null,2),'application/json',`${base}.json`)
+    download(lines.join('\n'),'text/csv',`${base}.csv`);download(JSON.stringify(metadata,null,2),'application/json',`${base}.json`);download(JSON.stringify(windows,null,2),'application/json',`${base}_windows.json`)
   }
   const intervals=samples.current.slice(1).map((s,i)=>s.t-samples.current[i].t).filter(d=>d>0)
   const sortedIntervals=[...intervals].sort((a,b)=>a-b),typicalInterval=sortedIntervals.length?sortedIntervals[Math.floor(sortedIntervals.length/2)]:null
@@ -132,7 +142,7 @@ export function BrowserPulse(){
     <div className="metric-grid"><div className="metric-card"><div className="metric-label">Pulse estimate</div><div className="metric-value">{analysis.bpm===null?'Unavailable':`${analysis.bpm.toFixed(0)} BPM`}</div><div className="metric-sub">Only shown when quality checks pass</div></div><div className="metric-card"><div className="metric-label">Acquisition</div><div className="metric-value">{duration.toFixed(1)} s</div><div className="metric-sub">{roiState} · camera {cameraFps?`${cameraFps.toFixed(1)} FPS`:'FPS —'} · sampled {measuredFps?`${measuredFps.toFixed(1)} Hz`:'rate —'} · dropped intervals {droppedFraction===null?'—':`${(droppedFraction*100).toFixed(1)}%`}</div></div><div className="metric-card"><div className="metric-label">Quality / agreement</div><div className="metric-value">{analysis.status.replaceAll('_',' ')}</div><div className="metric-sub">{analysis.reason} · spectral concentration {(analysis.quality*100).toFixed(0)}% · face motion {(faceMotion*100).toFixed(1)}%{analysis.consistencyBpm!==null?` · spread ${analysis.consistencyBpm.toFixed(1)} BPM`:''}</div></div></div>
     <p><strong>Measurement reason:</strong> {analysis.reason} · sampling {analysis.fs?`${analysis.fs.toFixed(1)} Hz`:'—'}</p>
     <div className="subcards">{Object.entries(analysis.estimates).map(([name,bpm])=><div className="subcard" key={name}><strong>{name.replace('_',' · ')}</strong><p>{bpm===null?'Unavailable':`${bpm.toFixed(1)} BPM`}</p></div>)}</div>
-    <button className="secondary" disabled={!exportSamples.current.length} onClick={exportTrace}>Export timestamped RGB traces (CSV)</button>
+    <button className="secondary" disabled={!exportSamples.current.length} onClick={exportTrace}>Export traces + window analysis (CSV & JSON)</button>
     <label className="ctl">Displayed pulse algorithm<select value={algorithm} onChange={e=>setAlgorithm(e.target.value)}><option value="green">Green</option><option value="pos">POS</option><option value="chrom">CHROM</option></select></label>
     <h3>Forehead RGB traces</h3><div className="plot-grid">{rgbWave.map(({name,values})=><Trace key={name} label={name} values={values}/>)}</div>
     <h3>Pulse algorithm waveforms</h3><div className="plot-grid">{roiWave.map(([name,values])=><Trace key={name} label={name.replace('_',' ')} values={values}/>)}</div>
