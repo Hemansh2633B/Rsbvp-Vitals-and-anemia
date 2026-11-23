@@ -63,6 +63,19 @@ export default function App() {
         </div>
       </section>
 
+      <section className="panel" aria-labelledby="cannot-heading">
+        <h2 id="cannot-heading">What this cannot tell you</h2>
+        <p className="muted">RSBVP is an educational research prototype, not a medical device. It investigates camera-derived pulse signals and documents its own limits. It offers no diagnosis, screening, risk score, or treatment advice, and nothing on this page is a substitute for professional care.</p>
+        <div className="subcards">
+          <article className="subcard"><h3>What rPPG estimates</h3><p>Subtle color changes in skin caused by blood volume pulse, reported as an estimated pulse rate (BPM) and an experimental waveform — nothing more.</p></article>
+          <article className="subcard"><h3>Pulse rate ≠ blood pressure</h3><p>A camera can track a heartbeat; it cannot measure arterial pressure. Camera-derived pulse rate is not blood pressure and cannot detect hypertension or hypotension.</p></article>
+          <article className="subcard"><h3>PRV ≠ ECG HRV</h3><p>Variability of camera-derived pulse intervals is pulse-rate variability (PRV). It is not ECG-derived heart-rate variability (HRV) and must not be labelled or used as such.</p></article>
+          <article className="subcard"><h3>Not cardiac output or oxygen</h3><p>No estimate of cardiac output, blood volume, oxygen saturation (SpO₂) or anemia can be derived from these signals; none is produced here.</p></article>
+          <article className="subcard"><h3>Conjunctiva is not a blood test</h3><p>Conjunctival appearance cannot establish hemoglobin concentration or iron deficiency. Pallor visible to a camera is not a laboratory measurement.</p></article>
+          <article className="subcard"><h3>Anemia module is unvalidated</h3><p>No verified dataset or trained model is configured. The current anemia component predicts nothing and is not a validated predictor, screening tool, or risk score of any kind.</p></article>
+        </div>
+      </section>
+
       {view === 'live' && <Live />}
 
       {view === 'analyze' && (

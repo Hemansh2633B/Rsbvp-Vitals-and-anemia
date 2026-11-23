@@ -1,0 +1,45 @@
+# EXAMPLE ONLY — do not commit personal paths or dataset locations.
+# Adapted from rPPG-Toolbox configs/infer_configs/UBFC-rPPG_UNSUPERVISED.yaml
+# (ubicomplab/rPPG-Toolbox @ b7500b848f84ad7f86e277b4612563b69f4f88f9, RAIL-1.1).
+# Copy this file, replace the placeholder paths, and point --config_file at your copy.
+# The dataset itself (UBFC-rPPG) must be obtained under its own access terms; never commit it.
+BASE: ['']
+TOOLBOX_MODE: "unsupervised_method"
+UNSUPERVISED:
+  METHOD: ["ICA", "POS", "CHROM", "GREEN", "LGI", "PBV", "OMIT"]
+  METRICS: ['MAE', 'RMSE', 'MAPE', 'Pearson', 'SNR', 'BA']
+  DATA:
+    FS: 30
+    DATASET: UBFC-rPPG
+    DO_PREPROCESS: True   # first run only; set False afterwards
+    DATA_FORMAT: NDHWC
+    DATA_PATH: "<ABSOLUTE_PATH_TO_UBFC-rPPG_RAWDATA>"
+    CACHED_PATH: "<ABSOLUTE_PATH_TO_WRITABLE_CACHE>"
+    EXP_DATA_NAME: "rsbvp_adapter"
+    BEGIN: 0.0
+    END: 1.0
+    PREPROCESS:
+      DATA_TYPE: ['Raw']
+      DATA_AUG: ['None']
+      LABEL_TYPE: Raw
+      DO_CHUNK: False
+      CHUNK_LENGTH: 180
+      CROP_FACE:
+        DO_CROP_FACE: True
+        BACKEND: 'HC'
+        USE_LARGE_FACE_BOX: True
+        LARGE_BOX_COEF: 1.5
+        DETECTION:
+          DO_DYNAMIC_DETECTION: False
+          DYNAMIC_DETECTION_FREQUENCY : 30
+          USE_MEDIAN_FACE_BOX: False
+      RESIZE:
+        H: 72
+        W: 72
+INFERENCE:
+  EVALUATION_METHOD: "FFT"   # or "peak detection"
+  EVALUATION_WINDOW:
+    USE_SMALLER_WINDOW: False
+    WINDOW_SIZE: 10
+LOG:
+  PATH: runs/exp_rsbvp_unsupervised

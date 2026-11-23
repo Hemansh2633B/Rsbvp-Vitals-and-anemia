@@ -1,0 +1,16 @@
+{
+  "archive_dir": "/home/user/Rsbvp-Vitals-and-anemia/data/ubfc-rppg",
+  "generated_note": null,
+  "generated_utc": "2026-11-23T21:06:37Z",
+  "problems": [
+    "archive directory does not exist: /home/user/Rsbvp-Vitals-and-anemia/data/ubfc-rppg"
+  ],
+  "recordings": [],
+  "schema": "rsbvp.ubfcrppg-readiness.v1",
+  "status": "not_available",
+  "subset_assignment": "NOT DETERMINED \u2014 simple (8) vs realistic (42) subsets cannot be told apart from directory names; obtain the subset list from the provider or dataset documentation",
+  "summary": {
+    "complete_pairs": 0,
+    "subject_dirs": 0
+  }
+}
