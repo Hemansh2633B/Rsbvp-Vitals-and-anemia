@@ -5,7 +5,7 @@ This directory contains schema examples only. Put licensed data outside the repo
 ## Expected layout
 
 ```text
-$RSBP_DATA_ROOT/
+$RSBVP_DATA_ROOT/
   ubfc-rppg/                 # locally acquired archive, unchanged
   cohface/                   # locally acquired archive, unchanged
   traces/                    # browser RGB exports or derived traces
@@ -22,7 +22,7 @@ Dataset-specific adapters must be configured against the actual downloaded archi
 
 ## Reference schema supported by Sprint 3 tools
 
-A canonical reference CSV has a header and one row per observation. Required columns are `timestamp_s` (seconds on the source sensor clock) and one explicitly mapped numeric signal column such as `ppg`, `bvp`, or `ecg`. `timestamp_s` may be omitted only when the manifest provides a verified positive `reference_fs_hz`, in which case sample times are derived from sample index. `time_offset_s` maps reference-clock seconds onto the trace-clock seconds as `trace_time = reference_time + time_offset_s`. The offset must come from documented synchronization, not a guessed visual match. `reference_type` distinguishes `ppg`, `bvp`, or `ecg`; respiration must be processed with a separate protocol.
+A canonical reference CSV has a header and one row per observation. Required columns are `timestamp_s` (seconds on the source sensor clock) and one explicitly mapped numeric signal column such as `ppg`, `bvp`, or `ecg`. `timestamp_s` may be omitted only when the manifest provides a verified positive `reference_fs_hz`, in which case sample times are derived from sample index. `time_offset_s` maps reference-clock seconds onto the trace-clock seconds as `trace_time = reference_time + time_offset_s`. The offset must come from documented synchronization, not a guessed visual match. `reference_type` distinguishes `ppg`, `bvp`, or `ecg`; the current evaluator supports waveform-frequency estimates for PPG/BVP only. ECG rows are intentionally rejected with `ecg_rpeak_estimator_unavailable` until a validated R-peak method is implemented and verified. Respiration must be processed with a separate protocol.
 
 ## Citations and provenance
 

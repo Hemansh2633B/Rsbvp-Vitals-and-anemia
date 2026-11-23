@@ -23,6 +23,19 @@ The checked-out feature branch is `arena/91745e3e-rsbvp-vitals-and-anemia` at `9
 5. Missing-data behavior should reject affected windows explicitly; no interpolation over long gaps or fabricated reference values.
 6. Existing tests establish software behavior only; no camera hardware or physiological validation has been performed.
 
-## Planned scope and limits
+## Sprint 3.1 reference-signal review
 
-Implement a local-only dataset root, manifest validation, explicit timestamped-reference waveform utilities and NOT RUN reports. Dataset adapters will use explicit manifest column/path mappings and validate supplied files; actual UBFC/COHFACE archive-specific mappings remain pending inspection of the actual archives and official documentation. No human data, recordings, or dataset samples are added to Git. No accuracy or clinical claim is made.
+Review of the first PR implementation found the reference estimator treated PPG/BVP/ECG alike, did not quantify timestamp jitter, allowed partial window coverage, and only tracked an original sampling-rate field. Corrective implementation now:
+
+- validates finite, strictly increasing timestamps, reports a robust median-absolute interval jitter, and makes the maximum gap (default 0.25 s) and jitter tolerance (default 0.05) configurable;
+- requires full `[start, end)` overlap with the RGB trace window (allowing at most one source-sample endpoint quantization), checks missing values/jitter/gaps before any interpolation, and linearly resamples accepted windows at measured median-rate to a uniform grid;
+- runs a bandpass-filtered, Hann-periodogram waveform-frequency estimator only for PPG/BVP, with Nyquist, duration, flat-signal and spectral peak-fraction checks;
+- explicitly rejects ECG with `ecg_rpeak_estimator_unavailable`; no validated R-peak method or ECG-HRV processing is claimed;
+- records declared/original, timestamp-measured and effective rates, jitter, peak quality and exact reference rejection reason per window;
+- reports total, valid-reference, estimate-available and paired-window counts separately. Quality-gate coverage remains unavailable for RGB-only trace exports and is not mislabeled as estimate availability.
+
+Deterministic synthetic software tests cover uniform/small/large jitter, a short missing frame, a long gap, NaN samples, duplicate/reordered timestamps, PPG/BVP acceptance, ECG rejection, positive/negative offsets, incomplete start/end coverage, and independent sampling-rate metadata. These tests establish code behavior only, not physiological accuracy.
+
+## Remaining scope and limits
+
+Dataset adapters use an explicit local manifest and validated CSV/explicit-key HDF5 inputs; they do not claim UBFC-rPPG or COHFACE archive-specific extraction. The actual supplied UBFC archive and official docs remain unavailable for inspection, so archive filenames, labels, reference units/rates, keys, licensing and sync protocol cannot be verified. No human data, recordings, or dataset samples are added to Git. Real physiological evaluation and hardware tests remain NOT RUN; no accuracy or clinical claim is made.

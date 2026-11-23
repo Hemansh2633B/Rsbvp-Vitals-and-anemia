@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Recording/window-level comparison from actual timestamped RGB traces.
 
-CSV columns: timestamp_s; optional reference_hr_bpm (synchronized, per-frame
-or constant); ROI channel columns forehead_r/g/b, left_cheek_r/g/b,
-right_cheek_r/g/b. A missing ROI/channel is explicitly unavailable. Frames are
+CSV columns: timestamp_s; optional externally computed reference_hr_bpm; ROI
+channel columns forehead_r/g/b, left_cheek_r/g/b, right_cheek_r/g/b. This legacy
+trace comparator does not process reference waveforms or derive/synchronize HR;
+use validate_dataset.py for local PPG/BVP waveform references. A supplied scalar
+reference is user-attested and may be constant only when the source genuinely
+provides only that value. A missing ROI/channel is unavailable. Frames are
 regularized only across short gaps; longer gaps invalidate that analysis window.
 For multiple recordings pass --manifest CSV with recording_id,csv_path.
 Error metrics are emitted only with --reference-source describing a genuine,

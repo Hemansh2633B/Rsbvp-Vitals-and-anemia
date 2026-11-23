@@ -44,7 +44,8 @@ def _participant_bootstrap(per_participant: dict[str, list[tuple[float, float]]]
 
 
 def evaluate_manifest(manifest: Path, root: Path, *, window_seconds: float = 12, step_seconds: float = 6,
-                      max_reference_gap_s: float = .25) -> dict[str, object]:
+                      max_reference_gap_s: float = .25,
+                      max_timestamp_jitter_fraction: float = .05) -> dict[str, object]:
     rows = read_manifest(manifest, root)
     recordings: list[dict[str, object]] = []
     all_names: set[str] = set()
@@ -55,17 +56,21 @@ def evaluate_manifest(manifest: Path, root: Path, *, window_seconds: float = 12,
         reference = load_reference(row, root)
         starts = [float(w["start_s"]) for w in trace["windows"]]
         refs = reference_hr_windows(reference, starts, window_seconds=window_seconds,
-                                    step_seconds=step_seconds, max_gap_seconds=max_reference_gap_s)
+                                    step_seconds=step_seconds, max_gap_seconds=max_reference_gap_s,
+                                    max_jitter_fraction=max_timestamp_jitter_fraction)
         windows = []
         for signal_window, ref_window in zip(trace["windows"], refs):
             estimates = signal_window["estimates_bpm"]
             all_names.update(estimates)
             windows.append({**signal_window, "reference": ref_window,
-                            "rejected_estimates": {k: "estimate_unavailable" for k, v in estimates.items() if v is None}})
+                            "rejected_estimates": {k: "estimate_unavailable_no_finer_reason_in_RGB_trace_format" for k, v in estimates.items() if v is None}})
         recordings.append({"dataset": row["dataset"], "dataset_version": row["dataset_version"],
                            "participant_id": row["participant_id"], "recording_id": row["recording_id"],
                            "reference_type": reference.signal_type,
-                           "reference_sampling_hz": reference.sampling_hz,
+                           "reference_original_sampling_hz": reference.sampling_hz,
+                           "reference_original_sampling_hz_source": reference.sampling_rate_source,
+                           "reference_measured_sampling_hz": 1 / reference.timestamp_median_interval_s,
+                           "reference_global_timestamp_jitter_fraction": reference.timestamp_jitter_fraction,
                            "reference_time_offset_s": reference.offset_s,
                            "signal_sampling_hz": trace["sampling_rate_hz"],
                            "dropped_interval_fraction": trace["dropped_interval_fraction"],
@@ -101,6 +106,7 @@ def evaluate_manifest(manifest: Path, root: Path, *, window_seconds: float = 12,
                          "participant_bootstrap": _participant_bootstrap(participant_pairs),
                          "windows_total": total, "reference_valid_windows": ref_valid,
                          "windows_with_usable_estimate": usable, "paired_valid_windows": paired,
+                         "reference_valid_coverage_all_windows": ref_valid / total if total else None,
                          "estimate_coverage_all_windows": usable / total if total else None,
                          "paired_coverage_all_windows": paired / total if total else None,
                          "quality_gate_coverage": None,
@@ -113,7 +119,8 @@ def evaluate_manifest(manifest: Path, root: Path, *, window_seconds: float = 12,
             "participant_count": len({r["participant_id"] for r in rows}),
             "synchronization": "reference timestamps plus manifest time_offset_s; no offset is inferred",
             "windowing": {"window_seconds": window_seconds, "step_seconds": step_seconds,
-                          "reference_max_gap_seconds": max_reference_gap_s},
+                          "reference_max_gap_seconds": max_reference_gap_s,
+            "max_timestamp_jitter_fraction": max_timestamp_jitter_fraction},
             "recordings": recordings, "metrics_by_algorithm_roi": summary,
             "limitations": ["Research software evaluation; not clinical validation.",
                             "Dataset mapping, citation, license and synchronization remain user-attested.",
@@ -128,14 +135,14 @@ def markdown_report(result: dict[str, object], command: str) -> str:
             f"- Synchronization: {result['synchronization']}", f"- Windowing: {result['windowing']}",
             "- Methods/ROIs: Green, POS, CHROM; forehead, left/right cheek, both cheeks, multi-ROI (where present).",
             "- Missing reference samples and excessive gaps invalidate affected reference windows; no long-gap extrapolation.",
-            "", "## Results", "", "| Estimate | Paired windows | Usable estimate coverage* | MAE BPM | RMSE BPM | Bias BPM | 95% LoA BPM | Participant MAE bootstrap CI |",
-            "|---|---:|---:|---:|---:|---:|---:|---|"]
+            "", "## Results", "", "| Estimate | Total | Valid references | Estimates available | Paired | Ref coverage | Estimate coverage* | Paired coverage | MAE | RMSE | Bias | LoA 95% | Participant MAE bootstrap CI |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for name, item in result["metrics_by_algorithm_roi"].items():
         m = item["pooled_window_metrics_descriptive_only"]
         fmt = lambda x: "—" if x is None else f"{x:.2f}"
         boot = item['participant_bootstrap']
         ci = "—" if boot is None else f"{boot['mae_ci95_bpm'][0]:.2f} to {boot['mae_ci95_bpm'][1]:.2f} (n={boot['participants']})"
-        rows.append(f"| {name} | {item['paired_valid_windows']} | {fmt(item['estimate_coverage_all_windows'])} | {fmt(m['mae_bpm'])} | {fmt(m['rmse_bpm'])} | {fmt(m['mean_bias_bpm'])} | {fmt(m['loa_lower_95_bpm'])} to {fmt(m['loa_upper_95_bpm'])} | {ci} |")
+        rows.append(f"| {name} | {item['windows_total']} | {item['reference_valid_windows']} | {item['windows_with_usable_estimate']} | {item['paired_valid_windows']} | {fmt(item['reference_valid_coverage_all_windows'])} | {fmt(item['estimate_coverage_all_windows'])} | {fmt(item['paired_coverage_all_windows'])} | {fmt(m['mae_bpm'])} | {fmt(m['rmse_bpm'])} | {fmt(m['mean_bias_bpm'])} | {fmt(m['loa_lower_95_bpm'])} to {fmt(m['loa_upper_95_bpm'])} | {ci} |")
     rows += ["", "*Usable estimate availability is not quality-gate coverage. The RGB trace format lacks per-window browser quality-gate state, so quality-gate coverage is NOT AVAILABLE from this input.", "", "## Limitations", *[f"- {x}" for x in result["limitations"]],
              "- Overlapping windows are correlated; participant-level results are reported separately.",
              "- No anemia inference, blood pressure measurement, clinical accuracy, or ECG-HRV claim.",
@@ -151,13 +158,16 @@ def main() -> None:
     p.add_argument("--window-seconds", type=float, default=12)
     p.add_argument("--step-seconds", type=float, default=6)
     p.add_argument("--max-reference-gap-seconds", type=float, default=.25)
+    p.add_argument("--max-timestamp-jitter-fraction", type=float, default=.05,
+                   help="Maximum robust median absolute interval jitter relative to median interval")
     args = p.parse_args()
     root = data_root(args.data_root)
     result = evaluate_manifest(args.manifest, root, window_seconds=args.window_seconds,
-                               step_seconds=args.step_seconds, max_reference_gap_s=args.max_reference_gap_seconds)
+                               step_seconds=args.step_seconds, max_reference_gap_s=args.max_reference_gap_seconds,
+                               max_timestamp_jitter_fraction=args.max_timestamp_jitter_fraction)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / "validation.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    command = f"python research/rppg/validate_dataset.py {args.manifest} --data-root {root} --window-seconds {args.window_seconds} --step-seconds {args.step_seconds}"
+    command = f"python research/rppg/validate_dataset.py {args.manifest} --data-root {root} --window-seconds {args.window_seconds} --step-seconds {args.step_seconds} --max-reference-gap-seconds {args.max_reference_gap_seconds} --max-timestamp-jitter-fraction {args.max_timestamp_jitter_fraction}"
     (args.output_dir / "validation.md").write_text(markdown_report(result, command), encoding="utf-8")
     print(f"Wrote validation report to {args.output_dir.resolve()}; no data uploaded.")
 
