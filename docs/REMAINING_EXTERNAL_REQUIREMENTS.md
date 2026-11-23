@@ -1,0 +1,34 @@
+# Remaining external inputs needed to finish the research prototype
+
+This list separates user-provided artifacts/decisions from engineering work that can proceed without them. Do not send credentials, private medical records, or identifiable participant data through chat.
+
+## Required for evidence-based scientific evaluation
+
+1. **Anemia dataset access and terms**
+   - Confirm whether you have lawful access to Eyes-defy-anemia or another dataset.
+   - Provide its official acquisition instructions, applicable license/terms, and the local path only after downloading it yourself. Do not upload the dataset into Git or chat.
+   - Provide dataset documentation/data dictionary and, if supplied by the provider, the mapping of image IDs to laboratory Hb, patient IDs, demographics, original/augmented status, and acquisition protocol. Redact direct identifiers. We must verify whether data access permits this research and publication.
+   - If patient identifiers are absent, say so; patient-independent test claims cannot be made.
+
+2. **Synchronized rPPG reference recordings**
+   - A lawful research dataset (for example UBFC-rPPG/COHFACE if terms permit) or your own properly overseen recordings, stored locally outside Git.
+   - Corresponding timestamps and reference pulse/ECG/respiration channels, sensor metadata, participant/session IDs, motion labels and protocol. Share documentation/schema first; do not share identifiable recordings unless there is an approved, secure transfer process.
+   - For ECG-HRV claims specifically, synchronized ECG; pulse-only references can support PRV/pulse-rate comparison, not ECG HRV.
+
+3. **MediaPipe model artifact for offline/browser landmark tracking**
+   - A MediaPipe Face Landmarker task model file and its license/redistribution terms, or authorization to fetch the official model artifact in your deployment workflow. The repository should not silently download a model or commit a model binary without provenance.
+   - A local webcam/browser with permission is needed for functional capture tests. A face image is not needed in chat.
+
+## Optional hardware and product choices
+
+4. **CMS50D/device validation**: a supported physical device and platform/serial details for integration testing; do not send device logs containing personal data.
+5. **Deployment target**: Vercel project access via the connected integration if you want an actual deployment, plus a persistent backend host decision (Vercel alone cannot provide webcam/serial access or persistent capture). Never provide secrets in chat; use the platform's secure connection flow.
+6. **Anemia task definition**: decide regression-only if demographics/threshold data are inadequate, or provide the source guideline/population context needed for any screening-label definition. No universal Hb cutoff will be assumed.
+
+## Work that can continue without these inputs
+
+The codebase already includes classical RGB algorithms, algorithm-comparison tooling for explicitly supplied traces, image auditing/quality/color utilities, grouped-split and paired-regression metric primitives, documentation, tests, upload limits, and static frontend build preparation. Additional UI, APIs, unit tests and reproducibility tooling can be developed without clinical records, but model training, dataset audit conclusions, final acceptance claims, live MediaPipe landmark validation, and empirical performance reports remain blocked until appropriate artifacts and provenance are available.
+
+## Safe handoff
+
+Please provide only a non-sensitive answer with: (a) which dataset and terms you can provide, (b) whether patient/group identifiers exist, (c) which synchronized references/hardware are available, (d) whether you can provide a licensed model asset or authorize fetching it, and (e) deployment target. Store data locally and give paths/documentation, not personal records or credentials.

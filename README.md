@@ -1,630 +1,87 @@
-# NEARABLE TECHNOLOGIES FOR HEALTH DATA SCIENCE
+# RSBVP — Remote Screening of Blood Parameters and Vital Signs
 
-# Robust rPPG Monitoring and Motion Artifact Cancellation via Dual-Modality
-### Contactless Heart Rate and Respiratory Rate Monitoring from RGB Videos
+RSBVP is an academic research prototype investigating two **independent** questions: camera-derived pulse signals (rPPG), and whether conjunctival image features may associate with laboratory-measured hemoglobin. It is not a medical device, diagnostic tool, or substitute for clinical measurement.
 
-![Python](https://img.shields.io/badge/Python-3.10-blue)
-![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green)
-![SciPy](https://img.shields.io/badge/SciPy-Signal%20Processing-blue)
-![Status](https://img.shields.io/badge/Status-Completed-success)
+## Current status
 
-This repository contains the final implementation of a nearable rPPG monitoring system developed for the Laboratory of Nearable Technologies for Health Data Science. The system estimates heart rate from RGB facial videos, validates the results against synchronized CMS50D wearable pulse oximeter measurements, and adapts the live analysis according to detected head-motion patterns.
+- **Pulse research:** Existing Green and POS extraction, motion classification/corrections, FFT/peak estimation, experimental tachogram respiratory analysis, local webcam capture and optional CMS50D evaluation remain available. Defaults now use a 0.7–3.5 Hz (42–210 BPM) search passband. CHROM processing, per-ROI RGB retention with a conservative skin-color mask, timestamp-derived sampling-rate helper, and frame-gap accounting are included. The ROI mask is a heuristic, not MediaPipe landmark segmentation. An algorithm comparison CLI scores Green/POS/CHROM and ROI/multi-ROI variants from a supplied synchronized RGB-trace CSV; it does not create reference data.
+- **Anemia research:** No verified dataset or trained model is included. The image quality and RGB/HSV/Lab feature helpers are research utilities only; they do not locate conjunctiva or produce hemoglobin/anemia predictions.
+- **Validation:** No new reference recordings, clinical results, dataset performance, or hardware tests are claimed by this update.
 
+The original research scripts, notebooks and archive remain in the repository. The original MIT license and attribution are preserved.
 
-# Overview
+## Local development
 
-The proposed framework estimates physiological parameters directly from facial videos while maintaining robustness under realistic acquisition conditions, including different head movements.
-
-The system automatically classifies head motion patterns and dynamically adapts the signal-processing pipeline according to the detected motion scenario.
-
-The proposed framework estimates:
-
-- Heart Rate (HR)
-- Respiratory Rate (RR)
-- Blood Volume Pulse (BVP)
-- Motion Classification Confidence
-- Signal Quality Metrics
-
----
-# Main Scripts
-
-| Purpose | File |
-|---|---|
-| Live webcam acquisition, CMS50D synchronization, motion-aware rPPG estimation, motion-segment HR output, and post-recording metrics | `live codes/live_rppg_cms50d_2min_motion_segment_with_metrics.py` |
-| Offline rPPG processing, respiratory-rate estimation, and metric evaluation from recorded videos | `offline codes/final_with_RR_n_metrics.py` |
-| Development notebooks and earlier experimental versions | `archive/` |
-| GUI/demo material | `gui/` |
-| Presentation material | `Presentation/` |
-
-The recommended script for the final live demonstration is:
+Python package metadata is in `gui/pyproject.toml` (requires Python >=3.12).
 
 ```bash
-python live codes/live_rppg_cms50d_2min_motion_segment_with_metrics.py
-````
-
-# Project Objectives
-
-The main objectives of this project are:
-
-- Develop a robust contactless physiological monitoring system using RGB videos.
-- Automatically classify head motion patterns.
-- Adapt signal conditioning according to the detected motion type.
-- Estimate heart rate under static and motion conditions.
-- Recover respiratory information from heart-rate variability.
-- Validate physiological estimates against wearable measurements.
-- Build both offline and real-time implementations.
-
----
-
-# Motivation
-
-Traditional physiological monitoring systems require physical contact with the body and may become uncomfortable during long monitoring sessions. Remote photoplethysmography (rPPG) provides a non-contact alternative by extracting subtle skin color variations produced by blood circulation.
-
-However, rPPG signals are highly sensitive to:
-
-- Head motion
-- Illumination variations
-- Face tracking errors
-- ROI displacement
-- Motion artifacts
-
-The goal of this project is to design a robust nearable monitoring system capable of operating reliably under realistic acquisition conditions
-
----
-
-# Experimental Protocol
-
-Three motion paradigms were considered.
-
-## 1. Stable Baseline
-
-The subject remains stationary and directly faces the camera.
-
-**Purpose**
-- Establish ideal acquisition conditions
-- Determine upper-bound performance
-- Measure baseline signal quality
-
----
-
-## 2. Left-to-Right Rotation
-
-The subject continuously performs horizontal head rotations.
-
-**Purpose**
-- Introduce ROI displacement
-- Generate moderate motion artifacts
-- Evaluate tracking robustness
-
----
-
-## 3. Zigzag Motion
-
-The subject performs combined horizontal and vertical head movements.
-
-**Purpose**
-- Create a challenging motion scenario
-- Stress-test signal robustness
-- Evaluate adaptive routing performance
-
-# System Architecture
-
-```text
-RGB Video
-      ↓
-Face Detection
-      ↓
-Multi-ROI Extraction
-      ↓
-RGB Signal Acquisition
-      ↓
-Green + POS rPPG Extraction
-      ↓
-Signal Conditioning
-      ↓
-FFT + Peak Detection
-      ↓
-Consensus Heart Rate
-      ↓
-Tachogram Construction
-      ↓
-Respiratory Rate Estimation
-      ↓
-CMS50D Validation
+cd gui
+uv sync
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-# Repository Structure
+In another terminal:
 
-```text
-NEARABLE-TECHNOLOGIES-FOR-HEALTH-DATA-SCIENCE/
-│
-├── live_codes/
-│   ├── live_rppg_cms50d_2min_motion_segment_with_metrics.py
-│   └── live_rppg_cms50d_original_settings_with_metrics.py
-│
-├── offline_codes/
-│   ├── final_with_RR_n_metrics.py
-│   └── final_with_RR_n_metrics.ipynb
-│
-├── GUI/
-│   └── GUI-related files and prototypes
-│
-├── Presentation/
-│   └── presentation material
-│
-├── archive/
-│   └── development notebooks, early scripts, and experimental versions
-│
-├── README.md
-├── requirements.txt
-├── LICENSE
-├── CITATION.cff
-└── .gitignore
+```bash
+cd gui/frontend
+npm ci
+npm run dev -- --host 0.0.0.0
 ```
 
-# How to Run
+The frontend proxies `/api` and `/ws` to the local FastAPI service. Existing live camera capture is performed by OpenCV on the **backend host**. It is not browser-camera capture and will not work against a remote server as access to the user's webcam. Optional serial/CMS50D functionality also requires local hardware.
 
-## Live Pipeline
+Run tests from the repository root after installing test dependencies:
 
-Before running the live script, connect the CMS50D pulse oximeter and check the active COM port.
-
-Open the live script and update the configuration section if needed:
-
-```python
-CMS50D_PORT = "COM5"
-WEBCAM_INDEX = 0
+```bash
+python -m pytest -q
 ```
 
-# Outputs
+Build and lint the standalone UI:
 
-The live pipeline generates several output files during and after recording:
-
-| Output | Description |
-|---|---|
-| `.avi` video | Raw webcam video saved without overlay graphics to preserve rPPG pixels |
-| synchronized `.csv` file | Frame-level CMS50D and live rPPG measurements |
-| motion-segment summary `.csv` | Final HR value for each detected motion segment |
-| metric summary `.csv` | Overall HR error metrics and validation results |
-| evaluation dashboard `.png` | Visual comparison between CMS50D reference and rPPG estimates |
-
-Important CSV columns include:
-
-- `CMS_Pulse_Rate_Hardware`
-- `CMS_SpO2`
-- `CMS_Waveform`
-- `Live_rPPG_HR`
-- `Live_Motion_Class`
-- `Motion_Segment_ID`
-- `Live_Green_FFT`
-- `Live_POS_FFT`
-- `Live_FS`
-
-For the final live demo, the most important output is the motion-segment summary, which provides one final heart-rate estimate for each detected motion condition.
-
-# Head Motion Classification
-
-The framework automatically classifies head motion before physiological estimation.
-
-The facial center is tracked over time and several motion descriptors are extracted:
-
-- Horizontal amplitude
-- Vertical amplitude
-- Total displacement
-- Direction changes
-- Path length
-- Motion ratios
-
-The recording is then classified into one of the following categories:
-
-- Stable
-- Left-Right
-- Zigzag
-
-The selected motion class determines which adaptive correction rules are activated during physiological estimation.
-
-<p align="center">
-<img width="390" height="101" alt="photo_2026-06-25_21-16-46" src="https://github.com/user-attachments/assets/c5f4a41b-aad3-4111-b8db-7919a6b77400" />
-</p>
-
-<p align="center">
-<b>Figure 1.</b> Representative zigzag motion classification.
-</p>
-
----
-
-# ROI Extraction
-
-The framework uses facial regions to extract RGB traces related to blood-volume changes.
-
-In the offline pipeline, multiple facial skin ROIs are used:
-
-- Forehead
-- Left cheek
-- Right cheek
-
-The average RGB values from these regions are combined to improve robustness against local illumination changes, partial occlusion, and tracking inaccuracies.
-
-In the live implementation, only one green face box is displayed in the preview to keep the interface simple and readable. Internally, a central skin-oriented crop inside the detected face box is used for RGB extraction, while the saved video remains raw and does not include the overlay box.
-
-This design prevents graphical annotations from corrupting the pixels used later for rPPG analysis.
-
----
-
-# Blood Volume Pulse (BVP) Extraction
-
-Two complementary rPPG approaches are employed.
-
-## Green Channel Method
-
-The green channel exhibits the strongest pulsatile modulation because hemoglobin absorbs green wavelengths more strongly than red and blue wavelengths.
-
-```math
-s_{green}(t)=G(t)
+```bash
+cd gui/frontend
+npm ci
+npm run build
+npm run lint
 ```
 
-Advantages:
+## rPPG algorithm comparison
 
-- Computationally efficient
-- Strong pulsatile response
-- Simple implementation
+The comparison tool requires real extracted traces; it does not simulate or provide reference measurements. CSV columns are documented in `research/rppg/compare_algorithms.py`.
 
----
-
-## POS Method
-
-The Plane-Orthogonal-to-Skin (POS) algorithm projects normalized RGB traces onto a plane orthogonal to the skin-tone direction.
-
-```math
-S_1 = G-B
+```bash
+python research/rppg/compare_algorithms.py /path/to/recording_rgb.csv --output comparison.json
 ```
 
-```math
-S_2 = G+B-2R
+Only supply a constant `reference_hr_bpm` column if it represents an actually synchronized reference for that analysis window. Missing references remain unscored. Different windows/participants should be evaluated separately and split by recording/participant before aggregate claims.
+
+## Anemia dataset inventory
+
+No images are included. After verifying dataset terms and local permission, inventory a local dataset without downloading anything:
+
+```bash
+python research/anemia/audit_dataset.py /path/to/images --labels /path/to/labels.csv --output audit.csv
 ```
 
-```math
-H=S_1+\alpha S_2
-```
+The optional labels CSV should contain `image_id`; patient and laboratory fields are copied only if present. Treat audit outputs as potentially sensitive. The audit reports file hashes for exact duplicates and does not claim patient-independent validation. See [the anemia model card](docs/ANEMIA_MODEL_CARD.md).
 
-where
+## Research safeguards and deployment
 
-```math
-\alpha=\frac{\sigma(S_1)}{\sigma(S_2)}
-```
+- Unreliable pulse estimates should remain unavailable; synthetic tests are software tests, not physiological validation.
+- RR derived from pulse intervals is experimental. Pulse-rate variability (PRV) is not ECG-derived HRV.
+- Heart rate is not blood pressure. Anemia screening is not diagnosis, and conjunctival pallor does not establish iron deficiency.
+- The current upload UI sends video to the configured backend. Review [privacy notes](docs/PRIVACY.md) before use.
+- Vercel can host the static frontend, not persistent webcam capture, serial ports, or a long-running WebSocket capture service. See [deployment requirements](docs/DEPLOYMENT.md).
 
-Advantages:
+## Documentation
 
-- Robust under illumination changes
-- Improved motion resilience
-- Better pulse separation
+- [Initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md)
+- [Methodology and status](docs/RESEARCH_METHODOLOGY.md)
+- [Anemia model card](docs/ANEMIA_MODEL_CARD.md)
+- [References](docs/REFERENCES.md)
+- [Privacy](docs/PRIVACY.md)
+- [Deployment](docs/DEPLOYMENT.md)
 
----
+## Citation and license
 
-# Signal Conditioning
-
-The extracted signals are:
-
-1. Detrended
-2. Normalized
-3. Bandpass filtered
-
-Heart-rate search range:
-
-```text
-60–100 BPM
-```
-
-Filtering suppresses:
-
-- Illumination drift
-- Sensor noise
-- Motion artifacts
-- High-frequency interference
-
----
-
-# Heart Rate Estimation
-
-Heart-rate estimation consists of several stages.
-
-## Windowed FFT Analysis
-
-The framework performs:
-
-- Windowed FFT
-- Zero-padding
-- Peak interpolation
-- Reliability estimation
-- Multi-candidate ranking
-
-Heart rate is estimated as:
-
-```math
-HR = f_{peak}\times60
-```
-
-<p align="center">
- <img width="1472" height="595" alt="image" src="https://github.com/user-attachments/assets/89c76c27-8a60-46e7-9e27-e1cf8a006561" />
-</p>
-
-<p align="center">
-<b>Figure 2.</b> Smart FFT spectrum comparison between Green and POS estimators.
-</p>
-
-Representative Zigzag example:
-
-| Metric | Value |
-|--------|--------|
-| Green FFT HR | 74.70 BPM |
-| POS FFT HR | 75.00 BPM |
-| Final Consensus HR | 74.85 BPM |
-| CMS50D Reference HR | 77.00 BPM |
-| Signed Error | -2.15 BPM |
-| MAE | 2.15 BPM |
-| MAPE | 2.80 % |
-
----
-
-## Peak Detection
-
-Systolic peaks are detected in both Green and POS signals.
-
-Inter-beat intervals are computed as:
-
-```math
-IBI_n=t_n-t_{n-1}
-```
-
-Peak-derived estimates are used to validate FFT estimates.
-
----
-
-## Consensus Heart Rate
-
-The final HR estimate is computed by combining:
-
-- Green FFT estimate
-- POS FFT estimate
-- Window reliability
-- Peak guidance information
-
-The system automatically rejects inconsistent candidates and applies adaptive correction rules.
-
----
-
-# Motion Artifact Correction
-
-Several adaptive correction modules were developed.
-
-## Motion Peak Guidance Correction
-
-Corrects underestimated FFT estimates using peak information.
-
----
-
-## Left-Right Candidate Guidance
-
-Selects FFT candidates that agree with peak guidance.
-
----
-
-## Low-Lock Rescue
-
-Recovers estimates trapped in low-frequency artifacts.
-
----
-
-## High-HR Rescue
-
-Restores physiological frequencies suppressed by motion contamination.
-
----
-
-# Respiratory Rate Estimation
-
-Respiratory information is recovered from heart-rate variability.
-
-Pipeline:
-
-```text
-POS Peaks
-      ↓
-R-R Intervals
-      ↓
-Tachogram
-      ↓
-Cubic Spline Interpolation
-      ↓
-Welch PSD
-      ↓
-Hilbert Validation
-      ↓
-Final Respiratory Rate
-```
-
-Respiratory search band:
-
-```text
-10–40 breaths/min
-```
-
-The final respiratory estimate combines:
-
-- Welch dominant frequency
-- Hilbert instantaneous frequency
-- Cross-method agreement
-
-<p align="center">
-<img width="1678" height="457" alt="image" src="https://github.com/user-attachments/assets/9815e120-a4ea-434f-8926-cd8f9494a9e8" />
-</p>
-
-<p align="center">
-<b>Figure 3.</b> Tachogram generated from beat-to-beat intervals.
-</p>
-
-<p align="center">
-<img width="495" height="176" alt="image" src="https://github.com/user-attachments/assets/840af977-38d4-451a-8f1b-9b9fac91a118" />
-</p>
-
-<p align="center">
-<b>Figure 4.</b> Respiratory PSD showing the dominant breathing frequency.
-</p>
-
-Representative Zigzag example:
-
-| Metric | Value |
-|--------|--------|
-| Detected POS Peaks | 35 |
-| R-R Intervals | 34 |
-| Mean R-R Interval | 825.5 ms |
-| Welch Dominant Frequency | 0.1818 Hz |
-| Final Respiratory Rate | 10.9 breaths/min |
-| Confidence | HIGH |
-
----
-
-# Respiratory Sinus Arrhythmia (RSA)
-
-The respiratory component of heart-rate variability is isolated from the tachogram.
-
-RSA analysis provides insight into:
-
-- Autonomic nervous system activity
-- Respiratory modulation of heart rate
-- Cardiorespiratory coupling
-
----
-
-# Offline Pipeline
-
-The offline implementation processes previously recorded videos.
-
-### Inputs
-
-- RGB facial video
-- CMS50D CSV file
-
-### Outputs
-
-- Motion classification
-- Green rPPG signal
-- POS rPPG signal
-- Heart Rate
-- Respiratory Rate
-- Evaluation metrics
-- Visualization dashboard
-
----
-
-# Live Pipeline
-
-The live implementation performs real-time physiological monitoring using a webcam and the CMS50D pulse oximeter.
-
-### Inputs
-
-- Webcam video stream
-- CMS50D pulse oximeter connected through a serial COM port
-
-### Outputs
-
-- Live rPPG heart rate
-- Live motion classification
-- Motion-segment heart-rate summary
-- CMS50D heart rate and SpO2 logging
-- Synchronized CSV file
-- Post-recording evaluation metrics
-
-Pipeline:
-
-```text
-Webcam
-    ↓
-Face Detection
-    ↓
-One-Box Face Preview
-    ↓
-Central RGB Signal Extraction
-    ↓
-Rolling Buffer
-    ↓
-Green + POS Signals
-    ↓
-Live HR Estimation
-    ↓
-Motion-Segment Summary
-    ↓
-CMS50D Validation
----
-```
-
-# Evaluation Metrics
-
-The framework computes several evaluation metrics.
-
-## Error Metrics
-
-- Signed Error
-- MAE
-- MAPE
-
-## Statistical Analysis
-
-- Pearson Correlation
-- Bland-Altman Bias
-- Limits of Agreement
-
-## Clinical Metrics
-
-- Within ±3 BPM
-- Within ±5 BPM
-- Clinical Pass/Fail
-
-<p align="center">
-  <img width="2100" height="1800" alt="1_rppg_vs_gt_correlation" src="https://github.com/user-attachments/assets/f63ad91e-6125-4cd3-b5f2-cf5870e08efd" />
-  <img width="2400" height="1800" alt="2_rppg_bland_altman" src="https://github.com/user-attachments/assets/6f35a0c7-f261-4e0c-8766-33de2ece3e65" />
-
-</p>
-
-<p align="center">
-<b>Figure 5.</b> Comparison between CMS50D reference measurements and estimated heart rate.
-</p>
-
----
-
-# Key Findings
-
-- Motion classification enables adaptive signal conditioning.
-- Multi-ROI extraction improves robustness.
-- Consensus fusion stabilizes heart-rate estimation.
-- Tachogram analysis enables respiratory-rate estimation.
-- The framework maintains clinically meaningful physiological estimates even under Zigzag motion.
-- The representative Zigzag recording achieved an MAE of 2.15 BPM and an RR estimate of 10.9 breaths/min.
----
-
-# Limitations
-
-- The live pipeline requires local execution because webcam and CMS50D serial-port access are not available in standard cloud runtimes.
-- rPPG performance depends on lighting conditions, face visibility, camera quality, and motion intensity.
-- The respiratory-rate estimate is derived from the POS tachogram and requires a sufficient number of detected pulse peaks.
-- The current implementation is optimized for controlled academic demonstrations and short experimental recordings.
-- The heart-rate search range is currently limited to the configured physiological band used in the experiments.
-
-  
-# Technologies
-
-- Python
-- OpenCV
-- NumPy
-- SciPy
-- Pandas
-- Matplotlib
-- PySerial
-- CMS50D Pulse Oximeter
-
-Optional / development tools:
-- Jupyter Notebook
-- Gradio or Streamlit for GUI prototyping
-
-  # Disclaimer
-
-This project is developed for academic and research demonstration purposes only. It is not intended for clinical diagnosis, treatment, patient monitoring, or medical decision-making. The physiological estimates generated by this software should not be used as a substitute for certified medical devices or professional healthcare evaluation.
+See `CITATION.cff` and `LICENSE`. Reuse and derivative works must preserve applicable attribution and MIT license notices.
