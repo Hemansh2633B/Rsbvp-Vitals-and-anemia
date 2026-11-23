@@ -32,11 +32,10 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <h1>
-          mrz <span className="muted">· rPPG dashboard</span>
+          RSBVP <span className="muted">· research prototype</span>
         </h1>
         <p className="muted">
-          Contactless heart-rate &amp; respiratory-rate estimation from facial
-          video, evaluated against a CMS50D oximeter.
+          Remote Screening of Blood Parameters and Vital Signs Using Computer Vision and AI
         </p>
         <nav className="tabs">
           <button
@@ -53,6 +52,16 @@ export default function App() {
           </button>
         </nav>
       </header>
+
+      <section className="panel">
+        <h2>Research platform</h2>
+        <p>RSBVP investigates two independent research questions: camera-derived pulse signals, and visual features in conjunctival images associated with laboratory hemoglobin. Neither module is a medical diagnostic tool.</p>
+        <div className="subcards">
+          <article className="subcard"><h3>01 · Contactless pulse</h3><p>Existing Green and POS processing with experimental motion-aware analysis. Estimates are unavailable when signal quality is inadequate.</p></article>
+          <article className="subcard"><h3>02 · Anemia research</h3><p>No verified dataset or trained model is currently configured. This prototype does not predict hemoglobin or anemia.</p></article>
+          <article className="subcard"><h3>Privacy & limitations</h3><p>Uploads are processed by the configured backend. Local live capture uses the backend machine camera. See <a href="https://github.com/Hemansh2633B/Rsbvp-Vitals-and-anemia/blob/main/docs/PRIVACY.md">privacy and research notes</a>.</p></article>
+        </div>
+      </section>
 
       {view === 'live' && <Live />}
 

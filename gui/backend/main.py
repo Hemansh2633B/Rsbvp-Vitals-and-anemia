@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-import shutil
+import logging
 import threading
 import uuid
 from pathlib import Path
@@ -36,6 +36,20 @@ RUNS_DIR = BASE_DIR / "runs"
 RUNS_DIR.mkdir(exist_ok=True)
 
 VIDEO_SUFFIXES = {".avi", ".mp4", ".mov", ".mkv"}
+MAX_VIDEO_BYTES = 512 * 1024 * 1024
+MAX_CSV_BYTES = 20 * 1024 * 1024
+
+
+def _copy_limited(upload: UploadFile, destination: Path, limit: int) -> None:
+    total = 0
+    with destination.open("wb") as output:
+        while chunk := upload.file.read(1024 * 1024):
+            total += len(chunk)
+            if total > limit:
+                output.close()
+                destination.unlink(missing_ok=True)
+                raise HTTPException(status_code=413, detail="Uploaded file exceeds the size limit.")
+            output.write(chunk)
 
 app = FastAPI(title="mrz rPPG dashboard", version="0.1.0")
 
@@ -100,14 +114,12 @@ def analyze_upload(
     run_dir.mkdir(parents=True, exist_ok=True)
 
     video_path = run_dir / f"input{suffix}"
-    with video_path.open("wb") as fh:
-        shutil.copyfileobj(video.file, fh)
+    _copy_limited(video, video_path, MAX_VIDEO_BYTES)
 
     csv_path = None
     if csv is not None and csv.filename:
         csv_path = run_dir / "input.csv"
-        with csv_path.open("wb") as fh:
-            shutil.copyfileobj(csv.file, fh)
+        _copy_limited(csv, csv_path, MAX_CSV_BYTES)
 
     return _run_analysis(run_id, run_dir, video_path, csv_path)
 
@@ -119,8 +131,10 @@ def _run_analysis(run_id, run_dir, video_path, csv_path) -> dict:
             csv_path=str(csv_path) if csv_path else None,
             out_dir=str(run_dir),
         )
-    except Exception as exc:  # surface pipeline errors to the client
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}") from exc
+    except Exception as exc:
+        logging.exception("Analysis failed for run %s", run_id)
+        # Do not expose server filesystem paths or implementation details.
+        raise HTTPException(status_code=500, detail="Analysis failed; consult the local server log.") from exc
     return _result_payload(run_id, summary)
 
 

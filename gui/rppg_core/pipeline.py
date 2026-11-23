@@ -27,13 +27,15 @@ import pandas as pd
 
 
 from scipy import stats
-from scipy.signal import butter, filtfilt, find_peaks, detrend, savgol_filter
+from scipy.signal import butter, filtfilt, sosfiltfilt, find_peaks, detrend, savgol_filter
 # ============================================================
 # Global settings
 # ============================================================
 
-MIN_BPM = 60
-MAX_BPM = 90
+# Research-wide default passband (42–210 BPM). Legacy calls may still
+# override these arguments explicitly for reproducibility.
+MIN_BPM = 42
+MAX_BPM = 210
 
 TRIM_START_SECONDS = 3.0
 POS_WINDOW_SECONDS = 1.6
@@ -111,24 +113,23 @@ def normalize_signal(signal):
     return (signal - mean) / std
 
 
-def bandpass_filter(signal, fs, min_bpm=60, max_bpm=90, order=4):
+def bandpass_filter(signal, fs, min_bpm=MIN_BPM, max_bpm=MAX_BPM, order=4):
+    """Zero-phase SOS bandpass. Invalid/short inputs are returned unchanged."""
     signal = np.asarray(signal, dtype=float)
-
-    low_hz = min_bpm / 60.0
-    high_hz = max_bpm / 60.0
-
+    if signal.ndim != 1 or not np.isfinite(fs) or fs <= 0:
+        raise ValueError("signal must be 1-D and sampling rate must be positive")
+    if not np.all(np.isfinite(signal)):
+        return np.full(signal.shape, np.nan)
+    low_hz, high_hz = min_bpm / 60.0, max_bpm / 60.0
+    if low_hz <= 0 or high_hz <= low_hz or high_hz >= fs / 2:
+        raise ValueError("passband must be ordered and below Nyquist")
+    sos = butter(order, [low_hz, high_hz], btype="bandpass", fs=fs, output="sos")
+    if len(signal) < 3 * (2 * len(sos) + 1):
+        return signal.copy()
     try:
-        b, a = butter(order, [low_hz, high_hz], btype="bandpass", fs=fs)
-        padlen = 3 * max(len(a), len(b))
-
-        if len(signal) <= padlen:
-            return signal
-
-        return filtfilt(b, a, signal)
-
-    except Exception as e:
-        print("[Filter warning]", e)
-        return signal
+        return sosfiltfilt(sos, signal)
+    except ValueError:
+        return signal.copy()
 
 
 def trim_signal_start(signal, fs, trim_start_seconds=3.0):
@@ -171,8 +172,8 @@ def parabolic_interpolation(y, index):
 def compute_fft_spectrum(
     signal,
     fs,
-    min_bpm=60,
-    max_bpm=90,
+    min_bpm=MIN_BPM,
+    max_bpm=MAX_BPM,
     trim_start_seconds=3.0,
     zero_padding_factor=8
 ):
@@ -220,8 +221,8 @@ def refined_peak_bpm(bpm_axis, spectrum, peak_index):
 def get_fft_candidates(
     signal,
     fs,
-    min_bpm=60,
-    max_bpm=90,
+    min_bpm=MIN_BPM,
+    max_bpm=MAX_BPM,
     trim_start_seconds=3.0,
     top_n_peaks=8
 ):
@@ -273,8 +274,8 @@ def get_fft_candidates(
 def estimate_windowed_fft(
     signal,
     fs,
-    min_bpm=60,
-    max_bpm=90,
+    min_bpm=MIN_BPM,
+    max_bpm=MAX_BPM,
     trim_start_seconds=3.0,
     window_seconds=12.0,
     step_seconds=2.0
@@ -369,8 +370,8 @@ def robust_window_hr(window_estimates):
 def summarize_channel_fft(
     signal,
     fs,
-    min_bpm=60,
-    max_bpm=90,
+    min_bpm=MIN_BPM,
+    max_bpm=MAX_BPM,
     trim_start_seconds=3.0,
     top_n_peaks=8,
     window_seconds=12.0,
@@ -529,8 +530,8 @@ def estimate_smart_fft_pair(
     green_signal,
     pos_signal,
     fs,
-    min_bpm=60,
-    max_bpm=90,
+    min_bpm=MIN_BPM,
+    max_bpm=MAX_BPM,
     trim_start_seconds=3.0
 ):
     green_info = summarize_channel_fft(
@@ -563,7 +564,7 @@ def estimate_smart_fft_pair(
     return green_hr, pos_hr, consensus_hr, green_info, pos_info
 
 
-def estimate_hr_peaks(signal, fs, min_bpm=60, max_bpm=90):
+def estimate_hr_peaks(signal, fs, min_bpm=MIN_BPM, max_bpm=MAX_BPM):
     signal = np.asarray(signal, dtype=float)
 
     if len(signal) < int(fs * 6):
@@ -1048,16 +1049,22 @@ def get_multi_rois(face, frame_shape):
 
 
 def mean_rgb_from_roi(frame, roi):
-    x, y, w, h = roi
-    roi_frame = frame[y:y+h, x:x+w, :]
+    """Mean RGB over a conservative YCrCb skin mask in a bounded ROI.
 
+    Returns None if the region has too few skin-like pixels instead of mixing
+    background/eyes/lips into the trace. The simple mask is a research heuristic,
+    not a substitute for landmark-based segmentation.
+    """
+    x, y, w, h = keep_roi_inside_frame(roi, frame.shape)
+    roi_frame = frame[y:y+h, x:x+w, :]
     if roi_frame.size == 0:
         return None
-
-    mean_bgr = np.mean(roi_frame.reshape(-1, 3), axis=0)
-    mean_rgb = mean_bgr[::-1]
-
-    return mean_rgb
+    ycrcb = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2YCrCb)
+    mask = cv2.inRange(ycrcb, np.array([20, 133, 77]), np.array([250, 173, 127]))
+    pixels = roi_frame[mask > 0]
+    if len(pixels) < max(12, int(0.08 * w * h)):
+        return None
+    return np.mean(pixels, axis=0)[::-1]
 
 
 # ============================================================
@@ -1735,7 +1742,10 @@ def extract_rppg_rgb_signals(video_path, max_preview_frames=5):
     times = []
     rgb_signal = []
     green_signal = []
+    roi_rgb_signals = {"forehead": [], "left_cheek": [], "right_cheek": []}
     preview_frames = []
+    previous_time = None
+    dropped_intervals = 0
 
     frame_index = 0
 
@@ -1745,8 +1755,15 @@ def extract_rppg_rgb_signals(video_path, max_preview_frames=5):
         if not ret:
             break
 
-        current_time = frame_index / fps
+        # Container timestamps are preferred; use nominal CFR timestamps only
+        # when the decoder does not expose a usable timestamp.
+        current_time = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        if not np.isfinite(current_time) or current_time <= 0 or (previous_time is not None and current_time <= previous_time):
+            current_time = frame_index / fps
         frame_index += 1
+        if previous_time is not None and current_time - previous_time > 1.5 / fps:
+            dropped_intervals += 1
+        previous_time = current_time
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -1765,22 +1782,20 @@ def extract_rppg_rgb_signals(video_path, max_preview_frames=5):
 
         rois = get_multi_rois(face, frame.shape)
 
-        rgb_values = []
-
+        rgb_values = {}
         for roi_name, roi in rois.items():
             mean_rgb = mean_rgb_from_roi(frame, roi)
-
             if mean_rgb is not None:
-                rgb_values.append(mean_rgb)
-
-        if len(rgb_values) == 0:
+                rgb_values[roi_name] = mean_rgb
+        if not rgb_values:
             continue
 
-        mean_rgb_all = np.mean(np.asarray(rgb_values), axis=0)
-
+        mean_rgb_all = np.mean(np.asarray(list(rgb_values.values())), axis=0)
         times.append(current_time)
         rgb_signal.append(mean_rgb_all)
         green_signal.append(mean_rgb_all[1])
+        for roi_name in roi_rgb_signals:
+            roi_rgb_signals[roi_name].append(rgb_values.get(roi_name, [np.nan, np.nan, np.nan]))
 
         if len(preview_frames) < max_preview_frames:
             frame_preview = frame.copy()
@@ -1844,6 +1859,8 @@ def extract_rppg_rgb_signals(video_path, max_preview_frames=5):
         "times": times,
         "rgb_signal": rgb_signal,
         "green_signal": green_signal,
+        "roi_rgb_signals": {name: np.asarray(values, dtype=float) for name, values in roi_rgb_signals.items()},
+        "dropped_intervals": dropped_intervals,
         "sampling_rate": sampling_rate,
         "duration": duration,
         "fps": fps,
@@ -2039,6 +2056,9 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
         max_bpm=MAX_BPM
     )
 
+    from .research import chrom_rppg
+    chrom_signal, chrom_metadata = chrom_rppg(rgb_signal, sampling_rate)
+
     pos_signal_raw = pos_rppg(
         rgb_signal,
         fs=sampling_rate,
@@ -2216,6 +2236,10 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
 
     # Signals needed by tachogram and stress scripts
     "pos_filt"                      : pos_filt,
+    "chrom_filt"                    : chrom_signal,
+    "chrom_metadata"                : chrom_metadata,
+    "roi_rgb_signals"               : data["roi_rgb_signals"],
+    "dropped_intervals"             : data["dropped_intervals"],
     "pos_peaks"                     : _pos_peaks,
     "relative_time"                 : times - times[0],
     "sampling_rate"                 : sampling_rate,
