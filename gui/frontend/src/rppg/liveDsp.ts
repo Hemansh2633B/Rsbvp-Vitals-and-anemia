@@ -2,7 +2,7 @@ export type RGB = [number, number, number]
 export type TraceSample = { t: number; rois: Partial<Record<'forehead' | 'left_cheek' | 'right_cheek', RGB | null>> }
 export type AlgorithmResult = { bpm: number | null; quality: number; waveform: number[] }
 export type LiveAnalysis = {
-  status: 'warming_up' | 'valid' | 'low_signal_quality' | 'insufficient_frames'
+  status: 'warming_up' | 'valid' | 'low_signal_quality' | 'excessive_motion' | 'face_not_detected' | 'roi_lost' | 'insufficient_frames' | 'reacquiring'
   reason: string
   bpm: number | null
   estimates: Record<string, number | null>
@@ -107,6 +107,8 @@ export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAn
   const consistency=values.length>=2?Math.max(...values)-Math.min(...values):Infinity
   const quality=qualities.length?median(qualities):0
   const valid=bpm!==null && consistency<=12 && quality>=0.12
-  const reason=valid?'Independent ROI/method estimates agree':values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':'Weak pulse spectral concentration'
-  return {status:valid?'valid':'low_signal_quality',reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs}
+  const noRoi=Object.keys(estimates).length===0
+  const insufficient=fs===null
+  const reason=valid?'Independent ROI/method estimates agree':noRoi?'All skin ROIs are lost or unavailable':insufficient?'Insufficient frames or irregular sampling':values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':'Weak pulse spectral concentration'
+  return {status:valid?'valid':noRoi?'roi_lost':insufficient?'insufficient_frames':'low_signal_quality',reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs}
 }

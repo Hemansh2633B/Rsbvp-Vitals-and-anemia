@@ -1,0 +1,2 @@
+dataset,dataset_version,participant_id,recording_id,trace_csv,reference_path,reference_format,reference_type,reference_time_column,reference_signal_column,reference_fs_hz,time_offset_s,source_citation,license_verified
+UBFC-rPPG,UNVERIFIED,participant-pseudonym,recording-pseudonym,traces/trace.csv,references/reference.csv,csv,ppg,timestamp_s,ppg,,0.0,REPLACE_WITH_OFFICIAL_CITATION,false

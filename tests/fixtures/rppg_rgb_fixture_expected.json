@@ -1,0 +1,9 @@
+{
+  "provenance": "Synthetic software-test fixture; not physiological data or validation results.",
+  "window_seconds": 12,
+  "reference_free_expected_python_estimates_bpm": {
+    "forehead_green": 70.0,
+    "forehead_pos": 70.0,
+    "forehead_chrom": 70.0
+  }
+}

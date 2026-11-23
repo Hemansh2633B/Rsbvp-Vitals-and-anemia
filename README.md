@@ -30,6 +30,8 @@ npm run dev -- --host 0.0.0.0
 
 The frontend proxies `/api` and `/ws` to the local FastAPI service. The live view now offers browser-local `getUserMedia()` + MediaPipe acquisition with in-browser ROI/rPPG analysis and timestamped RGB CSV export; it does not upload frames. The legacy local OpenCV camera and optional serial/CMS50D functionality remain available and use the **backend host's** hardware. Browser use requires camera permission and reachable MediaPipe model/WASM endpoints. Numeric live estimates are experimental and require browser/hardware validation.
 
+Browser exports a timestamped RGB CSV plus JSON run metadata; schema and the offline comparison path are documented in [RGB trace format](docs/RGB_TRACE_FORMAT.md) and [MediaPipe asset notes](docs/MEDIAPIPE_ASSETS.md).
+
 Run tests from the repository root after installing test dependencies:
 
 ```bash
@@ -64,6 +66,10 @@ python research/anemia/audit_dataset.py /path/to/images --labels /path/to/labels
 ```
 
 The optional labels CSV should contain `image_id`; patient and laboratory fields are copied only if present. Treat audit outputs as potentially sensitive. The audit reports file hashes for exact duplicates and does not claim patient-independent validation. See [the anemia model card](docs/ANEMIA_MODEL_CARD.md).
+
+## Local rPPG dataset validation
+
+The Sprint 3 intake tools read only local files. Configure `RSBVP_DATA_ROOT` or pass `--data-root`; see [`data/README.md`](data/README.md) for explicit manifest/reference formats. Do not commit research data. Dataset-specific archive mappings must be verified against the actual archive and official documentation before use. Current checked-in validation status is [NOT RUN — DATASET NOT AVAILABLE](reports/validation/validation.md); the supplied UBFC-rPPG Drive archive was not accessible to this workspace. Run `python research/rppg/validate_dataset.py <manifest.csv> --data-root <local-root>` only after provenance, license, synchronization, and schema have been verified. Browser hardware procedure (not yet performed): [`docs/MANUAL_CAMERA_TESTS.md`](docs/MANUAL_CAMERA_TESTS.md).
 
 ## Research safeguards and deployment
 

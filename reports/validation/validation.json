@@ -1,0 +1,20 @@
+{
+  "status": "NOT RUN — DATASET NOT AVAILABLE",
+  "evaluations": {
+    "UBFC-rPPG": {
+      "status": "NOT RUN — DATASET NOT AVAILABLE",
+      "reason": "The supplied Google Drive link/archive and official documentation could not be accessed or inspected in this workspace."
+    },
+    "COHFACE": {
+      "status": "NOT RUN — DATASET NOT AVAILABLE",
+      "reason": "No local archive or verified archive documentation was available."
+    },
+    "anemia": {
+      "status": "NOT RUN — OUT OF SCOPE"
+    }
+  },
+  "synthetic_tests_are_physiological_validation": false,
+  "hardware_tests_performed": false,
+  "participant_recordings_committed": false,
+  "clinical_accuracy_claim": false
+}
