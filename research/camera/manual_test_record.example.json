@@ -1,0 +1,36 @@
+{
+  "schema": "rsbvp.camera-test-record.v1",
+  "session": {
+    "operator_initials": "XX",
+    "consent_confirmed": true,
+    "date_utc": "2026-11-24",
+    "site": "example - not a real session"
+  },
+  "environment": {
+    "browser": "Chromium",
+    "browser_version": "example",
+    "os": "example Linux",
+    "camera_model": "example webcam",
+    "camera_resolution": "640x480",
+    "approx_fps": 30,
+    "lighting": "indoor-normal",
+    "distance_cm_approx": 100
+  },
+  "capture": {
+    "duration_s": 120,
+    "roi_availability": {"forehead": "full", "left_cheek": "partial", "right_cheek": "full"},
+    "dropped_interval_fraction": 0.02,
+    "camera_interrupted": false,
+    "tab_hidden": false,
+    "device_switched": false
+  },
+  "quality_gate": {
+    "status": "valid",
+    "rejection_reasons": [],
+    "estimate_available": true,
+    "processing_latency_ms": 250
+  },
+  "reference": {"equipment": "none", "synchronized_capture": false},
+  "result": "pass",
+  "notes": "EXAMPLE RECORD - placeholder values; do not commit real participant data."
+}

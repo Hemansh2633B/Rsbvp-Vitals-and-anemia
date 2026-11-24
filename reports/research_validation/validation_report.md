@@ -5,6 +5,17 @@
 
 ---
 
+## Sprint 9 addendum (2026-11-23, reproducibility & provenance)
+
+- Benchmark summaries now carry an additive `run` block (`rsbvp.benchmark-run.v1`, `research/backends/run_info.py`): software name/version/commit, python/numpy/scipy/OpenCV versions, platform, the full benchmark configuration (window/step/passband/algorithms/backends), and the SHA-256 of the manifest used. `summary.md` gains a "## Run environment" section. Additive only; schema tag unchanged.
+- Research CLIs (`compare_algorithms.py`, `validate_dataset.py`) now embed a `generated_by` provenance block (tool + software name/version/commit; `validate_dataset.py` also records the manifest SHA-256).
+- Browser exports embed `software.{name,version,commit}` and a random non-identifying `capture_session_id`; the export builders were extracted to a pure module (`gui/frontend/src/rppg/exports.ts`) with unit tests pinning the null/empty-instead-of-zero contract and schema tags (`rsbvp.rgb-trace.v1`, `rsbvp.window-analysis.v1`).
+- Camera/hardware session record infrastructure added (`rsbvp.camera-test-record.v1`; `research/camera/`, `docs/CAMERA_HARDWARE_VALIDATION.md`). Validator is structure-only and says so in its output. Physical camera testing: **NOT RUN**.
+- Anemia readiness audit added (`docs/ANEMIA_READINESS.md`). Status unchanged: **NOT AVAILABLE — NO VERIFIED LABELED DATASET**; no model exists; no screening claim is made or permissible.
+- Signal-processing audit added regression tests only (flat-channel GREEN/ICA/CHROM/POS/PBV rejection, fs below passband Nyquist raises, NaN spectral-features handling, competing-peak separation flagging, ICA determinism, CHROM short-window boundary, PBV signature-gate fallback token). **No filter parameter, gate constant or threshold was retuned.** Cross-language parity tests unchanged.
+- UBFC-rPPG and COHFACE availability re-checked on 2026-11-23 against primary sources (project page / Zenodo); both remain **NOT RUN — DATASET NOT AVAILABLE**. Test totals after Sprint 9 changes: Python suite and frontend suite listed in the PR; all green without datasets/hardware/GPU/network.
+- No evidence tier was upgraded. `software-tested` ≠ `synthetic-tested` ≠ `dataset-tested` ≠ `hardware-tested` ≠ `physiologically validated` ≠ `clinically validated`.
+
 ## Sprint 8 addendum (2026-11-23)
 
 - Quality concepts are six explicitly separated, never-blended verdicts in both pathways (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`); a union ROI-coverage gate (≥ 0.50) is required for `valid`.

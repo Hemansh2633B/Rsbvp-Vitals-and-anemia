@@ -74,6 +74,10 @@ A second authorized-data candidate was checked so the blocker list is complete (
 
 COHFACE is a lower frame rate (20 fps), different camera and different illumination profile than UBFC-rPPG; it is a complementary check, not a substitute, and would require its own readiness probe, synchronization verification and license confirmation before any number could exist.
 
+## 6a. Re-verification note (2026-11-23, reproducibility sprint)
+
+The official page and both candidate datasets were re-checked this sprint against primary sources: the UBFC-rPPG project page (Google Drive / OneDrive / DaTa@BFC download pattern, research-use request with citation, Bobbia et al. 2017) remains unchanged, and COHFACE remains restricted to non-commercial research via Idiap/Zenodo 4081054 under an EULA. A third-party mirror of UBFC-rPPG on Kaggle (claiming CC0) was observed but is **not authoritative** and must not be used or redistributed without the provider's written terms; this repository does not rely on it. The archive is **still not present in this environment** and `RSBVP_DATA_ROOT` remains unset — nothing in this section authorizes downloading or committing the data. Every step in §5 remains required before any dataset-level number may exist.
+
 ## 7. Why this report exists instead of results
 
 Fabricating a benchmark — from synthetic data, from assumed layouts, from unverified sample rates — would violate the dataset's intended use, the repository's honesty rules, and basic scientific practice. The correct output when the data are absent is this report.

@@ -19,6 +19,7 @@ from scipy.signal import welch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'gui'))
 from rppg_core.research import chrom_rppg,timestamps_to_fs
 from rppg_core.pipeline import pos_rppg,MIN_BPM,MAX_BPM
+from rppg_core.version import software_info as _software_info
 ROIS=('forehead','left_cheek','right_cheek')
 CHANNELS='rgb'
 WINDOW_SECONDS=12.0
@@ -148,5 +149,6 @@ def compare(input_path,reference_authorized=False):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('input',type=Path,help='trace CSV, or manifest CSV (recording_id,csv_path)');p.add_argument('--output',type=Path,default=Path('rppg_comparison.json'));p.add_argument('--reference-source',help='Provenance string for genuine synchronized reference data; enables error metrics.');a=p.parse_args()
     result=compare(a.input,reference_authorized=bool(a.reference_source));result['reference_source']=a.reference_source
+    result['generated_by']={'tool':'research/rppg/compare_algorithms.py',**_software_info()}
     a.output.write_text(json.dumps(result,indent=2),encoding='utf-8');print(json.dumps(result,indent=2))
 if __name__=='__main__':main()

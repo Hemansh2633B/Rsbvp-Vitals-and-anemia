@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from research.rppg.dataset_io import data_root, load_reference, read_manifest, reference_hr_windows
 from research.rppg.compare_algorithms import evaluate_recording
+from research.backends.run_info import sha256_file as _sha256_file
 
 
 def _metrics(pairs: list[tuple[float, float]]) -> dict[str, object]:
@@ -113,8 +114,11 @@ def evaluate_manifest(manifest: Path, root: Path, *, window_seconds: float = 12,
                          "quality_gate_coverage_note": "Not available: RGB CSV has no per-window browser gate state. Estimate availability is not a substitute for quality-gate coverage.",
                          "reference_rejection_reasons": rejection_counts,
                          "note": "Overlapping windows are correlated and are not independent participants."}
+    from rppg_core.version import software_info as _software_info  # gui path inserted by compare_algorithms
     return {"status": "COMPLETED", "dataset": rows[0]["dataset"],
             "dataset_versions": sorted({r["dataset_version"] for r in rows}),
+            "generated_by": {"tool": "research/rppg/validate_dataset.py", **_software_info(),
+                            "manifest_sha256": _sha256_file(manifest)},
             "recording_count": len(recordings),
             "participant_count": len({r["participant_id"] for r in rows}),
             "synchronization": "reference timestamps plus manifest time_offset_s; no offset is inferred",

@@ -26,6 +26,9 @@ Schema `rsbvp.rgb-trace.v1`. Fields:
 | field | meaning |
 |---|---|
 | `created_utc` | wall-clock export time |
+| `capture_session_id` | random non-identifying id (`sess-<16 hex>`) linking this CSV to its `.json` and `_windows.json` from one capture session; not a device or person identifier |
+| `software` | `{name, version, commit, package}`; `version` = `1.0.0` (matches `CITATION.cff`), `commit` = `VITE_GIT_SHA` when set at build time, else `unknown` — never invented |
+| `analysis_config` | `{backend, passband_hz, required_seconds, min_roi_coverage, spectrum, roi_method, algorithms}` — the exact estimator configuration used; parameters are fixed, never tuned per recording |
 | `sample_count`, `earlier_samples_dropped_due_to_buffer_limit` | surviving vs. dropped samples (cap 18000) |
 | `trace_start_timestamp_s`, `trace_end_timestamp_s`, `acquisition_duration_seconds` | coverage |
 | `camera_fps_reported` | from `getVideoPlaybackQuality()` (browser-reported, unverified) |
@@ -47,6 +50,9 @@ Schema `rsbvp.window-analysis.v1`:
 
 | field | meaning |
 |---|---|
+| `created_utc` | wall-clock export time |
+| `capture_session_id` | same non-identifying session id as the trace metadata (§2) |
+| `software` | `{name, version, commit, package}` as in §2 |
 | `window_count` | number of retained window records (ring buffer, cap 3600) |
 | `dropped_windows_due_to_buffer_limit` | windows evicted before export |
 | `window_records[]` | one record per analyzed window, chronological |
@@ -56,9 +62,12 @@ Per record:
 | field | meaning |
 |---|---|
 | `window_index` | monotonically increasing analysis-window index |
-| `window_start_s`, `window_end_s` | bounds of the analyzed RGB window (`timestamp_s` clock, §1) |
+| `window_start_s`, `window_end_s` | bounds of the analyzed RGB window (`timestamp_s` clock, §1); `null` if the window bounds were unavailable — never fabricated |
 | `n_samples` | samples in the analyzed window |
 | `analyzed_utc` | wall-clock analysis time |
+| `software` | `{name, version, commit, package}` |
+| `backend` | `rsbvp-browser-liveDsp` — the implementation that produced the window |
+| `analysis_config` | `{passband_hz, required_seconds, min_roi_coverage, spectrum}` used for this window |
 | `effective_sampling_rate_hz` | measured from window timestamps (median interval), or `null` |
 | `consensus_bpm` | consensus or `null` when the window verdict is not `valid` |
 | `per_estimator_bpm` | map `<roi>_<method>` → BPM or `null` — disagreement is always visible |
@@ -70,6 +79,33 @@ Per record:
 | `roi_coverage`, `roi_coverage_overall` | per-ROI and union ROI coverage fractions for the window |
 | `quality_concepts` | six separated concepts, each `pass` / `fail` / `not_evaluated` |
 | `selected_display_algorithm` | the algorithm chosen in the UI dropdown at analysis time (`green`, `pos`, `chrom`) |
+
+## Schema versions and compatibility
+
+Schemas are versioned in the `schema` field (`rsbvp.rgb-trace.v1`,
+`rsbvp.window-analysis.v1`). Additive fields (such as the provenance block
+above, added in v1 after Sprint 8) may appear in a minor consumer without a
+version bump; removed or renamed fields, or changed meanings, require a new
+major tag (`v2`). Consumers must tolerate unknown additive keys and must treat
+unknown major tags as unreadable. The Python benchmark summary
+(`rsbvp.benchmark-summary.v1`) likewise carries an additive `run` block
+(`rsbvp.benchmark-run.v1`: software name/version/commit, python/numpy/scipy/
+opencv versions, platform, full benchmark configuration, and the manifest
+SHA-256) — see `research/backends/run_info.py`.
+
+## Provenance and honesty rules
+
+- Missing values are always `null`/empty/omitted — **never** zero, never the
+  last known estimate.
+- `valid` (availability) is a software quality gate, not a physiological or
+  clinical statement; no export may be used as a diagnostic output.
+- Exports carry `frame_images_included: false` and `frames_uploaded: false`;
+  no frame payload exists in any export by design.
+- No export contains participant identifiers; `capture_session_id` is random
+  per capture and non-identifying.
+- Reference-device provenance, when a CMS50D/CMS50E is ever used, must be
+  recorded in the manual-session record (`docs/CAMERA_HARDWARE_VALIDATION.md`),
+  not in these files.
 
 ## Honest limitations
 

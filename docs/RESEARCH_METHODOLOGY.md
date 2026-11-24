@@ -27,6 +27,38 @@ Engineering added this sprint: a local-only readiness probe (`research/rppg/ubfc
 
 Quality verdicts are now six explicitly separated concepts — `face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability` — reported individually on every verdict path; no blended score exists. A union ROI-coverage gate (≥ 0.50) joins acquisition/spectral/agreement checks for a `valid` verdict in both the browser and Python pathways. The browser motion detector purges the rolling analysis buffer on trigger. Browser and Python CHROM reject invalid inputs explicitly (non-positive/non-finite RGB, fewer than 8 samples, fs ≤ 7 Hz); in the browser each estimator is isolated so one failure degrades to `bpm:null` for that estimator only; in the legacy Python pipeline a CHROM `ValueError` yields an explicit unavailable CHROM estimate rather than aborting the analysis. Browser CHROM retains the in-band Hann periodogram as its band restriction; Python `chrom_rppg` retains its zero-phase Butterworth — documented as an intentional difference; parity remains demonstrated on the shared synthetic fixture only. MediaPipe failure paths (GPU→CPU fallback, permission denial, missing hardware, face loss/reacquisition, hidden tab, worker crash/termination, camera interruption) carry mocked regression tests; physical execution is NOT RUN. Anemia foundations gained a standardized input-image contract and explicit researcher-reviewed conjunctival-ROI annotation format with a machine-readable validator (`research/anemia/contract.py`; `docs/ANEMIA_IMAGE_CONTRACT.md`); still no model, no predictor, status NOT AVAILABLE. All dataset-level validation remains `NOT RUN — DATASET NOT AVAILABLE`.
 
+## Sprint 9 — independent validation & reproducibility (current status)
+
+This sprint made the evaluation pipeline *auditable*, and changed no
+physiological capability. Delivered: (1) a benchmark run-provenance block
+(`rsbvp.benchmark-run.v1` via `research/backends/run_info.py`) recording
+software name/version/commit, Python/numpy/scipy/OpenCV versions, platform,
+the full benchmark configuration (windows, step, passband, requested
+backends/algorithms) and the SHA-256 of the manifest/trace used, embedded as
+an additive `run` key in every `rsbvp.benchmark-summary.v1` summary and an
+"## Run environment" section in `summary.md`; (2) software provenance in
+research CLIs (`compare_algorithms.py`, `validate_dataset.py`) and in the
+browser exports (`gui/rppg_core/version.py`, `gui/frontend/src/rppg/provenance.ts`;
+`software.{name,version,commit}`); browser exports additionally carry a random
+non-identifying `capture_session_id` and the exact `analysis_config` used;
+(3) export builders extracted to a pure, unit-tested module
+(`gui/frontend/src/rppg/exports.ts`) — empty cells for absent ROIs, `null`
+for unavailable estimates, never zero-fill; (4) a camera/hardware session
+record format (`rsbvp.camera-test-record.v1`) with a structure validator and
+example template, and a repeatable manual-session protocol
+(`docs/CAMERA_HARDWARE_VALIDATION.md`) — physical execution remains NOT RUN;
+(5) anemia readiness audit (`docs/ANEMIA_READINESS.md`): what exists, what is
+absent, what would be required before any model work — no model, no dataset,
+no claim; (6) regression tests for genuinely missing edge cases (flat-channel
+GREEN/CHROM/POS/ICA/PBV rejection, short-signal bandpass, fs below passband
+Nyquist, NaN spectral features, competing-peak separation flagging, ICA
+determinism, 16/15-sample RGB boundaries). No filter parameter, gate constant
+or threshold was retuned; cross-language parity tests are unchanged. The
+UBFC-rPPG official page and COHFACE terms were re-verified against primary
+sources on 2026-11-23; both datasets remain **NOT RUN — DATASET NOT AVAILABLE**.
+Every dataset-level statement, physical-camera statement and anemia statement
+in this repository remains gated exactly as in Sprint 8.
+
 ## Sprint 7 — quality verdicts, parity and research infrastructure
 
 *(Sprint 7 text; superseded by the Sprint 8 section above — six separated concepts now.)* A dedicated quality layer (`gui/rppg_core/quality.py`; mirrored in the browser) decomposed the per-window verdict into five separately-computed concepts: (1) acquisition quality (channel clipping, mean brightness, under/over-exposure, dynamic range), (2) trace/ROI quality (usable-sample fraction, effective sampling rate, timestamp max-gap and dropped-interval fraction), (3) physiological signal quality (in-band spectral concentration, SNR vs the out-of-peak passband median, separation against the strongest competing in-band local maximum), (4) estimator agreement (max−min spread across independent Green/POS/CHROM-ROI estimates vs a 12 BPM ceiling), (5) availability (conservative composite). Status tokens are `warming_up`, `valid`, `low_signal_quality`, `excessive_motion`, `face_not_detected`, `roi_lost`, `insufficient_frames`, `irregular_timestamps`, `reacquiring`, `processing_error`. Unavailable windows report `bpm=null` with a human-readable reason; no plausible-looking number, zero-fill or stale substitution is ever emitted. Thresholds are documented research heuristics, not calibrated cut-offs; a strong spectral peak is not treated as proof of pulse origin.
