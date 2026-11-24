@@ -1,0 +1,2501 @@
+{
+  "schema": "rsbvp.mmpd-gif-smoke.v1",
+  "gif_dir": "/tmp/mmpd/gifs",
+  "record_count": 16,
+  "total_duration_seconds": 71.52,
+  "records": [
+    {
+      "file": "Incandescent_R.gif",
+      "sha256": "4aeaa2e3ea45ba3773f873005d3b6f81de65a41521606da7bdddb506d337abd3",
+      "bytes": 2695002,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 58,
+      "face_detection_rate": 0.3867,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 0.9828,
+        "left_cheek": 0.931,
+        "right_cheek": 0.931
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "right_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "Incandescent_S.gif",
+      "sha256": "7ac8f8bf27631e673e63e63dbe4561bae12fda01e1eb10a38e85a6e00a3b1023",
+      "bytes": 2752070,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3248,
+            "snr_db": 11.65,
+            "separation_ratio": 1.485,
+            "quality_tokens": [
+              "weak_separation_1.49"
+            ]
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.253,
+            "snr_db": 7.72,
+            "separation_ratio": 1.674,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2836,
+            "snr_db": 8.99,
+            "separation_ratio": 2.42,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.5826,
+            "snr_db": 15.86,
+            "separation_ratio": 4.952,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.2836,
+            "snr_db": 8.99,
+            "separation_ratio": 2.42,
+            "quality_tokens": []
+          }
+        },
+        "left_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.6563,
+            "snr_db": 16.93,
+            "separation_ratio": 5.195,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.3218,
+            "snr_db": 10.03,
+            "separation_ratio": 2.049,
+            "quality_tokens": []
+          },
+          "CHROM": 66.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3669,
+            "snr_db": 13.9,
+            "separation_ratio": 2.425,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.5444,
+            "snr_db": 13.72,
+            "separation_ratio": 3.874,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.2949,
+            "snr_db": 11.12,
+            "separation_ratio": 10.283,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.6278,
+            "snr_db": 16.52,
+            "separation_ratio": 25.233,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.354,
+            "snr_db": 10.67,
+            "separation_ratio": 2.41,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3377,
+            "snr_db": 11.18,
+            "separation_ratio": 2.502,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.6093,
+            "snr_db": 16.05,
+            "separation_ratio": 20.382,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.2972,
+            "snr_db": 10.4,
+            "separation_ratio": 6.734,
+            "quality_tokens": []
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "Incandescent_T.gif",
+      "sha256": "b70b9c103285a5c745992fcc963168d3629ae1652aae3ef622db06a7efdc005e",
+      "bytes": 2433395,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 120,
+      "face_detection_rate": 0.8,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 0.8417,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "right_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "Incandescent_W.gif",
+      "sha256": "4656a1124816b8c03b03a6e050553b8ca9302656fb53e70dd53eafbda4d4b6d9",
+      "bytes": 2448239,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 160.0,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3067,
+            "snr_db": 7.1,
+            "separation_ratio": 2.11,
+            "quality_tokens": []
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.3462,
+            "snr_db": 7.22,
+            "separation_ratio": 2.618,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3806,
+            "snr_db": 10.77,
+            "separation_ratio": 2.232,
+            "quality_tokens": []
+          },
+          "ICA": 66.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.2801,
+            "snr_db": 10.32,
+            "separation_ratio": 2.597,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.2319,
+            "snr_db": 6.43,
+            "separation_ratio": 2.388,
+            "quality_tokens": []
+          }
+        },
+        "left_cheek": {
+          "GREEN": 160.0,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2273,
+            "snr_db": 4.96,
+            "separation_ratio": 1.446,
+            "quality_tokens": [
+              "weak_separation_1.45"
+            ]
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.2955,
+            "snr_db": 7.65,
+            "separation_ratio": 2.392,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3735,
+            "snr_db": 9.95,
+            "separation_ratio": 2.646,
+            "quality_tokens": []
+          },
+          "ICA": 66.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.2839,
+            "snr_db": 8.26,
+            "separation_ratio": 2.788,
+            "quality_tokens": []
+          },
+          "PBV": 66.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.269,
+            "snr_db": 7.29,
+            "separation_ratio": 3.806,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 146.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2002,
+            "snr_db": 6.59,
+            "separation_ratio": 1.079,
+            "quality_tokens": [
+              "weak_separation_1.08"
+            ]
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.5208,
+            "snr_db": 11.8,
+            "separation_ratio": 6.002,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3996,
+            "snr_db": 10.81,
+            "separation_ratio": 2.421,
+            "quality_tokens": []
+          },
+          "ICA": 146.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.2183,
+            "snr_db": 4.35,
+            "separation_ratio": 1.088,
+            "quality_tokens": [
+              "weak_separation_1.09"
+            ]
+          },
+          "PBV": 66.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.3959,
+            "snr_db": 12.1,
+            "separation_ratio": 5.449,
+            "quality_tokens": []
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-high_R.gif",
+      "sha256": "e65e57464d37f5352c2ec11209da2ee486fef648838bdf0ed893def288adb033",
+      "bytes": 2682460,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 126,
+      "face_detection_rate": 0.84,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "right_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-high_S.gif",
+      "sha256": "70f125c3e2bfc526c5d21ed7e74ac11cfa9182562e00932a722959b6cc04fd92",
+      "bytes": 2722496,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2532,
+            "snr_db": 6.15,
+            "separation_ratio": 1.591,
+            "quality_tokens": []
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.4348,
+            "snr_db": 11.98,
+            "separation_ratio": 3.095,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.4384,
+            "snr_db": 12.39,
+            "separation_ratio": 3.369,
+            "quality_tokens": []
+          },
+          "ICA": 80.0,
+          "ICA_spectral": {
+            "peak_fraction": 0.4294,
+            "snr_db": 9.87,
+            "separation_ratio": 2.655,
+            "quality_tokens": []
+          },
+          "PBV": 53.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.5068,
+            "snr_db": 11.29,
+            "separation_ratio": null,
+            "quality_tokens": []
+          }
+        },
+        "left_cheek": {
+          "GREEN": 80.0,
+          "GREEN_spectral": {
+            "peak_fraction": 0.4563,
+            "snr_db": 12.55,
+            "separation_ratio": 10.497,
+            "quality_tokens": []
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.4914,
+            "snr_db": 12.14,
+            "separation_ratio": 16.362,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.4429,
+            "snr_db": 15.26,
+            "separation_ratio": 123.351,
+            "quality_tokens": []
+          },
+          "ICA": 80.0,
+          "ICA_spectral": {
+            "peak_fraction": 0.4732,
+            "snr_db": 14.28,
+            "separation_ratio": 21.78,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.4429,
+            "snr_db": 15.26,
+            "separation_ratio": 123.351,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 80.0,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3413,
+            "snr_db": 8.66,
+            "separation_ratio": 2.96,
+            "quality_tokens": []
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.54,
+            "snr_db": 15.53,
+            "separation_ratio": 17.081,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.5014,
+            "snr_db": 17.5,
+            "separation_ratio": 56.207,
+            "quality_tokens": []
+          },
+          "ICA": 80.0,
+          "ICA_spectral": {
+            "peak_fraction": 0.3612,
+            "snr_db": 9.33,
+            "separation_ratio": 5.284,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.5014,
+            "snr_db": 17.5,
+            "separation_ratio": 56.207,
+            "quality_tokens": []
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-high_T.gif",
+      "sha256": "d948104019d272a104179a83d9cfefb304aea8d1509733dcfe12a43473c10a8a",
+      "bytes": 2376043,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 93.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3677,
+            "snr_db": 11.74,
+            "separation_ratio": 11.738,
+            "quality_tokens": []
+          },
+          "POS": 93.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2586,
+            "snr_db": 9.19,
+            "separation_ratio": 8.297,
+            "quality_tokens": []
+          },
+          "CHROM": 66.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2292,
+            "snr_db": 10.23,
+            "separation_ratio": 10.532,
+            "quality_tokens": []
+          },
+          "ICA": 93.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.2532,
+            "snr_db": 7.27,
+            "separation_ratio": 4.532,
+            "quality_tokens": []
+          },
+          "PBV": 66.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.219,
+            "snr_db": 4.74,
+            "separation_ratio": 1.471,
+            "quality_tokens": [
+              "weak_separation_1.47"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": 93.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3743,
+            "snr_db": 9.25,
+            "separation_ratio": 7.455,
+            "quality_tokens": []
+          },
+          "POS": 80.0,
+          "POS_spectral": {
+            "peak_fraction": 0.2613,
+            "snr_db": 7.81,
+            "separation_ratio": 2.14,
+            "quality_tokens": []
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2205,
+            "snr_db": 5.96,
+            "separation_ratio": 1.3,
+            "quality_tokens": [
+              "weak_separation_1.30"
+            ]
+          },
+          "ICA": 93.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.2429,
+            "snr_db": 9.75,
+            "separation_ratio": 1.946,
+            "quality_tokens": []
+          },
+          "PBV": 66.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2483,
+            "snr_db": 6.92,
+            "separation_ratio": 4.343,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 93.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.446,
+            "snr_db": 11.57,
+            "separation_ratio": 14.37,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.2515,
+            "snr_db": 11.77,
+            "separation_ratio": 11.161,
+            "quality_tokens": []
+          },
+          "CHROM": 53.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3732,
+            "snr_db": 10.13,
+            "separation_ratio": 7.092,
+            "quality_tokens": []
+          },
+          "ICA": 80.0,
+          "ICA_spectral": {
+            "peak_fraction": 0.3348,
+            "snr_db": 9.61,
+            "separation_ratio": 5.854,
+            "quality_tokens": []
+          },
+          "PBV": 53.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.3448,
+            "snr_db": 10.45,
+            "separation_ratio": 6.068,
+            "quality_tokens": []
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-high_W.gif",
+      "sha256": "fb201e99a47d7dee663303e5e54a555e51645314fb8c0b9bfa895bcb65c176a9",
+      "bytes": 2325266,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.7258,
+            "snr_db": 17.04,
+            "separation_ratio": 37.457,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.2036,
+            "snr_db": 5.85,
+            "separation_ratio": 1.531,
+            "quality_tokens": []
+          },
+          "CHROM": 66.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2115,
+            "snr_db": 5.45,
+            "separation_ratio": 1.605,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.4032,
+            "snr_db": 8.8,
+            "separation_ratio": 2.791,
+            "quality_tokens": []
+          },
+          "PBV": 66.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2713,
+            "snr_db": 9.14,
+            "separation_ratio": 5.03,
+            "quality_tokens": []
+          }
+        },
+        "left_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.7563,
+            "snr_db": 19.61,
+            "separation_ratio": 22.53,
+            "quality_tokens": []
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2297,
+            "snr_db": 7.64,
+            "separation_ratio": 1.957,
+            "quality_tokens": []
+          },
+          "CHROM": 66.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3375,
+            "snr_db": 11.02,
+            "separation_ratio": 4.03,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.5992,
+            "snr_db": 14.95,
+            "separation_ratio": 7.967,
+            "quality_tokens": []
+          },
+          "PBV": 66.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.3375,
+            "snr_db": 11.02,
+            "separation_ratio": 4.03,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.7939,
+            "snr_db": 20.06,
+            "separation_ratio": 25.989,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.2869,
+            "snr_db": 7.74,
+            "separation_ratio": 3.088,
+            "quality_tokens": []
+          },
+          "CHROM": 93.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.1814,
+            "snr_db": 4.98,
+            "separation_ratio": 1.731,
+            "quality_tokens": [
+              "low_concentration_0.181"
+            ]
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.8639,
+            "snr_db": 20.0,
+            "separation_ratio": 18.575,
+            "quality_tokens": []
+          },
+          "PBV": 53.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.1343,
+            "snr_db": 1.5,
+            "separation_ratio": 1.04,
+            "quality_tokens": [
+              "low_concentration_0.134",
+              "low_snr_1.5db",
+              "weak_separation_1.04"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-low_R.gif",
+      "sha256": "69bd081edd1ef03aeeb6358ee992768a7977aa7c2aec3d5545c259e69e425ad0",
+      "bytes": 2611629,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 127,
+      "face_detection_rate": 0.8467,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 0.9921,
+        "left_cheek": 0.9291,
+        "right_cheek": 0.937
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "right_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-low_S.gif",
+      "sha256": "7975639a1d60b65ed68479849d7e6449ed093c14073006b285859f36ea028769",
+      "bytes": 2684844,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.6491,
+            "snr_db": 16.58,
+            "separation_ratio": 4.454,
+            "quality_tokens": []
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2833,
+            "snr_db": 7.03,
+            "separation_ratio": 1.83,
+            "quality_tokens": []
+          },
+          "CHROM": 53.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2633,
+            "snr_db": 8.82,
+            "separation_ratio": 2.04,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.3357,
+            "snr_db": 10.86,
+            "separation_ratio": 1.725,
+            "quality_tokens": []
+          },
+          "PBV": 146.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2074,
+            "snr_db": 5.98,
+            "separation_ratio": 1.354,
+            "quality_tokens": [
+              "weak_separation_1.35"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.6149,
+            "snr_db": 17.64,
+            "separation_ratio": 19.426,
+            "quality_tokens": []
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.1666,
+            "snr_db": 3.13,
+            "separation_ratio": 1.202,
+            "quality_tokens": [
+              "low_concentration_0.167",
+              "weak_separation_1.20"
+            ]
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.1899,
+            "snr_db": 7.55,
+            "separation_ratio": 1.165,
+            "quality_tokens": [
+              "low_concentration_0.190",
+              "weak_separation_1.17"
+            ]
+          },
+          "ICA": 93.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.1989,
+            "snr_db": 5.01,
+            "separation_ratio": 1.351,
+            "quality_tokens": [
+              "low_concentration_0.199",
+              "weak_separation_1.35"
+            ]
+          },
+          "PBV": 146.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2234,
+            "snr_db": 4.67,
+            "separation_ratio": 1.757,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 66.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3964,
+            "snr_db": 13.47,
+            "separation_ratio": 5.797,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.3905,
+            "snr_db": 10.37,
+            "separation_ratio": 5.825,
+            "quality_tokens": []
+          },
+          "CHROM": 66.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3215,
+            "snr_db": 10.91,
+            "separation_ratio": 7.479,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.6888,
+            "snr_db": 13.86,
+            "separation_ratio": 10.226,
+            "quality_tokens": []
+          },
+          "PBV": 120.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.1754,
+            "snr_db": 4.77,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "low_concentration_0.175"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-low_T.gif",
+      "sha256": "ef6628c0c2e090035309a03d0e8a6ff6f4c611d52e5259727b85e45d16d1114c",
+      "bytes": 2381520,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 66.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2794,
+            "snr_db": 7.76,
+            "separation_ratio": 2.273,
+            "quality_tokens": []
+          },
+          "POS": 146.67,
+          "POS_spectral": {
+            "peak_fraction": 0.2307,
+            "snr_db": 4.61,
+            "separation_ratio": 2.263,
+            "quality_tokens": []
+          },
+          "CHROM": 146.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2288,
+            "snr_db": 4.41,
+            "separation_ratio": 2.274,
+            "quality_tokens": []
+          },
+          "ICA": 66.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.3089,
+            "snr_db": 9.46,
+            "separation_ratio": 3.362,
+            "quality_tokens": []
+          },
+          "PBV": 146.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2288,
+            "snr_db": 4.41,
+            "separation_ratio": 2.274,
+            "quality_tokens": []
+          }
+        },
+        "left_cheek": {
+          "GREEN": 186.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3287,
+            "snr_db": 10.0,
+            "separation_ratio": 3.15,
+            "quality_tokens": []
+          },
+          "POS": 146.67,
+          "POS_spectral": {
+            "peak_fraction": 0.2036,
+            "snr_db": 4.99,
+            "separation_ratio": 2.273,
+            "quality_tokens": []
+          },
+          "CHROM": 146.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2175,
+            "snr_db": 4.82,
+            "separation_ratio": 1.938,
+            "quality_tokens": []
+          },
+          "ICA": 66.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.2816,
+            "snr_db": 5.67,
+            "separation_ratio": 2.693,
+            "quality_tokens": []
+          },
+          "PBV": 146.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2175,
+            "snr_db": 4.82,
+            "separation_ratio": 1.938,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 106.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.1877,
+            "snr_db": 4.05,
+            "separation_ratio": 1.309,
+            "quality_tokens": [
+              "low_concentration_0.188",
+              "weak_separation_1.31"
+            ]
+          },
+          "POS": 133.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2273,
+            "snr_db": 7.45,
+            "separation_ratio": 1.158,
+            "quality_tokens": [
+              "weak_separation_1.16"
+            ]
+          },
+          "CHROM": 80.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2367,
+            "snr_db": 7.72,
+            "separation_ratio": 1.13,
+            "quality_tokens": [
+              "weak_separation_1.13"
+            ]
+          },
+          "ICA": 66.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.3272,
+            "snr_db": 8.1,
+            "separation_ratio": 2.917,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.2367,
+            "snr_db": 7.72,
+            "separation_ratio": 1.13,
+            "quality_tokens": [
+              "weak_separation_1.13"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "LED-low_W.gif",
+      "sha256": "44de75a4bc883a3976398873d4a0e0bbbe9ee5e1b3906495dc5a04f8471c4af3",
+      "bytes": 2288474,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 66.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.4664,
+            "snr_db": 15.39,
+            "separation_ratio": 8.466,
+            "quality_tokens": []
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2012,
+            "snr_db": 4.47,
+            "separation_ratio": 1.009,
+            "quality_tokens": [
+              "weak_separation_1.01"
+            ]
+          },
+          "CHROM": 53.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3207,
+            "snr_db": 9.78,
+            "separation_ratio": 3.032,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.4692,
+            "snr_db": 12.36,
+            "separation_ratio": 2.917,
+            "quality_tokens": []
+          },
+          "PBV": 53.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.3207,
+            "snr_db": 9.78,
+            "separation_ratio": 3.032,
+            "quality_tokens": []
+          }
+        },
+        "left_cheek": {
+          "GREEN": 66.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.5163,
+            "snr_db": 12.96,
+            "separation_ratio": 11.211,
+            "quality_tokens": []
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2925,
+            "snr_db": 7.02,
+            "separation_ratio": 2.933,
+            "quality_tokens": []
+          },
+          "CHROM": 53.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3569,
+            "snr_db": 9.12,
+            "separation_ratio": 4.516,
+            "quality_tokens": []
+          },
+          "ICA": 66.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.4247,
+            "snr_db": 12.17,
+            "separation_ratio": 6.117,
+            "quality_tokens": []
+          },
+          "PBV": 53.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.3569,
+            "snr_db": 9.12,
+            "separation_ratio": 4.516,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 66.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.4704,
+            "snr_db": 12.38,
+            "separation_ratio": 4.574,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.2777,
+            "snr_db": 9.53,
+            "separation_ratio": 1.179,
+            "quality_tokens": [
+              "weak_separation_1.18"
+            ]
+          },
+          "CHROM": 106.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2728,
+            "snr_db": 7.51,
+            "separation_ratio": 1.197,
+            "quality_tokens": [
+              "weak_separation_1.20"
+            ]
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.4453,
+            "snr_db": 13.09,
+            "separation_ratio": 3.786,
+            "quality_tokens": []
+          },
+          "PBV": 106.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2858,
+            "snr_db": 9.2,
+            "separation_ratio": 1.191,
+            "quality_tokens": [
+              "weak_separation_1.19"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "Nature_R.gif",
+      "sha256": "f914fc979ef6ada781fa783aa0fcbfca16ff15660bdd5205a45c386ef43b57be",
+      "bytes": 2695459,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 115,
+      "face_detection_rate": 0.7667,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 0.9826,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        },
+        "right_cheek": {
+          "GREEN": null,
+          "GREEN_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "POS": null,
+          "POS_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "CHROM": null,
+          "CHROM_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "ICA": null,
+          "ICA_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          },
+          "PBV": null,
+          "PBV_spectral": {
+            "peak_fraction": null,
+            "snr_db": null,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "no_spectral_peak"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "Nature_S.gif",
+      "sha256": "e6f60569da00e5ab579a6bf33888efb3466988767851dd9abe01d6f9e03d9e6f",
+      "bytes": 2647373,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 93.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3193,
+            "snr_db": 8.15,
+            "separation_ratio": 2.186,
+            "quality_tokens": []
+          },
+          "POS": 93.33,
+          "POS_spectral": {
+            "peak_fraction": 0.4353,
+            "snr_db": 10.81,
+            "separation_ratio": 7.175,
+            "quality_tokens": []
+          },
+          "CHROM": 93.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.454,
+            "snr_db": 11.44,
+            "separation_ratio": 6.027,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.8013,
+            "snr_db": 20.89,
+            "separation_ratio": 23.682,
+            "quality_tokens": []
+          },
+          "PBV": 133.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.1294,
+            "snr_db": 2.24,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "low_concentration_0.129",
+              "low_snr_2.2db"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2142,
+            "snr_db": 5.65,
+            "separation_ratio": 1.155,
+            "quality_tokens": [
+              "weak_separation_1.16"
+            ]
+          },
+          "POS": 93.33,
+          "POS_spectral": {
+            "peak_fraction": 0.4206,
+            "snr_db": 9.69,
+            "separation_ratio": 7.093,
+            "quality_tokens": []
+          },
+          "CHROM": 93.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3684,
+            "snr_db": 8.98,
+            "separation_ratio": 6.239,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.5331,
+            "snr_db": 17.02,
+            "separation_ratio": 4.306,
+            "quality_tokens": []
+          },
+          "PBV": 80.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.1898,
+            "snr_db": 7.23,
+            "separation_ratio": 5.282,
+            "quality_tokens": [
+              "low_concentration_0.190"
+            ]
+          }
+        },
+        "right_cheek": {
+          "GREEN": 93.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2395,
+            "snr_db": 7.38,
+            "separation_ratio": 5.006,
+            "quality_tokens": []
+          },
+          "POS": 93.33,
+          "POS_spectral": {
+            "peak_fraction": 0.3897,
+            "snr_db": 9.9,
+            "separation_ratio": 8.428,
+            "quality_tokens": []
+          },
+          "CHROM": 93.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3615,
+            "snr_db": 9.38,
+            "separation_ratio": 8.515,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.7968,
+            "snr_db": 21.78,
+            "separation_ratio": 26.67,
+            "quality_tokens": []
+          },
+          "PBV": 93.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.1701,
+            "snr_db": 4.64,
+            "separation_ratio": null,
+            "quality_tokens": [
+              "low_concentration_0.170"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "Nature_T.gif",
+      "sha256": "b3d7bf4b0ab901467ca620bd1fae8ef8162c5c42bf7027664fc12126cdef8d1f",
+      "bytes": 2485466,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 120.0,
+          "GREEN_spectral": {
+            "peak_fraction": 0.3631,
+            "snr_db": 9.46,
+            "separation_ratio": 8.83,
+            "quality_tokens": []
+          },
+          "POS": 66.67,
+          "POS_spectral": {
+            "peak_fraction": 0.237,
+            "snr_db": 7.94,
+            "separation_ratio": 1.0,
+            "quality_tokens": [
+              "weak_separation_1.00"
+            ]
+          },
+          "CHROM": 120.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2479,
+            "snr_db": 6.79,
+            "separation_ratio": 1.407,
+            "quality_tokens": [
+              "weak_separation_1.41"
+            ]
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.3177,
+            "snr_db": 8.41,
+            "separation_ratio": 1.828,
+            "quality_tokens": []
+          },
+          "PBV": 53.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.3186,
+            "snr_db": 8.37,
+            "separation_ratio": 3.168,
+            "quality_tokens": []
+          }
+        },
+        "left_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2433,
+            "snr_db": 6.65,
+            "separation_ratio": 1.268,
+            "quality_tokens": [
+              "weak_separation_1.27"
+            ]
+          },
+          "POS": 120.0,
+          "POS_spectral": {
+            "peak_fraction": 0.263,
+            "snr_db": 7.51,
+            "separation_ratio": 4.297,
+            "quality_tokens": []
+          },
+          "CHROM": 120.0,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2377,
+            "snr_db": 6.79,
+            "separation_ratio": 3.082,
+            "quality_tokens": []
+          },
+          "ICA": 120.0,
+          "ICA_spectral": {
+            "peak_fraction": 0.2657,
+            "snr_db": 7.6,
+            "separation_ratio": 4.184,
+            "quality_tokens": []
+          },
+          "PBV": 120.0,
+          "PBV_spectral": {
+            "peak_fraction": 0.2377,
+            "snr_db": 6.79,
+            "separation_ratio": 3.082,
+            "quality_tokens": []
+          }
+        },
+        "right_cheek": {
+          "GREEN": 53.33,
+          "GREEN_spectral": {
+            "peak_fraction": 0.247,
+            "snr_db": 9.14,
+            "separation_ratio": 1.197,
+            "quality_tokens": [
+              "weak_separation_1.20"
+            ]
+          },
+          "POS": 106.67,
+          "POS_spectral": {
+            "peak_fraction": 0.2458,
+            "snr_db": 7.36,
+            "separation_ratio": 10.51,
+            "quality_tokens": []
+          },
+          "CHROM": 53.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.1958,
+            "snr_db": 4.9,
+            "separation_ratio": 1.02,
+            "quality_tokens": [
+              "low_concentration_0.196",
+              "weak_separation_1.02"
+            ]
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.4313,
+            "snr_db": 9.64,
+            "separation_ratio": 4.005,
+            "quality_tokens": []
+          },
+          "PBV": 66.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.2727,
+            "snr_db": 7.19,
+            "separation_ratio": 2.974,
+            "quality_tokens": []
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    },
+    {
+      "file": "Nature_W.gif",
+      "sha256": "1b80dc7ad9af7375a55942f8ecb9310f4f68838b4b9b49268289ee6b199dd751",
+      "bytes": 2377292,
+      "frames": 150,
+      "width": 112,
+      "height": 199,
+      "frame_duration_ms": 30,
+      "uniform_frame_duration": true,
+      "gif_fps_effective": 33.333,
+      "duration_s": 4.47,
+      "face_detection": "haar",
+      "face_detected_frames": 150,
+      "face_detection_rate": 1.0,
+      "expected_window_seconds": 10.0,
+      "meets_min_window_seconds": false,
+      "roi_coverage": {
+        "forehead": 1.0,
+        "left_cheek": 1.0,
+        "right_cheek": 1.0
+      },
+      "diagnostic_estimates_bpm": {
+        "forehead": {
+          "GREEN": 106.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.4167,
+            "snr_db": 10.34,
+            "separation_ratio": 4.059,
+            "quality_tokens": []
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2012,
+            "snr_db": 5.89,
+            "separation_ratio": 1.197,
+            "quality_tokens": [
+              "weak_separation_1.20"
+            ]
+          },
+          "CHROM": 106.67,
+          "CHROM_spectral": {
+            "peak_fraction": 0.413,
+            "snr_db": 10.65,
+            "separation_ratio": 7.366,
+            "quality_tokens": []
+          },
+          "ICA": 106.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.374,
+            "snr_db": 9.22,
+            "separation_ratio": 2.576,
+            "quality_tokens": []
+          },
+          "PBV": 106.67,
+          "PBV_spectral": {
+            "peak_fraction": 0.1872,
+            "snr_db": 5.8,
+            "separation_ratio": 4.056,
+            "quality_tokens": [
+              "low_concentration_0.187"
+            ]
+          }
+        },
+        "left_cheek": {
+          "GREEN": 106.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2104,
+            "snr_db": 4.46,
+            "separation_ratio": 1.032,
+            "quality_tokens": [
+              "weak_separation_1.03"
+            ]
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.3561,
+            "snr_db": 8.22,
+            "separation_ratio": 2.655,
+            "quality_tokens": []
+          },
+          "CHROM": 53.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.3047,
+            "snr_db": 6.72,
+            "separation_ratio": 2.565,
+            "quality_tokens": []
+          },
+          "ICA": 53.33,
+          "ICA_spectral": {
+            "peak_fraction": 0.3169,
+            "snr_db": 8.34,
+            "separation_ratio": 2.648,
+            "quality_tokens": []
+          },
+          "PBV": 93.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.1902,
+            "snr_db": 5.98,
+            "separation_ratio": 7.434,
+            "quality_tokens": [
+              "low_concentration_0.190"
+            ]
+          }
+        },
+        "right_cheek": {
+          "GREEN": 106.67,
+          "GREEN_spectral": {
+            "peak_fraction": 0.2964,
+            "snr_db": 9.23,
+            "separation_ratio": 2.713,
+            "quality_tokens": []
+          },
+          "POS": 53.33,
+          "POS_spectral": {
+            "peak_fraction": 0.2725,
+            "snr_db": 6.55,
+            "separation_ratio": 1.673,
+            "quality_tokens": []
+          },
+          "CHROM": 53.33,
+          "CHROM_spectral": {
+            "peak_fraction": 0.2329,
+            "snr_db": 6.52,
+            "separation_ratio": 1.437,
+            "quality_tokens": [
+              "weak_separation_1.44"
+            ]
+          },
+          "ICA": 106.67,
+          "ICA_spectral": {
+            "peak_fraction": 0.2272,
+            "snr_db": 7.02,
+            "separation_ratio": 2.71,
+            "quality_tokens": []
+          },
+          "PBV": 53.33,
+          "PBV_spectral": {
+            "peak_fraction": 0.2191,
+            "snr_db": 6.88,
+            "separation_ratio": 1.131,
+            "quality_tokens": [
+              "weak_separation_1.13"
+            ]
+          }
+        }
+      },
+      "honesty": {
+        "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+        "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+        "clinical_use": "none \u2014 research software verification only",
+        "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+      }
+    }
+  ],
+  "interpretation": "Public MMPD sample previews (few seconds each, no reference PPG). Per-GIF estimates are diagnostics of pipeline execution only \u2014 NOT physiological measurements, NOT an accuracy evaluation, and NOT a substitute for the full dataset under the data-release agreement.",
+  "honesty": {
+    "accuracy_evaluation": "NOT RUN \u2014 the sample GIFs carry no reference PPG; no MAE/RMSE/agreement may be computed from them",
+    "face_detection_floor": "Haar when available; otherwise a centred face prior (reported per record), never a silent substitution",
+    "clinical_use": "none \u2014 research software verification only",
+    "dataset_affiliation": "MMPD (Tsinghua University, EMBC 2023); academic use only; citation doi:10.1109/EMBC40787.2023.10340857"
+  }
+}

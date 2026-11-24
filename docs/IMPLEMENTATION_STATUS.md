@@ -1,6 +1,6 @@
 # Implementation status — authoritative capability matrix
 
-**Last updated:** 2026-11-23 (Sprint 9). Baseline: `main` @ `79e1cc9`. Evidence
+**Last updated:** 2026-11-24 (Sprint 10). Baseline: `main` @ `64c258c`. Evidence
 tiers are never upgraded because tests pass; a green CI run is
 software verification, not physiological or clinical validation. Status
 vocabulary: `DONE` (implemented + software-tested for its stated scope) ·
@@ -32,6 +32,9 @@ executed) · `BLOCKED` (cannot proceed without external input).
 | Export provenance (software/commit, config, session id) | DONE | `gui/rppg_core/version.py`, `gui/frontend/src/rppg/provenance.ts` | yes | `commit` = `unknown` unless `VITE_GIT_SHA`/`RSBVP_GIT_SHA` set; never invented | SOFTWARE-TESTED | Release pipeline sets commit |
 | Camera/hardware session record (`rsbvp.camera-test-record.v1`) | DONE (infrastructure) | `research/camera/`, `docs/CAMERA_HARDWARE_VALIDATION.md` | yes (`test_camera_record.py`) | Validator checks structure only; cannot attest a session ran; physical tests NOT RUN | SOFTWARE-TESTED | Supervised session (blocked) |
 | Anemia readiness audit | DONE (documentation) | `docs/ANEMIA_READINESS.md` | — | No dataset, no model; requirements listed, none satisfied | NOT AVAILABLE | Lawful labeled dataset + oversight |
+| MMPD sample-GIF pipeline smoke (public samples) | DONE (pipeline check) | `research/mmpd/mmpd_probe.py`, `reports/mmpd/` | yes (`test_mmpd_probe.py`) | Diagnostic only; 4.5 s clips, no reference PPG; face-loss clips report unavailable | SYNTHETIC/UNCALIBRATED DIAGNOSTICS | Full dataset run (blocked on agreement) |
+| MMPD full dataset validation | NOT RUN — DATASET NOT OBTAINED | `research/mmpd/mmpd_probe.py --inspect-mat`, `docs/MMPD_VALIDATION.md` | probe tests yes | Academic-use agreement (faculty email) required; 660 recordings × 33 subjects; PPG GT in `.mat` files | NOT RUN | Sign agreement; acquire; run checklist §5 |
+| MMPD neural checkpoints (TS-CAN/DeepPhys/EfficientPhys/PhysNet) | NOT RUN | not vendored (`rPPG-Toolbox_MMPD`, MIT repo) | — | Requires full dataset + isolated ML env; weights not audited into this repo | NOT RUN | Acquire dataset; isolated env; provenance note |
 | UBFC-rPPG dataset validation | NOT RUN | `research/rppg/{validate_dataset,ubfcrppg_probe}.py`, `reports/research_validation/` | probe tests yes | Archive absent; mirror claims (e.g. Kaggle CC0) not accepted as provider authorization | NOT RUN | Obtain archive per DATA_READINESS.md §5 |
 | COHFACE validation | NOT RUN | — | — | Not present; EULA-gated; do not redistribute | NOT RUN | Authorized access only |
 | rPPG-Toolbox backend integration | PARTIAL | `research/backends/rppg_toolbox.py` (unavailable; RAIL-1.1, not vendored) | availability-gated tests | Requires external env + checkpoints; license boundaries enforced | NOT RUN (backend absent) | Install in isolated env |

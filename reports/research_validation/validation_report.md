@@ -5,6 +5,13 @@
 
 ---
 
+## Sprint 10 addendum (2026-11-24, MMPD acquisition investigation)
+
+- The maintainer directed validation on **MMPD** (Tsinghua, EMBC 2023). The public GitHub repository was enumerated: it carries 16 short sample GIFs (150 frames @112×199, uniform 30 ms/frame ≈4.5 s, no ground truth), the 660-recording label manifest, integrity sizes, the faculty-agreement PDFs, and a toolbox fork with pre-trained checkpoints — **not the dataset** (370 GB/48 GB via OneDrive/Baidu after a faculty-signed data-release agreement; academic use only, no commercial use).
+- A pipeline **smoke check** ran on the 16 public samples (`research/mmpd/mmpd_probe.py --gif-dir`, report in `reports/mmpd/`): decode → Haar face detection → skin-masked forehead/cheek traces → GREEN/POS/CHROM/ICA/PBV. It verifies the offline path executes on real mobile-camera footage and reports unavailable states honestly. Spectral estimates it emits are uncalibrated diagnostics on <10 s clips — **not accuracy, not validation**; rotation/talking clips with face-loss correctly yield `unavailable`.
+- Face detection is **broken in opencv 5 headless builds** (`cv2.CascadeClassifier` removed); CI now pins `opencv-python-headless<5` with a comment. No functional estimator parameter changed.
+- **MMPD accuracy evaluation: NOT RUN — DATASET NOT OBTAINED.** Requires signed agreement (faculty email) and local acquisition; `--inspect-mat` readiness mode is provided. UBFC-rPPG / COHFACE status unchanged (NOT RUN). No evidence tier upgraded anywhere.
+
 ## Sprint 9 addendum (2026-11-23, reproducibility & provenance)
 
 - Benchmark summaries now carry an additive `run` block (`rsbvp.benchmark-run.v1`, `research/backends/run_info.py`): software name/version/commit, python/numpy/scipy/OpenCV versions, platform, the full benchmark configuration (window/step/passband/algorithms/backends), and the SHA-256 of the manifest used. `summary.md` gains a "## Run environment" section. Additive only; schema tag unchanged.
