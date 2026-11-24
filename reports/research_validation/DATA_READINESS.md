@@ -61,6 +61,19 @@ Do **not** rearrange a downloaded archive to match this sketch; inspect it with 
 7. Metrics only via `research/backends/metrics.py`: MAE/RMSE/bias/Bland–Altman LoA/Pearson/MAPE + availability, rejection accounting, latency, per-recording and per-recording-participant coverage; participant-level bootstrap CIs as primary inferential readout. Treat each recording as the unit unless per-recording participant mapping is obtained.
 8. Report under `reports/research_validation/` with this file updated to `available_for_inspection` and the full provenance table filled in. Until then: **NO RESULTS MAY BE REPORTED OR PUBLISHED.**
 
-## 6. Why this report exists instead of results
+## 6. COHFACE — secondary candidate (checked 2026-11-23, Sprint 7)
+
+A second authorized-data candidate was checked so the blocker list is complete (no data was accessed; nothing was downloaded):
+
+| Item | Value |
+|---|---|
+| Contents | 160 one-minute sequences of 40 subjects (12 F / 28 M); Logitech HD C525, 640×480 @ 20 fps; synchronized PPG and respiration ground truth via BioGraph Infiniti (Thought Technologies) |
+| Access | Non-commercial End-User License Agreement; request via the official page; Zenodo record `4081054` (metadata, modified 2025-09-15); distribution via the provider (Idiap) |
+| Terms | Strictly restricted to **non-commercial research**; EULA sent after application; no redistribution; cite the provider (and per provider practice, De Haan / Tarassenko COHFACE publications) |
+| Local status | **NOT PRESENT — NOT RUN.** No archive in this environment; no authorization instrument on file |
+
+COHFACE is a lower frame rate (20 fps), different camera and different illumination profile than UBFC-rPPG; it is a complementary check, not a substitute, and would require its own readiness probe, synchronization verification and license confirmation before any number could exist.
+
+## 7. Why this report exists instead of results
 
 Fabricating a benchmark — from synthetic data, from assumed layouts, from unverified sample rates — would violate the dataset's intended use, the repository's honesty rules, and basic scientific practice. The correct output when the data are absent is this report.

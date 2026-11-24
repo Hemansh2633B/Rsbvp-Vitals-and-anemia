@@ -5,8 +5,8 @@ RSBVP is an academic research prototype investigating two **independent** questi
 ## Current status
 
 - **Pulse research:** Existing Green and POS extraction, motion classification/corrections, FFT/peak estimation, experimental tachogram respiratory analysis, local webcam capture and optional CMS50D evaluation remain available. Defaults now use a 0.7–3.5 Hz (42–210 BPM) search passband. CHROM processing, per-ROI RGB retention with a conservative skin-color mask, timestamp-derived sampling-rate helper, and frame-gap accounting are included. The ROI mask is a heuristic, not MediaPipe landmark segmentation. An algorithm comparison CLI scores Green/POS/CHROM and ROI/multi-ROI variants from a supplied synchronized RGB-trace CSV; it does not create reference data.
-- **Anemia research:** No verified dataset or trained model is included. The image quality and RGB/HSV/Lab feature helpers are research utilities only; they do not locate conjunctiva or produce hemoglobin/anemia predictions.
-- **Validation:** No new reference recordings, clinical results, dataset performance, or hardware tests are claimed by this update.
+- **Anemia research:** No verified dataset or trained model is included. The image quality and RGB/HSV/Lab feature helpers, a standardized input-image contract and a researcher-reviewed conjunctival-ROI annotation format (`docs/ANEMIA_IMAGE_CONTRACT.md`, `research/anemia/contract.py`) are research foundations only; they do not locate conjunctiva or produce hemoglobin/anemia predictions. Status: **NOT AVAILABLE — NO VERIFIED LABELED DATASET**.
+- **Validation:** No new reference recordings, clinical results, dataset performance, or hardware tests are claimed by this update. UBFC-rPPG and COHFACE remain absent; CI never requires datasets, GPU, webcams or CMS50D.
 
 The original research scripts, notebooks and archive remain in the repository. The original MIT license and attribution are preserved.
 
@@ -30,7 +30,7 @@ npm run dev -- --host 0.0.0.0
 
 The frontend proxies `/api` and `/ws` to the local FastAPI service. The live view now offers browser-local `getUserMedia()` + MediaPipe acquisition with in-browser ROI/rPPG analysis and timestamped RGB CSV export; it does not upload frames. The legacy local OpenCV camera and optional serial/CMS50D functionality remain available and use the **backend host's** hardware. Browser use requires camera permission and reachable MediaPipe model/WASM endpoints. Numeric live estimates are experimental and require browser/hardware validation.
 
-Browser exports a timestamped RGB CSV plus JSON run metadata; schema and the offline comparison path are documented in [RGB trace format](docs/RGB_TRACE_FORMAT.md) and [MediaPipe asset notes](docs/MEDIAPIPE_ASSETS.md).
+Browser exports a timestamped RGB CSV plus JSON run metadata, and a per-window analysis JSON (effective sampling rate, per-estimator BPMs, quality score, availability status, rejection reason); schemas are documented in [export schema](docs/EXPORT_SCHEMA.md) and [MediaPipe asset notes](docs/MEDIAPIPE_ASSETS.md).
 
 Run tests from the repository root after installing test dependencies:
 
@@ -78,6 +78,10 @@ See [research backends guide](docs/RESEARCH_BACKENDS.md) for setup (toolbox/pyVH
 
 RSBVP stays honest about what is actually established. The UBFC-rPPG official page was verified (2026-11-23) but the archive is **not present**; [data readiness report](reports/research_validation/DATA_READINESS.md) documents provenance, terms and the steps required before any dataset run. [research validation](reports/research_validation/validation_report.md) separates software verification (deterministic synthetic fixtures, committed) from dataset evidence (none). [Reliability analysis](docs/RELIABILITY.md) covers failure modes (low light, motion, ROI loss, gaps, frame rate) with every claim marked SOFTWARE / HARDWARE-UNTESTED / NOT RUN. [Public-interest safeguards](docs/PUBLIC_INTEREST_SAFEGUARDS.md) state hard limits: pulse rate is not blood pressure, PRV is not ECG HRV, conjunctival appearance is not a hemoglobin measurement, and the anemia module is not a validated predictor of anything. The interface carries the same “what this cannot tell you” statements.
 
+## Live signal quality (Sprint 8)
+
+A conservative, explainable quality layer governs when pulse estimates are reported. It reports six explicitly separated concepts — `face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability` (each `pass` / `fail` / `not_evaluated`) — never a blended score, and requires a union ROI-coverage gate (≥ 0.50 of window samples with at least one usable skin ROI) before `valid`. Explicit per-window statuses: `warming_up`, `valid`, `low_signal_quality`, `excessive_motion`, `face_not_detected`, `roi_lost`, `insufficient_frames`, `irregular_timestamps`, `reacquiring`, `processing_error`. Inadequate quality ⇒ the estimate is unavailable with a human-readable reason — never a plausible-looking number, never a silent zero/previous substitution. Motion-contaminated buffers are purged; camera interruption, face loss and hidden-tab states all clear stale estimates. The browser-local path is the clearly explained default; the legacy backend-host path (OpenCV webcam, optional CMS50D) is labeled separately and uses the backend host's hardware. The legacy Python live pipeline and the browser DSP both apply these gates; browser and Python use matching spectral diagnostics (documented Python↔TypeScript parity tests run on a shared synthetic fixture; no claim is made beyond that fixture). Low-light POS false-accepts (12–15 BPM with unverifiable correctness) are flagged as low-quality in synthetic fixtures rather than passed silently — see [reliability analysis](docs/RELIABILITY.md). Quality thresholds are documented research heuristics, not clinical cut-offs; a strong spectral peak is not proof of pulse origin.
+
 ## Anemia dataset inventory
 
 No images are included. After verifying dataset terms and local permission, inventory a local dataset without downloading anything:
@@ -102,7 +106,10 @@ The Sprint 3 intake tools read only local files. Configure `RSBVP_DATA_ROOT` or 
 
 ## Documentation
 
-- [Initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md)
+- [Implementation status (authoritative capability matrix)](docs/IMPLEMENTATION_STATUS.md)
+- [Anemia image contract and annotation format](docs/ANEMIA_IMAGE_CONTRACT.md)
+- [Current status audit](docs/CURRENT_STATUS_AUDIT.md)
+- [Initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md) (historical)
 - [Open-source research audit](docs/OPEN_SOURCE_RESEARCH_AUDIT.md)
 - [Research backends guide](docs/RESEARCH_BACKENDS.md)
 - [Reliability and failure analysis](docs/RELIABILITY.md)

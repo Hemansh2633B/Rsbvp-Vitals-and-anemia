@@ -62,3 +62,42 @@ def test_measurement_gate_rejects_unreliable_or_disagreeing_signals():
     assert measurement_gate([70,72],[.1,.2],12)['state']=='low_signal_quality'
     assert measurement_gate([70,72],[.5,.5],5)['state']=='warming_up'
     assert measurement_gate([70,72],[.5,.5],12,candidate=100)['valid'] is False
+
+
+# Sprint 8 CHROM contract tests. Software behavior only - not a validation of
+# CHROM as a physiological estimator.
+def test_chrom_rejects_invalid_rgb_inputs():
+    fs = 30.0
+    t = np.arange(30 * 20) / fs
+    good = np.column_stack([100*(1+0.01*np.sin(2*np.pi*1.2*t)),
+                            120*(1-0.01*np.sin(2*np.pi*1.2*t)),
+                            90*(1+0.005*np.sin(2*np.pi*1.2*t))])
+    with pytest.raises(ValueError):                       # non-positive means
+        bad = good.copy(); bad[::7, 1] = 0.0
+        chrom_rppg(bad, fs)
+    with pytest.raises(ValueError):                       # non-finite samples
+        bad = good.copy(); bad[3, 0] = np.nan
+        chrom_rppg(bad, fs)
+    with pytest.raises(ValueError):                       # too few samples
+        chrom_rppg(good[:6], fs)
+    with pytest.raises(ValueError):                       # wrong shape
+        chrom_rppg(good[:, :2], fs)
+    with pytest.raises(ValueError):                       # fs below Nyquist bound for 3.5 Hz
+        chrom_rppg(good, 5.0)
+
+
+def test_chrom_output_is_finite_and_standardized():
+    fs = 30.0
+    t = np.arange(600) / fs
+    pulse = 0.01 * np.sin(2*np.pi*1.2*t)
+    rgb = np.column_stack([100*(1+pulse), 120*(1-pulse), 90*(1+pulse*.5)])
+    y, meta = chrom_rppg(rgb, fs)
+    assert np.isfinite(y).all()
+    assert abs(y.mean()) < 1e-8
+    assert meta["passband_hz"] == [0.7, 3.5]
+
+
+def test_measurement_gate_none_estimates_never_validate():
+    gate = measurement_gate([None, None, 70.0], [None, None, 0.9], 15.0)
+    assert gate["valid"] is False
+    assert gate["state"] == "low_signal_quality"

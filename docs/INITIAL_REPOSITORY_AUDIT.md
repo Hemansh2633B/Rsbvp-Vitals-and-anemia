@@ -1,4 +1,9 @@
-# Initial repository audit
+# Initial repository audit — HISTORICAL (2026-11-23, baseline `f827cdd`)
+
+> **Historical baseline audit (Sprint 1).** Statements such as “MediaPipe landmark tracking and browser-side live DSP remain unimplemented” describe the repository at the time of that audit and are stale. Both now exist; see `docs/IMPLEMENTATION_STATUS.md` for the current capability matrix and `docs/MEDIAPIPE_ASSETS.md` for the browser path.
+
+> **This document is a historical record of the state of the repository at the first audit and is kept for provenance only. It does not describe the current system.** For the current capability matrix see [`CURRENT_STATUS_AUDIT.md`](CURRENT_STATUS_AUDIT.md). Many limitations listed below (no Python test suite, no frontend tests, no MediaPipe capture path, minimal quality gating, 60–90 BPM defaults) have since been addressed; consult the methodology and reliability documents for present status.
+
 
 Audit performed 2026-11-23 against the checked-out baseline `f827cdd` (grafted history contains this commit only; full earlier history was not present locally). Working tree was clean at inspection.
 

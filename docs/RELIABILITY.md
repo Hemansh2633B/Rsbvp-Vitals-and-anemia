@@ -1,4 +1,8 @@
-# Reliability and failure analysis — investigation notes (Sprint 6)
+# Reliability and failure analysis — investigation notes (Sprint 6; updated Sprint 8)
+
+**Sprint 8 update.** Quality concepts are now six explicitly separated, never-blended verdicts: `face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability` (`gui/rppg_core/quality.py`; mirrored in `gui/frontend/src/rppg/liveDsp.ts`). A union ROI-coverage gate (≥ 0.50 of window samples with at least one usable skin ROI, `MIN_ROI_COVERAGE`) is required for a `valid` verdict in both pathways; per-ROI coverage is reported alongside the overall union fraction. In the browser, excessive motion now **purges the rolling analysis buffer** (raw export samples are retained for provenance) so motion-contaminated windows cannot leak into later estimates. Browser CHROM/POS now validate inputs and convert estimator failure into an explicit unavailable estimate instead of crashing the window; the same holds for the Python CHROM call in the legacy pipeline (`ValueError` ⇒ CHROM unavailable, never a crash). Browser CHROM remains free of an IIR bandpass (band restriction happens in the in-band Hann periodogram); Python `chrom_rppg` retains its zero-phase Butterworth — the two are parity-tested at the estimator level, not interchangeable. New regression tests: near-flat/zero RGB, union-coverage gate, timestamp-gap windows, per-estimator isolation (`liveDsp.test.ts`, `tests/test_quality.py`, `tests/test_rppg_research.py`). Calibration of these heuristics to real camera physiology: still **NOT RUN**.
+
+**Sprint 7 update.** The per-window quality verdict was decomposed into separately reported concepts: acquisition quality, trace/ROI quality, physiological signal quality, estimator agreement, availability (`gui/rppg_core/quality.py`; mirrored in `gui/frontend/src/rppg/liveDsp.ts` and `research/backends/reference_methods.py`). Spectral diagnostics added: spectral concentration (≥ 0.20), SNR vs the out-of-peak passband median (≥ 3 dB, guard radius 0.15 Hz), peak separation vs the strongest competing in-band local maximum ≥ 0.25 Hz away (≥ 1.5×). Token `low_quality:<check>` is now emitted when any check fails; `quality_ok_fraction` / `windows_quality_ok` / `windows_low_quality` appear in backend summary accounting. The Python and browser estimators use the identical formulation (symmetric Hann, explicit DFT) and are parity-tested on a shared synthetic fixture (assertions on peak frequency, fraction, SNR and separation; `tests/fixtures/rppg_rgb_fixture.csv`). Browser status set extended: `irregular_timestamps`, `processing_error`. Python live pipeline gates `consensus_hr`/`rr_final` on the composite verdict (per-estimator values stay visible). Synthetic low-light POS false-accept is now flagged as low-quality on the marginal windows (native POS quality-ok 0.556, reference POS 0.630) — the forehead windows of the perfectly periodic synthetic fixture still pass, which is expected of an idealized signal and is not evidence of real-world robustness. Acquisition-clipping acquisitions (near-black/near-white rails) are rejected regardless of spectral peak quality. Calibration of these heuristics to real camera physiology: NOT RUN.
 
 Scope: poor illumination, face movement, ROI tracking failure, missing/irregular frames, camera frame-rate variation, browser/camera configurations, and failure/unavailable states — with the evidence tier of every statement marked.
 
@@ -55,12 +59,15 @@ Scope: poor illumination, face movement, ROI tracking failure, missing/irregular
 | `face_not_detected` | landmarker finds no face | No — BPM cleared |
 | `reacquiring` | face reappearing / camera resumed | No — fresh window collected |
 | `excessive_motion` | displacement > 8 % frame diagonal over 2 s | No — BPM cleared |
-| `low_signal_quality` | gates fail (duration, agreement, spectral concentration) | No — "Unavailable" |
+| `low_signal_quality` | gates fail (duration, agreement, spectral/SNR/separation, ROI coverage) | No — "Unavailable" |
 | `Camera stream ended/interrupted` | `ended`/`mute` events, hidden tab | No — capture stopped |
 | `error` | getUserMedia/model/worker failure | No — error banner |
 | `rejected:nonfinite_samples` / `rejected:excessive_gaps` (backends) | NaN in window / gap > 0.25 s | Never estimated |
 | `unavailable:*` (neural/toolbox/pyvhr) | backend not installed / checkpoint absent / unsupported method | Never estimated |
-| `low_quality:spectral_concentration_*` | peak < 0.20 spectral concentration | Estimate emitted but flagged; browser treats as not-usable |
+| `low_signal_quality` + `quality_reasons` | any of acquisition/spectral/agreement/ROI checks fail | No — reason spelled out (e.g. `low_concentration_0.191`, `weak_separation_1.37`, `low_snr_11.7db`, `estimator_disagreement_22.0bpm`) |
+| `irregular_timestamps` | any ROI trace gap > 0.25 s | No — capture integrity reported |
+| `insufficient_frames` | effective fs < 12 Hz or too few samples | No |
+| `low_quality:<check>` (backends) | spectral checks fail | Estimate emitted but flagged; backend summary counts `quality_ok_fraction` |
 
 Acceptance invariant: **a poor-quality result is unavailable, never silently plausible.** Any code path violating this is a P0 defect — report it.
 
@@ -71,7 +78,34 @@ Acceptance invariant: **a poor-quality result is unavailable, never silently pla
 3. Spectral-concentration gate false-accepts plausible-but-wrong peaks (low-light POS) — mitigation is reference-data evaluation + estimator agreement, both pending.
 4. Browser POS/CHROM vs Python CHROM parity claim: experimental only (`liveDsp.parity.test.ts` checks implementation structure on fixtures, not physiological parity).
 5. CMS50D-synchronized sessions: not run in this environment; previous sprint notes stand.
+6. Physical browser-camera matrix (lighting × device × occlusion): NOT RUN — unit/component tests with mocked browser APIs are not a substitute; see `docs/MANUAL_CAMERA_TESTS.md`.
 
 ## 9. How to extend this analysis with real evidence
 
 Follow `reports/research_validation/DATA_READINESS.md` §5 (obtain UBFC-rPPG), then `docs/RESEARCH_BACKENDS.md` §6 (fair comparison). Add per-recording condition metadata locally in your manifest provenance note (lighting condition if the provider exposes it) and report per-condition availability + error. Do not commit condition metadata tied to pseudonyms.
+
+## 10. Threshold register (value, rationale, evidence tier)
+
+Every quality threshold below is a documented research heuristic chosen a priori to fail closed — never tuned to make a fixture pass. None is calibrated against real physiology; none is a clinical cut-off. `SOFTWARE` = deterministic tests exercise the boundary · `SYNTHETIC` = behavior observed on synthetic fixtures · `DOCUMENTED` = design rationale only · `NOT RUN` = not verified on real data/hardware.
+
+| Threshold | Value | Rationale | Evidence |
+|---|---|---|---|
+| Estimator passband | 0.7–3.5 Hz (42–210 BPM) | Wide research band covering resting/tachycardic pulse rates; keeps LF noise and breathing harmonics mostly out | DOCUMENTED, SYNTHETIC |
+| `MIN_SAMPLING_RATE_HZ` | 12 Hz | Must exceed 2 × 3.5 Hz with margin for windowing/Nyquist of the highest in-band frequency | SOFTWARE, DOCUMENTED |
+| `MAX_GAP_SECONDS` | 0.25 s | Short-gap linear regularization limit; beyond it windows are rejected rather than resampled through holes | SOFTWARE, SYNTHETIC (gap suite §6) |
+| `MIN_WINDOW_SECONDS` | 10 s | Enough cycles for stable peak estimation at 42 BPM (~7 cycles) | DOCUMENTED |
+| `SPECTRAL_MIN_CONCENTRATION` | 0.20 | Quasi-flat-spectrum reject floor; lower values accept noise as pulse | SYNTHETIC (does not catch plausible-but-wrong peaks — documented) |
+| `SPECTRAL_MIN_SNR_DB` | 3.0 dB | Peak vs median out-of-peak passband floor; weak-but-present pulses survive, noise floor does not dominate | SYNTHETIC |
+| `SPECTRAL_MIN_SEPARATION` | 1.5× | Top peak must dominate the strongest competing in-band local maximum | SYNTHETIC |
+| `PEAK_GUARD_RADIUS_HZ` | 0.15 Hz | Exclusion radius around the peak when computing the noise floor and competitors | DOCUMENTED |
+| `COMPETITOR_MIN_DISTANCE_HZ` | 0.25 Hz | Below this, a second maximum is treated as the same peak/harmonic neighborhood, not a competitor | DOCUMENTED |
+| `AGREEMENT_TOLERANCE_BPM` | 12 BPM | Max−min spread across independent Green/POS/CHROM × ROI estimators; wider disagreement ⇒ not available | SYNTHETIC, DOCUMENTED |
+| `MIN_ROI_COVERAGE` (union) | 0.50 | Window verdict requires at least half of samples with ≥1 usable skin ROI; per-ROI estimates may still exist below this (never reported as `valid`) | SOFTWARE |
+| `CLIP_MAX_FRACTION` | 0.10 | Fraction of saturated/black channel values tolerated before `acquisition_clipping_or_flat` | SOFTWARE, SYNTHETIC (clipping rails rejected) |
+| `MIN_DYNAMIC_RANGE` | 6 counts | Sensor flatness floor; below it no pulsatile component can exist | SOFTWARE |
+| Motion trip (browser) | centre spread > 0.08 over rolling 2 s | UI-level gross-motion detector; resets analysis buffer, never estimates through motion | SOFTWARE (UI heuristic, DOCUMENTED) |
+| Face-lost handling (browser) | 1.8 s label `reacquiring`; 4.0 s buffer reset | Avoids both flickering state and unbounded stale capture | DOCUMENTED (UX timing) |
+| `min_pixels` (mask QA) | 20 | Minimum non-zero mask pixels for a valid conjunctival mask in the anemia contract validator | SOFTWARE |
+| RGB skin heuristic bounds | lum 35–245, rr≥0.88·gg, gg≥0.82·bb, rr−bb≥8 | Conservative capture-quality filter, **not** universal skin segmentation; documented in `roi.ts` | SOFTWARE |
+
+**Calibration statement:** none of these values has been fitted to real camera data. Where a synthetic fixture motivated or exposed a threshold (e.g. concentration/SNR/separation during the low-light POS analysis), the threshold was set before that fixture's acceptance criteria and is not adjusted to flatter it. Real-camera calibration is **NOT RUN**.

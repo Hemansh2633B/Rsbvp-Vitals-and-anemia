@@ -26,6 +26,21 @@ def grouped_holdout(patient_ids, test_fraction=0.2, seed=42):
     return train, test
 
 
+def assert_patient_disjoint(train_ids, test_ids):
+    """Raise if any patient appears in both partitions.
+
+    Image-level splits leak patient-specific color/geometry between train and
+    test; this check makes accidental leakage fail loudly instead of reporting
+    inflated metrics.
+    """
+    train_set = {str(x).strip() for x in train_ids}
+    test_set = {str(x).strip() for x in test_ids}
+    overlap = sorted(train_set & test_set)
+    if overlap:
+        raise ValueError(f"patient leakage between train and test partitions: {overlap[:5]}")
+    return True
+
+
 def regression_metrics(reference, estimate):
     y, p = np.asarray(reference, float), np.asarray(estimate, float)
     if y.shape != p.shape or y.ndim != 1 or len(y) < 2 or not np.isfinite(y).all() or not np.isfinite(p).all():

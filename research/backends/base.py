@@ -238,12 +238,21 @@ class ResearchBackend(ABC):
             step_seconds=6.0, passband_hz=_DEFAULT_PASSBAND_HZ, rois=None) -> BackendRunResult: ...
 
 
-def _quality_token(peak_fraction: float | None, threshold: float = 0.20) -> str:
-    if peak_fraction is None:
+def _quality_token_from_features(peak_fraction, snr_db, separation_ratio) -> str:
+    """Conservative per-window quality token (documented research heuristics).
+
+    A strong peak is not proof of pulse origin: all three checks must pass for
+    ``ok``. Failing windows keep their estimate (annotated, never hidden) but
+    are flagged ``low_quality:<check>`` so availability accounting cannot mask
+    systematic bias. ``spectral_features`` is the single source of truth.
+    """
+    from research.backends import reference_methods as _rm
+    failing = _rm.quality_failures(peak_fraction, snr_db, separation_ratio)
+    if not failing:
+        return "ok"
+    if failing == ["no_spectral_peak"]:
         return "unavailable:no_spectral_peak"
-    if peak_fraction < threshold:
-        return f"low_quality:spectral_concentration_{peak_fraction:.3f}"
-    return "ok"
+    return f"low_quality:{failing[0]}"
 
 
 class TraceBackend(ResearchBackend):
@@ -331,10 +340,10 @@ class TraceBackend(ResearchBackend):
                         continue
                     try:
                         waveform, _metadata = transform(regularized, fs, min_s, max_s)
-                        bpm, peak_fraction = reference_methods.estimate_hr_bpm(
+                        bpm, peak_fraction, snr_db, separation_ratio = reference_methods.spectral_features(
                             np.asarray(waveform, dtype=float), fs, min_s, max_s)
                         raw_signal = [float(v) if np.isfinite(v) else None for v in np.asarray(waveform, dtype=float)]
-                        quality = _quality_token(peak_fraction)
+                        quality = _quality_token_from_features(peak_fraction, snr_db, separation_ratio)
                         records.append(BenchmarkRecord(
                             pulse_signal=raw_signal,
                             estimated_hr_bpm=bpm,

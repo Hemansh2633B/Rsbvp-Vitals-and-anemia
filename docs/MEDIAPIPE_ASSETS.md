@@ -19,3 +19,7 @@ This repository does not bundle or redistribute the binary. The browser fetches 
 `gui/frontend/.env.example` documents `VITE_MEDIAPIPE_WASM_URL` and `VITE_FACE_LANDMARKER_MODEL_URL`. These are public build-time URLs, never secrets. Deployments may configure reviewed/self-hosted copies. No fallback model is silently selected. If the URLs are unreachable or model initialization fails, the UI reports a visible error and shows no new BPM. Runtime external requests are listed in the UI and this document.
 
 For production/offline deployment, mirror only assets with verified terms, record version and SHA-256, review transitive licenses, and make the build/deploy asset source explicit. Functional camera and supported-device validation is still required.
+
+## Test posture (Sprint 8)
+
+Failure and recovery paths carry mocked regression tests (`gui/frontend/src/rppg/BrowserPulse.test.tsx`): permission denial, missing camera hardware, GPU→CPU delegate fallback, face loss without a stale BPM, reacquisition buffer reset, hidden tab auto-stop, track termination + worker termination on stop, worker crash. These are software tests with stubbed APIs — they do not exercise a physical camera, a real WASM runtime, real model inference, or real reacquisition timing. Physical browser-camera testing per `docs/MANUAL_CAMERA_TESTS.md` remains **NOT RUN** and must be reported separately from unit-test results.

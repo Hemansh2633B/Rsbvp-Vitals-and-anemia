@@ -1,0 +1,79 @@
+# Research export schema (browser-local capture)
+
+Two research-only export files are produced when the user explicitly presses
+**Export traces + window analysis** in the browser-local view. Nothing is
+uploaded automatically; both downloads are initiated locally. Camera frames are
+never included and are never stored by this app. Files may contain sensitive
+research data — store them accordingly. No identifiable patient data should be
+recorded; this pathway is not approved for human-participant research.
+
+## 1. `rsbvp_rgb_trace_<UTC-stamp>.csv`
+
+Raw, timestamped RGB means per ROI. Columns:
+
+`timestamp_s, forehead_r, forehead_g, forehead_b, left_cheek_r, left_cheek_g,
+left_cheek_b, right_cheek_r, right_cheek_g, right_cheek_b`
+
+- `timestamp_s` — monotonic browser clock in seconds (`performance.now()/1000`), **not** wall-clock time. Relative to nothing; use consecutive differences for timing.
+- ROI cells are **empty** when the ROI was missing/invalid in that frame — never zero-filled.
+- ROI identity = `forehead | left_cheek | right_cheek`, polygons derived from MediaPipe Face Landmarker landmarks (see `gui/frontend/src/rppg/BrowserPulse.tsx`), intersected with an RGB skin heuristic and eye/lip/brow exclusions. This is heuristic capture-quality filtering, **not** MediaPipe segmentation.
+- Sampling info in the companion `.json` (`sample_rate_median_hz`, `dropped_interval_fraction`, `passband_hz`); gaps > 0.25 s are not interpolated by the browser DSP (the window is rejected instead).
+
+## 2. `rsbvp_rgb_trace_<UTC-stamp>.json` (trace metadata)
+
+Schema `rsbvp.rgb-trace.v1`. Fields:
+
+| field | meaning |
+|---|---|
+| `created_utc` | wall-clock export time |
+| `sample_count`, `earlier_samples_dropped_due_to_buffer_limit` | surviving vs. dropped samples (cap 18000) |
+| `trace_start_timestamp_s`, `trace_end_timestamp_s`, `acquisition_duration_seconds` | coverage |
+| `camera_fps_reported` | from `getVideoPlaybackQuality()` (browser-reported, unverified) |
+| `sample_rate_median_hz`, `dropped_interval_fraction` | measured from trace timestamps |
+| `passband_hz` | `[0.7, 3.5]` Hz estimator passband |
+| `roi_method`, `algorithms` | extraction method + Green/POS/CHROM |
+| `measurement_status`, `measurement_reason` | composite verdict at export time |
+| `estimates_bpm` | per `<roi>_<method>` estimates; `null` = unavailable |
+| `valid_consensus_bpm` | consensus only when quality gates pass; else `null` |
+| `quality_concepts` | six separated concepts (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`), each `pass` / `fail` / `not_evaluated`; never a blended score |
+| `roi_coverage` | per-ROI fraction of samples with a usable skin ROI in the exported window |
+| `roi_coverage_overall` | union coverage: fraction of samples with at least one usable skin ROI (gate: >= 0.50 for a `valid` verdict) |
+| `browser`, `frame_images_included: false`, `frames_uploaded: false` | provenance |
+| `notes` | honesty note: browser variants are not guaranteed numerically identical to Python (see §3.3 parity tests for what *is* demonstrated) |
+
+## 3. `rsbvp_rgb_trace_<UTC-stamp>_windows.json` (per-window analysis)
+
+Schema `rsbvp.window-analysis.v1`:
+
+| field | meaning |
+|---|---|
+| `window_count` | number of retained window records (ring buffer, cap 3600) |
+| `dropped_windows_due_to_buffer_limit` | windows evicted before export |
+| `window_records[]` | one record per analyzed window, chronological |
+
+Per record:
+
+| field | meaning |
+|---|---|
+| `window_index` | monotonically increasing analysis-window index |
+| `window_start_s`, `window_end_s` | bounds of the analyzed RGB window (`timestamp_s` clock, §1) |
+| `n_samples` | samples in the analyzed window |
+| `analyzed_utc` | wall-clock analysis time |
+| `effective_sampling_rate_hz` | measured from window timestamps (median interval), or `null` |
+| `consensus_bpm` | consensus or `null` when the window verdict is not `valid` |
+| `per_estimator_bpm` | map `<roi>_<method>` → BPM or `null` — disagreement is always visible |
+| `quality_score` | spectral concentration of the window (0–1); **not** a calibrated probability |
+| `consistency_bpm` | max−min spread across valid estimator BPMs |
+| `availability_status` | one of `warming_up, valid, low_signal_quality, excessive_motion, face_not_detected, roi_lost, insufficient_frames, irregular_timestamps, reacquiring, processing_error` |
+| `rejection_reason` | human-readable explanation; `null` iff status `valid` |
+| `spectral` | `{fsHz, durationS, maxGapS, peakFraction, snrDb, separationRatio, roiCoverage, roiCoverageOverall}` — diagnostic scores; uncalibrated research metrics |
+| `roi_coverage`, `roi_coverage_overall` | per-ROI and union ROI coverage fractions for the window |
+| `quality_concepts` | six separated concepts, each `pass` / `fail` / `not_evaluated` |
+| `selected_display_algorithm` | the algorithm chosen in the UI dropdown at analysis time (`green`, `pos`, `chrom`) |
+
+## Honest limitations
+
+- Window records reflect analysis ticks (≈2 Hz while running), not a fixed grid; overlapping windows are **correlated observations** and must not be treated as independent samples in statistics.
+- Status `valid` is a software gate, not a physiological claim. It means capture/tracking/signal/estimator-agreement checks passed — nothing more.
+- `effective_sampling_rate_hz` is derived from browser timestamps; gaps in the underlying camera stream appear as `maxGapS` and should be inspected, not assumed away.
+- Comparisons against Python require the same windows, regular timestamps (`regularize_segment` conventions) and the documented parity procedure. See `tests/fixtures/generate_rppg_rgb_fixture_expected.py` and `gui/frontend/src/rppg/liveDsp.parity.test.ts`.

@@ -5,5 +5,32 @@
     "forehead_green": 70.0,
     "forehead_pos": 70.0,
     "forehead_chrom": 70.0
-  }
+  },
+  "python_spectral_diagnostics_first_12_seconds": {
+    "fs_hz": 20.00000000000007,
+    "window_seconds": 12.0,
+    "n_samples": 240,
+    "forehead_green": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771286155,
+      "snr_db": 73.88220062210192,
+      "separation_ratio": null
+    },
+    "forehead_pos": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771286461,
+      "snr_db": 73.88220059265485,
+      "separation_ratio": null
+    },
+    "forehead_chrom": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771385508,
+      "snr_db": 73.88220080207171,
+      "separation_ratio": null
+    }
+  },
+  "python_spectral_diagnostics_note": "Independent Python evaluation of the TypeScript projections in gui/frontend/src/rppg/liveDsp.ts (de-meaned Hann periodogram, 0.7-3.5 Hz). Computed by tests/fixtures/generate_rppg_rgb_fixture_expected.py. software-verification values only; not a physiological validation claim."
 }

@@ -87,3 +87,28 @@ def test_cli_rejects_unknown_condition(tmp_path):
     rc = reliability.main(["--output-dir", str(tmp_path / "out"), "--conditions", "nonsense"])
     assert rc == 2
 
+
+
+def test_low_light_pos_windows_are_flagged_not_silently_accepted():
+    """Documented low-light POS false-accept (Sprint 6) must surface as
+    non-ok quality tokens for the marginal windows after the Sprint-7
+    concentration/SNR/separation diagnostics."""
+    result = reliability.evaluate_condition(
+        "low_light_gain_0.15", duration_s=60.0, fs=30.0, seed=20261123,
+        window_seconds=12.0, step_seconds=6.0,
+        backends=("rsbvp_native",),
+    )
+    per_algo = result["backends"]["rsbvp_native"]["per_algorithm"]["POS"]
+    assert per_algo["estimate_availability"] == pytest.approx(1.0)  # estimates still reported
+    assert per_algo["quality_ok_fraction"] < 1.0  # but no longer passed off as quality-ok
+    assert per_algo["windows_low_quality"] >= 1
+
+
+def test_baseline_windows_quality_ok():
+    result = reliability.evaluate_condition(
+        "baseline", duration_s=20.0, fs=30.0, seed=11,
+        window_seconds=12.0, step_seconds=6.0,
+        backends=("rsbvp_reference",),
+    )
+    summary = result["backends"]["rsbvp_reference"]
+    assert summary["quality_ok_fraction"] == pytest.approx(1.0)

@@ -2066,13 +2066,26 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
     )
 
     from .research import chrom_rppg
-    chrom_signal, chrom_metadata = chrom_rppg(rgb_signal, sampling_rate)
-    chrom_info = summarize_channel_fft(
-        chrom_signal, sampling_rate, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
-        trim_start_seconds=TRIM_START_SECONDS, top_n_peaks=FFT_TOP_N_PEAKS,
-        window_seconds=WINDOW_SECONDS, step_seconds=WINDOW_STEP_SECONDS
-    )
-    hr_chrom_fft = chrom_info["window_hr"]
+    try:
+        chrom_signal, chrom_metadata = chrom_rppg(rgb_signal, sampling_rate)
+    except ValueError as exc:
+        # Explicit unavailable: invalid/non-finite/non-positive RGB means or an
+        # unusable sampling rate must not crash the whole video analysis.
+        chrom_signal, chrom_metadata = None, {
+            "algorithm": "CHROM",
+            "unavailable": True,
+            "reason": f"CHROM inputs rejected: {exc}",
+        }
+    if chrom_signal is None:
+        chrom_info = {"window_hr": None, "reliability": None, "error": chrom_metadata["reason"]}
+        hr_chrom_fft = None
+    else:
+        chrom_info = summarize_channel_fft(
+            chrom_signal, sampling_rate, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
+            trim_start_seconds=TRIM_START_SECONDS, top_n_peaks=FFT_TOP_N_PEAKS,
+            window_seconds=WINDOW_SECONDS, step_seconds=WINDOW_STEP_SECONDS
+        )
+        hr_chrom_fft = chrom_info["window_hr"]
 
     pos_signal_raw = pos_rppg(
         rgb_signal,
