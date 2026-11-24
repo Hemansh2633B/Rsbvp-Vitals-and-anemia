@@ -1,8 +1,9 @@
-# Current status audit — capability matrix (Sprint 7, 2026-11-23)
+# Current status audit — capability matrix (Sprint 10, 2026-11-24)
 
-> **Sprint 8 note (2026-11-23):** six separated quality concepts and the union ROI-coverage gate replaced the five-concept decomposition described below; see `docs/IMPLEMENTATION_STATUS.md` for the current authoritative matrix. The baseline provenance line (`4930efe`, PR #5 unmerged) remains accurate.
+> **Sprint 8 note (2026-11-23):** six separated quality concepts and the union ROI-coverage gate replaced the five-concept decomposition described below; see `docs/IMPLEMENTATION_STATUS.md` for the current authoritative matrix.
+> **Sprint 10 note (2026-11-24):** candidate_bpm validation hardening added — corrected consensus from legacy motion heuristics is rejected unless within `AGREEMENT_TOLERANCE_BPM` (12) of every trustworthy estimator AND within 6 BPM of at least one; cross-ROI agreement (`roi_agreement`) gating added; no estimator anchor ⇒ candidate rejected (`candidate_no_estimator_backing`). Per-ROI HR estimation with cross-ROI agreement gating wired into `run_full_rppg_pipeline`.
 
-This is the **living** capability statement for the repository. It is distinct from the [initial repository audit](INITIAL_REPOSITORY_AUDIT.md), which is a historical record of the baseline state. Numbers below were captured on this date against branch `arena/ae4b6f9b-rsbvp-vitals-and-anemia`; consult commit history for the exact tree.
+This is the **living** capability statement for the repository. It is distinct from the [initial repository audit](INITIAL_REPOSITORY_AUDIT.md), which is a historical record of the baseline state. Numbers below were captured on this date against branch `feat/sprint-10-quality-robustness`; consult commit history for the exact tree.
 
 ## How to read the matrix
 
@@ -57,7 +58,7 @@ This is the **living** capability statement for the repository. It is distinct f
 
 | Item | Status | Value |
 |---|---|---|
-| Python test suite | Implemented | **190 passed** (`python -m pytest -q`) |
+| Python test suite | Implemented | **203 passed** (`python -m pytest -q`) |
 | Frontend tests | Implemented | **17 passed** (`npm test`) |
 | Frontend build / lint | Implemented | build OK (`vite`, ~388 kB); `oxlint` 0 errors |
 | `compileall` / `git diff --check` | Implemented | clean |
@@ -86,4 +87,4 @@ Authorized UBFC-rPPG archive (+license clarity) · COHFACE · eyes-defy-anemia/l
 
 ## 8. Provenance
 
-Sprint 7 (2026-11-23). Branch `arena/ae4b6f9b-rsbvp-vitals-and-anemia`. Baseline: `4930efe30b69020083a83b903804483c4e2302de` (main after PR #4 merge "adding opensource stuff"). PR: see repository pull requests. All dataset/hardware validation: NOT RUN.
+Sprint 10 (2026-11-24). Branch `feat/sprint-10-quality-robustness`. Baseline: `79e1cc9` (main after PR #5 merge). Commit `786eb67` (candidate_bpm validation hardening + regression tests). PR: see repository pull requests. All dataset/hardware validation: NOT RUN.

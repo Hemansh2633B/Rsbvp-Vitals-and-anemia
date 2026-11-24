@@ -125,3 +125,42 @@ def test_measurement_gate_non_finite_candidate_rejected():
     gate = measurement_gate([70, 72], [0.5, 0.5], 15.0, agreement_bpm=12, candidate=float("nan"))
     assert gate["valid"] is False
     assert gate["state"] == "low_signal_quality"
+
+
+# Sprint 10: measurement_gate with per-ROI estimator anchors.
+# ROI estimates are trustworthy estimators; the candidate must agree with
+# every one of them (including ROI anchors), not just green/pos/chrom.
+
+def test_measurement_gate_with_roi_estimates_agree():
+    # green=70, pos=72, plus three ROI anchors all within tolerance of each
+    # other and of the candidate -> valid.
+    gate = measurement_gate(
+        [70, 72, 70, 71, 69],
+        [0.5, 0.5, 0.5, 0.5, 0.5],
+        15.0, agreement_bpm=12, candidate=70.5
+    )
+    assert gate["valid"] is True
+    assert gate["state"] == "valid"
+
+
+def test_measurement_gate_roi_estimator_disagreement_rejected():
+    # forehead=70, left_cheek=85 -> spread 15 > 12 -> rejected regardless of
+    # candidate agreement with green/pos.
+    gate = measurement_gate(
+        [70, 72, 70, 85],
+        [0.5, 0.5, 0.5, 0.5],
+        15.0, agreement_bpm=12, candidate=71
+    )
+    assert gate["valid"] is False
+    assert gate["state"] == "low_signal_quality"
+
+def test_measurement_gate_candidate_far_from_roi_anchor_rejected():
+    # green=70, pos=72 agree with each other, but candidate=82 is >6 from
+    # both (and >12 from the 70 anchor) -> rejected.
+    gate = measurement_gate(
+        [70, 72],
+        [0.5, 0.5],
+        15.0, agreement_bpm=12, candidate=82
+    )
+    assert gate["valid"] is False
+    assert gate["state"] == "low_signal_quality"
