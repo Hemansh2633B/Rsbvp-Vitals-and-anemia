@@ -37,6 +37,7 @@ from research.backends.schema import (  # noqa: E402
     write_records_json,
     write_waveforms_csv,
 )
+from research.backends.run_info import run_report  # noqa: E402
 
 SUMMARY_SCHEMA_VERSION = "rsbvp.benchmark-summary.v1"
 ROIS = ("forehead", "left_cheek", "right_cheek", "cheeks", "multi_roi")
@@ -254,6 +255,16 @@ def run_benchmark(args) -> dict:
             "memory_peak_mb": memory_peak_mb(),
         })
 
+    configuration = {
+        "window_seconds": args.window_seconds,
+        "step_seconds": args.step_seconds,
+        "passband_hz": [args.passband_low, args.passband_high],
+        "algorithms_requested": (args.algorithms.split(",") if args.algorithms else None),
+        "backends_requested": list(backends),
+    }
+    run = run_report(configuration=configuration,
+                     manifest_path=(Path(args.manifest) if args.manifest else None))
+
     window_records = [r for r in all_records if r.backend_output_type == "window"]
     aggregate_records = [r for r in all_records if r.backend_output_type == "aggregate"]
 
@@ -311,6 +322,7 @@ def run_benchmark(args) -> dict:
 
     summary = {
         "schema_version": SUMMARY_SCHEMA_VERSION,
+        "run": run,
         "reference_metrics_authorized": bool(args.reference_source),
         "reference_source": args.reference_source,
         "reference_windows_available": len(reference_by_key),
@@ -351,6 +363,14 @@ def _markdown_report(summary: dict) -> str:
         "",
         "> Synthetic or aggregate outputs in this file are software verification artifacts.",
         "> They are not physiological validation, not clinical evidence, and not a ranking of medical devices.",
+        "",
+        "## Run environment",
+        "",
+        f"- Software: {summary['run']['software']['name']} {summary['run']['software']['version']} (commit {summary['run']['software']['commit']})",
+        f"- Python {summary['run']['environment']['python']} ({summary['run']['environment']['implementation']}) · numpy {summary['run']['environment']['numpy']} · scipy {summary['run']['environment']['scipy']} · platform {summary['run']['environment']['platform']}",
+        f"- Generated (UTC): {summary['run']['generated_utc']}",
+        f"- Configuration: window={summary['run']['configuration']['window_seconds']}s / step={summary['run']['configuration']['step_seconds']}s · passband={summary['run']['configuration']['passband_hz']} Hz",
+        f"- Manifest SHA-256: {summary['run']['manifest_sha256'] or 'not applicable (single-trace input)'}",
         "",
         "## Inputs",
         "",

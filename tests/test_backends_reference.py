@@ -103,3 +103,92 @@ def test_different_heart_rate_is_recovered():
     result = backend.run(rec, algorithms=["POS"])
     estimates = [r.estimated_hr_bpm for r in result.records if r.estimated_hr_bpm is not None]
     assert estimates and abs(np.median(estimates) - 95.0) <= 4.0
+
+
+# Sprint 9 independent-audit regression tests (no parameter changes).
+def test_green_flat_channel_raises():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    rgb = np.column_stack([np.full(400, 100.0), np.full(400, 120.0), np.full(400, 90.0)])
+    with pytest.raises(rm.FlatSignalError):
+        rm.green(rgb, 30.0)
+
+
+def test_bandpass_short_signal_returns_demeaned():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    short = np.linspace(100, 110, 12)
+    out = rm.bandpass(short, 30.0)
+    assert out.shape == short.shape and np.isfinite(out).all()
+    assert abs(out.mean()) < 1e-10
+
+
+def test_bandpass_rejects_fs_at_or_below_twice_passband():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    with pytest.raises(ValueError):
+        rm.bandpass(np.arange(200.0), 7.0)  # fs/2 == 3.5 Hz, not strictly greater
+
+
+def test_spectral_features_nan_inputs_yield_nothing():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    x = np.full(400, np.nan)
+    assert rm.spectral_features(x, 30.0) == (None, None, None, None)
+
+
+def test_competing_peak_reduces_separation_and_flags(tmp_path=None):
+    import numpy as np
+    from research.backends import reference_methods as rm
+    t = np.arange(0, 30.0, 1 / 30.0)
+    # Two in-band sinusoids 1 Hz apart at near-equal amplitude.
+    x = 9.0 * np.sin(2 * np.pi * 1.1 * t) + 8.7 * np.sin(2 * np.pi * 2.1 * t)
+    bpm, frac, snr_db, separation = rm.spectral_features(x, 30.0)
+    assert bpm is not None and separation is not None
+    assert separation < rm.SPECTRAL_MIN_SEPARATION
+    failures = rm.quality_failures(frac, snr_db, separation)
+    assert any(f.startswith("weak_separation") for f in failures)
+
+
+def test_rgb_boundary_16_samples_accepted_15_rejected():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    good = np.column_stack([np.full(16, 100.0), 100 + 10 * np.sin(2 * np.pi * np.arange(16) / 8), np.full(16, 90.0)])
+    with pytest.raises(ValueError):
+        rm.green(good[:15], 30.0)
+
+
+def test_ica_is_deterministic_across_calls():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    rng = np.random.default_rng(5)
+    t = np.arange(0, 20.0, 1 / 30.0)
+    pulse = 0.01 * np.sin(2 * np.pi * 1.2 * t)
+    rgb = np.column_stack([100 * (1 + pulse + 0.001 * rng.normal(size=len(t))),
+                           120 * (1 - pulse + 0.001 * rng.normal(size=len(t))),
+                           90 * (1 + 0.5 * pulse + 0.001 * rng.normal(size=len(t)))])
+    w1, m1 = rm.ica(rgb, 30.0)
+    w2, m2 = rm.ica(rgb, 30.0)
+    assert m1["selected_component"] == m2["selected_component"]
+    np.testing.assert_allclose(w1, w2, atol=1e-10)
+
+
+def test_chrom_short_window_does_not_crash():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    t = np.arange(0, 1.0, 1 / 30.0)  # 30 samples, shorter than the 1.6 s source window
+    pulse = 0.02 * np.sin(2 * np.pi * 1.2 * t)
+    rgb = np.column_stack([100 * (1 + pulse), 120 * (1 - pulse), 90 * (1 + 0.5 * pulse)])
+    out, meta = rm.chrom(rgb, 30.0)
+    assert np.isfinite(out).all() and meta["algorithm"] == "CHROM"
+
+
+def test_pbv_reports_signature_gate_fallback_key():
+    import numpy as np
+    from research.backends import reference_methods as rm
+    t = np.arange(0, 12.0, 1 / 30.0)
+    pulse = 0.01 * np.sin(2 * np.pi * 1.2 * t)
+    rgb = np.column_stack([100 * (1 + pulse), 120 * (1 - pulse), 90 * (1 + 0.5 * pulse)])
+    out, meta = rm.pbv(rgb, 30.0)
+    assert "signature_gate_fallback" in meta
+    assert np.isfinite(out).all()

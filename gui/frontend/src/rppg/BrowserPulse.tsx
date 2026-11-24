@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { type LiveAnalysis, type TraceSample } from './liveDsp'
+import { buildTraceCsv, buildTraceMetadata, buildWindowRecord, buildWindowsExport } from './exports'
+import { newSessionId } from './provenance'
 import { polygonMean } from './roi'
 import './browserPulse.css'
 
@@ -26,7 +28,7 @@ function Trace({values,label}:{values:number[];label:string}) {
 export function BrowserPulse(){
   const video=useRef<HTMLVideoElement>(null), canvas=useRef<HTMLCanvasElement>(null), overlay=useRef<HTMLCanvasElement>(null)
   const sessionId=useRef(0),stream=useRef<MediaStream|null>(null), landmarker=useRef<FaceLandmarker|null>(null), worker=useRef<Worker|null>(null), pendingJob=useRef(false), jobId=useRef(0), raf=useRef(0), lastSample=useRef(0), lastAnalysis=useRef(0), lastUi=useRef(0),lastVideoTime=useRef(-1), lastPlaybackCount=useRef<number|null>(null), lastPlaybackTime=useRef(0), lostAt=useRef<number|null>(null), samples=useRef<TraceSample[]>([]),exportSamples=useRef<TraceSample[]>([]),exportDropped=useRef(0),acquisitionStart=useRef<number|null>(null), previousCenter=useRef<{x:number;y:number}|null>(null), centers=useRef<Array<{t:number;x:number;y:number}>>([]), smoothed=useRef<Array<{x:number;y:number;z:number}>>([])
-  const windowLog=useRef<Array<Record<string,unknown>>>([]),pendingWindow=useRef<{start_s:number;end_s:number;n_samples:number}|null>(null)
+  const windowLog=useRef<Array<Record<string,unknown>>>([]),pendingWindow=useRef<{start_s:number;end_s:number;n_samples:number}|null>(null),sessionRef=useRef(newSessionId())
   const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[deviceId,setDeviceId]=useState(''),[track,setTrack]=useState<Track>('idle'),[error,setError]=useState(''),[analysis,setAnalysis]=useState(initial),[duration,setDuration]=useState(0),[roiState,setRoiState]=useState('Waiting for face'),[algorithm,setAlgorithm]=useState('green'),[cameraFps,setCameraFps]=useState<number|null>(null)
   const algorithmRef=useRef(algorithm);algorithmRef.current=algorithm
   const windowsDropped=useRef(0)
@@ -35,7 +37,7 @@ export function BrowserPulse(){
   async function refreshDevices(){try{setDevices(await navigator.mediaDevices.enumerateDevices().then(d=>d.filter(x=>x.kind==='videoinput')))}catch{setDevices([])}}
   async function start(){
     const session=++sessionId.current
-    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);setTrack('loading')
+    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);sessionRef.current=newSessionId();setTrack('loading')
     try{
       if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera API unavailable. Use HTTPS or localhost in a supported browser.')
       const videoConstraint:MediaTrackConstraints=deviceId?{deviceId:{exact:deviceId},width:{ideal:640},height:{ideal:480}}:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}}
@@ -59,7 +61,7 @@ export function BrowserPulse(){
         if(event.data.error){stop();setError(`Signal-processing worker failed: ${event.data.error}`);setAnalysis({...initial,status:'low_signal_quality',reason:'DSP worker failed; no current estimate'});setTrack('error');return}
         if(event.data.result){
           const result=event.data.result,win=pendingWindow.current
-          windowLog.current.push({window_index:windowLog.current.length + windowsDropped.current,window_start_s:win?.start_s??null,window_end_s:win?.end_s??null,n_samples:win?.n_samples??null,analyzed_utc:new Date().toISOString(),effective_sampling_rate_hz:result.fs,consensus_bpm:result.bpm,per_estimator_bpm:result.estimates,quality_score:result.quality,consistency_bpm:result.consistencyBpm,availability_status:result.status,rejection_reason:result.status==='valid'?null:result.reason,spectral:result.scores??null,roi_coverage:result.scores?.roiCoverage??null,roi_coverage_overall:result.scores?.roiCoverageOverall??null,quality_concepts:result.concepts??null,selected_display_algorithm:algorithmRef.current})
+          windowLog.current.push(buildWindowRecord({windowIndex:windowLog.current.length + windowsDropped.current,analyzedUtc:new Date().toISOString(),pendingWindow:win,fs:result.fs,consensusBpm:result.bpm,estimates:result.estimates,qualityScore:result.quality,consistencyBpm:result.consistencyBpm,availabilityStatus:result.status,rejectionReason:result.status==='valid'?null:result.reason,scores:result.scores??null,concepts:result.concepts??null,selectedAlgorithm:algorithmRef.current}))
           if(windowLog.current.length>3600){windowLog.current.shift();windowsDropped.current++}
           setAnalysis(result)
         }
@@ -120,12 +122,12 @@ export function BrowserPulse(){
   const roiWave=Object.entries(analysis.waveforms).filter(([name])=>name.endsWith(`_${algorithm}`))
   function exportTrace(){
     const stamp=new Date().toISOString().replaceAll(':','-'),base=`rsbvp_rgb_trace_${stamp}`
-    const fields=['timestamp_s',...Object.keys(regions).flatMap(name=>['r','g','b'].map(c=>`${name}_${c}`))]
-    const lines=[fields.join(','),...exportSamples.current.map(s=>[s.t,...Object.keys(regions).flatMap(name=>s.rois[name as keyof typeof regions]??[null,null,null])].map(v=>v===null?'':String(v)).join(','))]
-    const metadata={schema:'rsbvp.rgb-trace.v1',created_utc:new Date().toISOString(),sample_count:exportSamples.current.length,earlier_samples_dropped_due_to_buffer_limit:exportDropped.current,trace_start_timestamp_s:exportSamples.current[0]?.t??null,trace_end_timestamp_s:exportSamples.current.at(-1)?.t??null,acquisition_duration_seconds:duration,camera_fps_reported:cameraFps,sample_rate_median_hz:measuredFps,dropped_interval_fraction:droppedFraction,passband_hz:[0.7,3.5],roi_method:'MediaPipe Face Landmarker polygons + explicit eye/lip/brow exclusion + RGB skin heuristic',algorithms:['Green','POS (window projection)','CHROM'],measurement_status:analysis.status,measurement_reason:analysis.reason,estimates_bpm:analysis.estimates,valid_consensus_bpm:analysis.bpm,quality_concepts:analysis.concepts??null,roi_coverage:analysis.scores?.roiCoverage??null,roi_coverage_overall:analysis.scores?.roiCoverageOverall??null,browser:navigator.userAgent,frame_images_included:false,frames_uploaded:false,notes:'Local exploratory signal output. Browser POS/CHROM variants are not yet clinically validated or guaranteed numerically identical to Python.'}
-    const windows={schema:'rsbvp.window-analysis.v1',created_utc:new Date().toISOString(),window_count:windowLog.current.length,dropped_windows_due_to_buffer_limit:windowsDropped.current,window_records:windowLog.current,frames_images_included:false,frames_uploaded:false,notes:'One record per analyzed window; window_start_s/window_end_s delimit the RGB window in trace timestamps. availability_status is the composite verdict; rejection_reason repeats it for convenience. See docs/EXPORT_SCHEMA.md.'}
+    const createdUtc=new Date().toISOString(),sessionId=sessionRef.current
+    const lines=buildTraceCsv(exportSamples.current)
+    const metadata=buildTraceMetadata({createdUtc,sessionId,sampleCount:exportSamples.current.length,earlierSamplesDropped:exportDropped.current,traceStartTs:exportSamples.current[0]?.t??null,traceEndTs:exportSamples.current.at(-1)?.t??null,acquisitionDurationS:duration,cameraFps,sampleRateMedianHz:measuredFps,droppedIntervalFraction:droppedFraction,analysisStatus:analysis.status,analysisReason:analysis.reason,estimatesBpm:analysis.estimates,validConsensusBpm:analysis.bpm,qualityConcepts:analysis.concepts??null,roiCoverage:analysis.scores?.roiCoverage??null,roiCoverageOverall:analysis.scores?.roiCoverageOverall??null,userAgent:navigator.userAgent})
+    const windows=buildWindowsExport(windowLog.current,windowsDropped.current,createdUtc,sessionId)
     const download=(content:BlobPart,type:string,name:string)=>{const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000)}
-    download(lines.join('\n'),'text/csv',`${base}.csv`);download(JSON.stringify(metadata,null,2),'application/json',`${base}.json`);download(JSON.stringify(windows,null,2),'application/json',`${base}_windows.json`)
+    download(lines,'text/csv',`${base}.csv`);download(JSON.stringify(metadata,null,2),'application/json',`${base}.json`);download(JSON.stringify(windows,null,2),'application/json',`${base}_windows.json`)
   }
   const intervals=samples.current.slice(1).map((s,i)=>s.t-samples.current[i].t).filter(d=>d>0)
   const sortedIntervals=[...intervals].sort((a,b)=>a-b),typicalInterval=sortedIntervals.length?sortedIntervals[Math.floor(sortedIntervals.length/2)]:null
