@@ -19,7 +19,7 @@ This is the **living** capability statement for the repository. It is distinct f
 | Green / POS / CHROM transforms (Python) | Implemented | TESTED-SOFTWARE (`tests/test_rppg_*`, `test_backends_reference`) | Rolling POS retained; CHROM independent transform; 0.7–3.5 Hz passband |
 | Green / POS / CHROM (browser TS) | Implemented (experimental variants) | TESTED-FIXTURE (`liveDsp.parity.test.ts`) | In-browser POS/CHROM are documented experimental variants; agreement **demonstrated only on one synthetic fixture** |
 | Python↔TypeScript DSP parity | Implemented | TESTED-FIXTURE (`tests/fixtures/generate_rppg_rgb_fixture_expected.py`) | Peak frequency, peak fraction, SNR dB, separation asserted to tight tolerance on the shared fixture; not evidence beyond it |
-| Quality verdicts per window (Python + browser) | Implemented | TESTED-SOFTWARE (`tests/test_quality.py`, `test_reliability.py`) | Six separated concepts (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`) + union ROI-coverage gate ≥ 0.50; status tokens incl. `irregular_timestamps`, `processing_error`; unavailable ⇒ no number |
+| Quality verdicts per window (Python + browser) | Implemented | TESTED-SOFTWARE (`tests/test_quality.py`, `test_reliability.py`) | Six separated concepts (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`) + union ROI-coverage gate ≥ 0.50; status tokens incl. `irregular_timestamps`, `processing_error`; unavailable ⇒ no number. Sprint 10: `candidate_bpm` from legacy motion heuristics is now rejected unless within `AGREEMENT_TOLERANCE_BPM` (12) of every trustworthy estimator AND within 6 BPM of at least one; cross-ROI agreement (`roi_agreement`) added; no estimator anchor ⇒ candidate rejected (`candidate_no_estimator_backing`). |
 | Low-light false-accept handling | Partially implemented | TESTED-FIXTURE | Diagnostics flag marginal low-light POS windows (native 0.556 / reference 0.630 quality-ok). Forehead of the perfectly periodic fixture still passes — an artifact of idealized input, not robustness evidence. Cross-estimator agreement is the remaining mitigation; **no real-world light validation exists** (NOT RUN) |
 | Multi-ROI extraction (browser) | Implemented | TESTED-SOFTWARE (roi.ts tests) + HARDWARE-UNTESTED | 3 ROIs, RGB skin heuristic, eye/lip/brow exclusion; **not** MediaPipe segmentation; dropout accounting in exports |
 | Offline 3-region RGB extraction (Python) | Implemented (heuristic) | TESTED-SOFTWARE | Skin-heuristic; documented as heuristic; not landmark segmentation |
@@ -57,7 +57,7 @@ This is the **living** capability statement for the repository. It is distinct f
 
 | Item | Status | Value |
 |---|---|---|
-| Python test suite | Implemented | **146 passed** (`python -m pytest -q`) |
+| Python test suite | Implemented | **190 passed** (`python -m pytest -q`) |
 | Frontend tests | Implemented | **17 passed** (`npm test`) |
 | Frontend build / lint | Implemented | build OK (`vite`, ~388 kB); `oxlint` 0 errors |
 | `compileall` / `git diff --check` | Implemented | clean |
@@ -76,7 +76,7 @@ This is the **living** capability statement for the repository. It is distinct f
 2. Browser estimator differs structurally from rolling-window Python POS/CHROM (documented; parity shown only for spectral stages).
 3. Quality thresholds are uncalibrated research heuristics; SNR floor is relative to a periodogram median, not to camera physiology.
 4. `performance.now()` clock is monotonic but not synchronized with `getVideoPlaybackQuality()` frame counts beyond the browser's own accounting.
-5. Existing motion-correction heuristics (`gui/rppg_core/pipeline.py`) remain experimental and unvalidated; retained for reproducibility, not as proven improvements.
+5. Existing motion-correction heuristics (`gui/rppg_core/pipeline.py`) remain experimental and unvalidated; retained for reproducibility, not as proven improvements. Sprint 10 candidate_bpm validation (`quality.py`, `research.measurement_gate`) now gates corrected consensus against every trustworthy estimator so heuristics cannot manufacture an unsupported consensus HR.
 6. Environment-dependent tests: AVI-codec-dependent probe tests skip on OpenCV builds that cannot decode their own AVI output.
 7. Eyes-defy-anemia and any other anemia dataset: not present; audit tooling is ready but unexercised on real data.
 

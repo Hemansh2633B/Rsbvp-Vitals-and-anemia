@@ -101,3 +101,27 @@ def test_measurement_gate_none_estimates_never_validate():
     gate = measurement_gate([None, None, 70.0], [None, None, 0.9], 15.0)
     assert gate["valid"] is False
     assert gate["state"] == "low_signal_quality"
+
+
+# Sprint 10: candidate_bpm validation in measurement_gate
+# The corrected candidate must be within agreement_bpm of every trustworthy
+# estimate AND within half that tolerance of at least one.
+
+def test_measurement_gate_near_one_acceptance():
+    # candidate=68 within 12 of both (70,72) and within 6 of 70 → accepted
+    gate = measurement_gate([70, 72], [0.5, 0.5], 15.0, agreement_bpm=12, candidate=68)
+    assert gate["valid"] is True
+    assert gate["state"] == "valid"
+
+
+def test_measurement_gate_within_full_but_near_none_rejected():
+    # candidate=82 within 12 of both (70,72) but more than 6 from each → rejected
+    gate = measurement_gate([70, 72], [0.5, 0.5], 15.0, agreement_bpm=12, candidate=82)
+    assert gate["valid"] is False
+    assert gate["state"] == "low_signal_quality"
+
+
+def test_measurement_gate_non_finite_candidate_rejected():
+    gate = measurement_gate([70, 72], [0.5, 0.5], 15.0, agreement_bpm=12, candidate=float("nan"))
+    assert gate["valid"] is False
+    assert gate["state"] == "low_signal_quality"
