@@ -244,3 +244,5 @@ __marimo__/
 /rsbvp_model_root/
 
 .run/
+# deployment cache: pip wheels / npm tarballs kept so a redeploy needs no network
+.cache/deploy/

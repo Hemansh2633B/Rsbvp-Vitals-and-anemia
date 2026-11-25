@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -23,12 +24,13 @@ SCRIPTS = {
     "deploy.ps1": ROOT / "deploy.ps1",
 }
 SERVER = ROOT / "deploy_server.py"
+ENV_MODULE = ROOT / "deploy_env.py"
 REQUIREMENTS = ROOT / "requirements.txt"
 GITATTRIBUTES = ROOT / ".gitattributes"
 
 
 def test_all_platform_deploy_scripts_exist():
-    for path in (*SCRIPTS.values(), SERVER, REQUIREMENTS, GITATTRIBUTES):
+    for path in (*SCRIPTS.values(), SERVER, ENV_MODULE, REQUIREMENTS, GITATTRIBUTES):
         assert path.is_file(), f"{path.name} is missing"
     assert SCRIPTS["deploy.sh"].stat().st_mode & 0o111, "deploy.sh must be executable"
 
@@ -48,6 +50,15 @@ def test_windows_scripts_use_crlf_and_no_bare_lf(name):
     bare = data.count(b"\n") - crlf
     assert crlf > 20, f"{name} should be CRLF"
     assert bare == 0, f"{name} has {bare} bare LF line(s); cmd.exe mis-parses those"
+
+
+def test_env_module_is_plain_ascii_and_lf():
+    data = ENV_MODULE.read_bytes()
+    assert not [b for b in data if b > 127], "deploy_env.py must stay ASCII"
+    assert b"\r\n" not in data
+    result = subprocess.run([sys.executable, "-m", "py_compile", str(ENV_MODULE)],
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
 
 
 def test_shell_script_uses_lf_only():
@@ -92,7 +103,35 @@ def test_scripts_deploy_instead_of_testing():
         assert "pytest" not in text, f"{name} must not run pytest"
         assert "npm test" not in text, f"{name} must not run the frontend test suite"
         assert "deploy_server.py" in text, f"{name} must start the deployed service"
-        assert "npm run build" in text, f"{name} must build the interface it serves"
+        assert "deploy_env.py" in text, f"{name} must prepare the environment via deploy_env.py"
+
+
+def test_scripts_never_install_directly():
+    """Installation decisions live in deploy_env.py, so no OS script may bypass it.
+
+    A bare `pip install` or `npm ci` in a shell script is exactly what caused the
+    "it re-downloads everything on every deploy" complaint.
+    """
+    for name, path in SCRIPTS.items():
+        text = path.read_text(encoding="utf-8")
+        for forbidden in ("pip install", "npm ci", "npm install", "npm run build"):
+            assert forbidden not in text, (
+                f"{name} must not run {forbidden!r} directly - delegate to deploy_env.py")
+
+
+def test_scripts_expose_the_cache_controls():
+    """Every script must offer the same cache controls, in its own syntax."""
+    controls = {
+        "deploy.sh": ["--status", "--offline", "--recreate", "--rebuild", "--skip-install"],
+        # PowerShell uses -Switch parameters, not --flags
+        # (PowerShell declares them as $Status/$Offline/...)
+        "deploy.ps1": ["$Status", "$Offline", "$Recreate", "$Rebuild", "$SkipInstall"],
+        "deploy.cmd": ["--status", "--offline", "--recreate", "--rebuild", "--skip-install"],
+    }
+    for name, flags in controls.items():
+        text = SCRIPTS[name].read_text(encoding="utf-8")
+        for flag in flags:
+            assert flag in text, f"{name} should expose {flag}"
 
 
 def test_scripts_do_not_download_data_or_need_hardware():
@@ -106,6 +145,12 @@ def test_runtime_requirements_cover_the_server():
     text = REQUIREMENTS.read_text(encoding="utf-8")
     for package in ("fastapi", "uvicorn", "python-multipart", "opencv-python-headless<5"):
         assert package in text, f"{package} missing from requirements.txt"
+
+
+def test_gitignore_covers_the_deployment_cache():
+    text = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert ".cache/deploy/" in text
+    assert ".run/" in text
 
 
 def test_server_entry_point_exposes_documented_flags():
