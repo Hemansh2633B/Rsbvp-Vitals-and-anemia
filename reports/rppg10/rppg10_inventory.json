@@ -1,0 +1,1313 @@
+{
+  "schema": "rsbvp.rppg10-inventory.v1",
+  "dataset": "rPPG-10",
+  "dataset_version": "1 (Mendeley Data 10.17632/bx8982xgwt.1)",
+  "citation": "Rodrigues G., Garcia N.M. Evaluating remote photoplethysmography: a 10-minute video dataset in uncontrolled lighting. Data in Brief 61 (2025) 111888. doi:10.1016/j.dib.2025.111888  (dataset doi:10.17632/bx8982xgwt.1, CC BY-NC-SA 4.0)",
+  "license": "CC BY-NC-SA 4.0 (non-commercial; share-alike). Verify current terms at the provider record.",
+  "root": "/tmp/setuptest5/Dataset_rPPG-10",
+  "declared_ecg_fs_hz": 1000.0,
+  "roi_mapping": {
+    "Forehead": "forehead",
+    "Cheek1": "right_cheek",
+    "Cheek2": "left_cheek"
+  },
+  "subjects_found": 26,
+  "subjects_complete": 26,
+  "excluded_subjects": [
+    {
+      "subject": 4,
+      "reason": "explicit_exclusion_by_caller",
+      "provider_documentation": "article \u00a74.7 states Subject_4 was excluded before release for persistent tracking failure and non-physiological ECG peaks",
+      "video_file_sizes_bytes": {
+        "right_cheek": 0,
+        "left_cheek": 0,
+        "forehead": 0
+      },
+      "ecg_present": true,
+      "adapter_derived_evidence": "all ROI videos are 0 bytes (empty placeholder files)"
+    }
+  ],
+  "expected_subjects": null,
+  "records": [
+    {
+      "subject": 1,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_1",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_1/Subject_1_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "3091fc2c2e3781cc098cf7bfea35efe07bcc26aec11efa8e8cc5d16cdf3e7915",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_1/Subject_1_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "18d915b0fc4f30e4ffe2c31c9b597f46e4ebf65cdbb020a79ef2f703f924b4a9",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_1/Subject_1_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "6bea48161a3b41da8cf2a8ae016d9eacfee529c70f0081c4d576ce503dd744f6",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_1/Subject_1_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "41e65832835c411302654985d28239710f25eb31e40963f1e25359de7a391a84"
+      }
+    },
+    {
+      "subject": 2,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_2",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_2/Subject_2_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "deefc30a2e1c5867306519994035d3980cafbd6dd5f22ffde57644aeaeab9813",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_2/Subject_2_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "926ffc2f247a3b3707eda089f1a5f6e9371dc03090dba1acf34735226a1d1be7",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_2/Subject_2_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "67fd0fd3c302ee133bd6e26dd58b2dd78338d84bebcbd42f3518e841a99152e4",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_2/Subject_2_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "5f9ff559354159720387fef19e8db1058c800a1b4bfb53616f3d1908252b1d0a"
+      }
+    },
+    {
+      "subject": 3,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_3",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_3/Subject_3_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "a2d91337ff6996d0e9f8fc3df6652e72ddf481a7d208ed96fa32819d0c109618",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_3/Subject_3_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "4a85a361cf9af7a7a3efb77e147daf6bb880bc78f421dbf79057c251f410e1a8",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_3/Subject_3_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "22f284b8b9c3c283336873fcda4d239fc74327a4a3fe23e6c32dbb1a557f0f6b",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_3/Subject_3_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "181f7cbd251b1e5b7581be83b445c4c119b45cfa79eda6318ba46beacbac6f27"
+      }
+    },
+    {
+      "subject": 5,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_5",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_5/Subject_5_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "dde7e9d9318389337c03d5e69db794f2a40e7158262ba610634e1b627ecdf70e",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_5/Subject_5_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "9d574ae844c6ccceec37ea107033c6d6e51b7063557d3e258aaa25a59c4f053b",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_5/Subject_5_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "83992d71a752cef22ae379eec5c7645dac62e1141a84c6e6362759de69bff016",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_5/Subject_5_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "ec144859bda2808976e259a0e1531ade9ce825062383980bf55a4519b636224d"
+      }
+    },
+    {
+      "subject": 6,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_6",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_6/Subject_6_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "e9e021c1424a4b25199dc6af609fe01d7c715457b3f16d4cc210c911965c58ee",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_6/Subject_6_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "22a12231e6dbcda5447c25b754337eda181f4f98db4b00024877348eade52261",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_6/Subject_6_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "56d85822f772055af9ad810024fda7da8f226207709bee85d78e5a544873f3f1",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_6/Subject_6_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "f80dfaca1b535c1475143591b10e58c100497a0fc3fbca3c8405d0dbec7b5b1f"
+      }
+    },
+    {
+      "subject": 7,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_7",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_7/Subject_7_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "b059f09c86a6a85be0517c60ef6edf253a80216e4e015b4e5a3cdcfe61bb5ca4",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_7/Subject_7_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "cf3b727630fc0c4deea78e37c14216df75c631c83316350827b05b3c507ba39b",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_7/Subject_7_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "3568321f58b9554386531a2eef971d22e0fb00118c44b5c7bcff92236e40873f",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_7/Subject_7_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "962dbf1c200975dbf1b700a4ca829ccd33ff0e8f9bfcca78e20567d513048b49"
+      }
+    },
+    {
+      "subject": 8,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_8",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_8/Subject_8_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "ace2ffddfbf0aafec253a17986ee206d5150884c9cedc8cdf3bbc5ea826976da",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_8/Subject_8_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "7e84412120b33878b70b821fa56d864456a7cb21f8c24719d1c0de20ae47d842",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_8/Subject_8_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "2fe78abcb6488f84fe3572728971856b2061922127540783177abd9a075cf94f",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_8/Subject_8_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "1e7a4564fa60f39db78240ed7e87eba67459b347d467e32c6c1668ff670e6efb"
+      }
+    },
+    {
+      "subject": 9,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_9",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_9/Subject_9_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "e7dad2716ee4f4929e3244da5c5c41914c3020959e95cab4bd72204df96c186f",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_9/Subject_9_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "0c86125544e3d10e0ce7096b9ae5d3a1a3a4fb98d9790bf747b84c24da20e2c3",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_9/Subject_9_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "8c4e0de33ede51c9157417817fbe8e4bc7185e853a998aaeea0638a91e843ddb",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_9/Subject_9_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "da774bf7280fafeebd9df7f58e19d818e9912005888eab60f26355ac047e5a1d"
+      }
+    },
+    {
+      "subject": 10,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_10",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_10/Subject_10_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "75ab09dab90413eb218a63dced08ead31c1c983211dae9d43cb2368d543318ee",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_10/Subject_10_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "3ffa71d697583574936555ab9bdefebdf29052e076a72dcd60dccaa8eec076e9",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_10/Subject_10_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "6749887d7e575098c9bb83407a8131fbf2e32c2a301ffa3e957edd6167c40883",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_10/Subject_10_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "3375097172b2bde5ea15181f245060323ee9ea443ce04ae61c0f89acfd558480"
+      }
+    },
+    {
+      "subject": 11,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_11",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_11/Subject_11_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "e23847bfb6cc6ab6ed527640044bda939b3d3f2032e57349c662561b647007da",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_11/Subject_11_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "b782ceba8b26214f48e9ebd9bf41bebfe417f1781518cf093e1e78c4218f5054",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_11/Subject_11_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "1e071f0fb1d138b1d9afe4848e2ac1f44d3b61afc9f56e70ee1b784995218748",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_11/Subject_11_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "7393dc2540e9e1a6fe1eebe8e3b7f42c3dc70ebefcbb2112fc20cad1f660ade1"
+      }
+    },
+    {
+      "subject": 12,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_12",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_12/Subject_12_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "13d8499b455a376fdb37c2bd3875dfb3c7bb33af94532c6c7e0de1dcf2744785",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_12/Subject_12_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "5c9c3f39006e74e8d893aedb160dc704ac1f9785407c6fa7e8e8ed9f4a545218",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_12/Subject_12_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "2a9a9dbeb9c08a1af733a9324a93055ccdd082295692f2b82060a6606b01e0bc",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_12/Subject_12_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "1d07f273c71ec86d50f767c03ba49d1ad6b92f18189245bbb33dd07cfc9811a8"
+      }
+    },
+    {
+      "subject": 13,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_13",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_13/Subject_13_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 17996,
+          "frames_probed": 0,
+          "declared_duration_s": 599.8666666666667,
+          "sha256": "c2a17ee42ed970c4706f6247f0c5d4df29a959f062773ef14d29d6ccc553c551",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_13/Subject_13_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 17996,
+          "frames_probed": 0,
+          "declared_duration_s": 599.8666666666667,
+          "sha256": "5191c9e22faddc266178e08a2d0420c973721368066bda99b2f19aab201196a1",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_13/Subject_13_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 17996,
+          "frames_probed": 0,
+          "declared_duration_s": 599.8666666666667,
+          "sha256": "336487cc813719feb783b5504d16f752053e62b2ea90a110ce53d4d42659e934",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_13/Subject_13_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "a81e60400def6e1cce47e809fb60fbf060f39589ef12e46ed40dc0bad3b2190d"
+      }
+    },
+    {
+      "subject": 14,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_14",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_14/Subject_14_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "92237edd048354d78d3adb49b245562f16098f7578d88bb849aff0dc7a6ee9b1",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_14/Subject_14_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "25c3bb16c4b6d6d87b316033147251c8eeccf98ccdefb22ca2377c113076ca45",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_14/Subject_14_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "681f4111930d7d29001e6f968a1a304886a80250bccedcee7c31f8e63c23fedc",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_14/Subject_14_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "a7e8e623cf1deca910e8efee0ce942ec93e29ab7fe761792d7275170bbb3683a"
+      }
+    },
+    {
+      "subject": 15,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_15",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_15/Subject_15_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "5f052b0a77360dd879fdbe45ae3ecb2dc2d2b5c497985423127ee9d9e00f7ded",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_15/Subject_15_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "6e03022942ca6d049c9a1a92a45983bce251f13037d14fd0360a2b52ab832a91",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_15/Subject_15_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "823eff1f61ae121fcd49a10a84fa8695407302bf7874ee08ac7ab2ebba1c23ce",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_15/Subject_15_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "a2cea844a22ac0f61ba5f5666fd52c5264db55beff5fc7a0843d6c1e1afaab15"
+      }
+    },
+    {
+      "subject": 16,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_16",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_16/Subject_16_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "5293b1536469d1883cfdd403e2f004c68b51610da726b1f97f5d71c91c41e5f3",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_16/Subject_16_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "86f531b5a94b341b811171cd4e177817305bf5176c1337367787c06e554be8aa",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_16/Subject_16_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "2d78284de0faa1f28f875f1654dd8fab9906d4417f2b74e5aa23e6f831433233",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_16/Subject_16_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "ae74af7987414e9894d611adff8d0b43d4e659c02b26dc1455d176693bdcae4c"
+      }
+    },
+    {
+      "subject": 17,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_17",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_17/Subject_17_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "1e1296185d10fc67f4b5ebc426f879ecbfc56481edad951f287c85363cb5630f",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_17/Subject_17_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "4af618c8462797834451bcf92de02d3162f489048fffdbc894d4e53f2f88ab9f",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_17/Subject_17_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "c89ee1ed8822fe2d783bd72bbdbe7eb609ec46c9191bd0ccbb90a6b0caa0e7a8",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_17/Subject_17_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "b502d8f7c77420273cd2ba85c748c03527dbb9d32cae69a98ad248a41573dda8"
+      }
+    },
+    {
+      "subject": 18,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_18",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_18/Subject_18_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "483c02d2a645c63b82b7a8b9367b6419d114224b04bb17b94e3ef77a64d63d51",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_18/Subject_18_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "3e4980dbf0b35e03b3a8cd1b7918ce946d2178b2d8a6b50624ef6cc3b57af327",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_18/Subject_18_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "fd0f5cf01f4fd35e9102bf9c683cb18554e990fc60d8d5fb5abc5560e243b965",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_18/Subject_18_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "82bc637c53d9f5c010571e39bf5b9212df5017e91567abbed0ee8b5523322d1b"
+      }
+    },
+    {
+      "subject": 19,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_19",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_19/Subject_19_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "0d9e14e6c31d066b5331d8dec3bf99684caf8fa6da98d4d093f7a1b6550116ce",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_19/Subject_19_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "4d7a19bf55943d28641f270c6ba9efdc63b44f8ab4cca9dc1101527a7a90d11a",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_19/Subject_19_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "430b6ef0f1149b3914086571422a8c6fc000aec720689de40ba8ab8bdcad8d91",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_19/Subject_19_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "d70ba4b6c75f8e9488b2c5772740abace55b50eba114eadb4654312fc20caf0c"
+      }
+    },
+    {
+      "subject": 20,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_20",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_20/Subject_20_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "c9b96d95eb23cd8f856f5edf98cb06a3d5dce345b5c93676218683660492e311",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_20/Subject_20_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "f8b2b1200e5a15c074ddd5e6cb8270f3d2de3e9c8f5bd3fe88cdd0f3f5f91c25",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_20/Subject_20_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "172eeb892b869171a7e6493dfc70d21376f8b629bfb179b783a382dcb660f4ca",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_20/Subject_20_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "454759e63a79cac5d51b0c6bf5639322e7a4b0284607de52283acbb7d906904e"
+      }
+    },
+    {
+      "subject": 21,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_21",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_21/Subject_21_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 17983,
+          "frames_probed": 0,
+          "declared_duration_s": 599.4333333333333,
+          "sha256": "f953591f11c22af218ef9c2899d9a1f8a4fe77574eadc734d04a03750dcf9230",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_21/Subject_21_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 17983,
+          "frames_probed": 0,
+          "declared_duration_s": 599.4333333333333,
+          "sha256": "128909442bd75e8cd0ba5bcb7a8724c03f85ef1f21dade248d39f86a3c8fddd8",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_21/Subject_21_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 17983,
+          "frames_probed": 0,
+          "declared_duration_s": 599.4333333333333,
+          "sha256": "40726ea946e03dcb39eaa7da5c60766a61a7ffaf940f2a96bffca4e412980b91",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_21/Subject_21_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "9bd5cd537b9ac85bb92436da10b69157a63b5b999179fa551a0abee58d6f9ebb"
+      }
+    },
+    {
+      "subject": 22,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_22",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_22/Subject_22_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "a9a3cba1381ea0422b1be3176f4218800cbd4b7cf1eadda3595e271ad2061927",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_22/Subject_22_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "992e72de90ac16f58df925a5495fbcb659a6a877162b1537862892040d3f69eb",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_22/Subject_22_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "b9e5f6152e9cdbf6ca1245736a9f99fa06205acb10ed10f5a6987f0e2ef49b4d",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_22/Subject_22_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "c7786fe9264bbfd9d3f1aa617efbf38795e387bc059f1c5867a72ff26dbbb739"
+      }
+    },
+    {
+      "subject": 23,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_23",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_23/Subject_23_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "1f0cc728a01a6b6f81afb296429d6feefa8677ade9d75363a251a2b7a19dda83",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_23/Subject_23_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "d02149485e64a11f71ead4c3e8e919e57f9bf45ee5944a5c5a4ac83a0b94f14e",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_23/Subject_23_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "be5c36cdbfbc10ab7e453ff95258408edb5c3cffd2620571a001752b8a6e2276",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_23/Subject_23_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "30b7be6127cafba07419a2da5936509701bacdc126d9b966c7fa10066e90853b"
+      }
+    },
+    {
+      "subject": 24,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_24",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_24/Subject_24_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "c91e979d6c62ed3953da90bf6fc7239349f2885afafe3f23234791007a92484c",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_24/Subject_24_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "bed6c3d86bf9e9330e2aee51c306a44b42ae2095dc21e84e1c72c765c0c09a64",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_24/Subject_24_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "cd7385c3b4aadaeaad6c1170dd6fc0c7eb3872b23c98fa862a14c5607e3ce06a",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_24/Subject_24_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "5989ea37d2e483abfc10566e365e76cd8529eb67e488a018500dc9662124baf1"
+      }
+    },
+    {
+      "subject": 25,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_25",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_25/Subject_25_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "5dc1171daf91e8752172a940ba9bac7200e3308dedccff93df37e6412908bc55",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_25/Subject_25_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "f8c4f7a983e724708adba7c2a8bae687af2e962c9b4ca7a76c8c76928a262238",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_25/Subject_25_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "9d00d6b39f2e27867818ccb6d5645efa5f9d68963bb48929a0d2d59f1db12b71",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_25/Subject_25_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "b633b74f53bcf057d1328c7233fb6cb317d6cdc86188375791fe6e819aa6b178"
+      }
+    },
+    {
+      "subject": 26,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_26",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_26/Subject_26_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "629b84553d7e7107bc66de962526e895b0311ef903b06b2f64c92ebaa306a937",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_26/Subject_26_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "9ea81a85c83257d419186255fb8dff122da4b603e8b3c13f650140854f6f22f6",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_26/Subject_26_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "a4c9ee16b4fc411e35268032008c317293da64b2037a838c2921ee6a0c139b8e",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_26/Subject_26_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "9db8f439871560eff4c49dc0821f3c8a228da34bbe8a63d0bea1657bc5fe5572"
+      }
+    },
+    {
+      "subject": 27,
+      "directory": "/tmp/setuptest5/Dataset_rPPG-10/Subject_27",
+      "videos": {
+        "right_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_27/Subject_27_Cheek1_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "0778711fbdf135f2913ebdd0d5b674cbfc74570fea7d4052c1ab5312519dc5c0",
+          "unreadable": false
+        },
+        "left_cheek": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_27/Subject_27_Cheek2_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "23da0d83d4f3fa42ae760bb19e97f9071f420a722d9d868a831a880979a908e8",
+          "unreadable": false
+        },
+        "forehead": {
+          "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_27/Subject_27_Forehead_.avi",
+          "width": 64,
+          "height": 64,
+          "declared_fps": 30.0,
+          "frame_count": 18000,
+          "frames_probed": 0,
+          "declared_duration_s": 600.0,
+          "sha256": "0417f98048b66b881ffb1901f96ac1ef52432ff12ee120c03163fc12a84bdaea",
+          "unreadable": false
+        }
+      },
+      "ecg": {
+        "path": "/tmp/setuptest5/Dataset_rPPG-10/Subject_27/Subject_27_ECG.npy",
+        "sample_count": 600000,
+        "dtype": "float64",
+        "declared_fs_hz": 1000.0,
+        "duration_s": 600.0,
+        "finite_sample_count": null,
+        "sha256": "e64c35edcee15b9c77b350ea498aecb2b9c50142c809a0ac434553d74e2b9fd1"
+      }
+    }
+  ],
+  "validation_failures": [
+    {
+      "token": "additional_file_recorded",
+      "severity": "deviation",
+      "subject": null,
+      "artifact": "Subject Data.xlsx",
+      "detail": "provider metadata recorded, not parsed"
+    }
+  ],
+  "validation_failure_tokens": [
+    "additional_file_recorded"
+  ],
+  "error_tokens": [],
+  "deviation_tokens": [
+    "additional_file_recorded"
+  ],
+  "honesty": {
+    "values_read": "No signal values were read: ECG inspected as a memory map (shape/dtype only).",
+    "metadata_source": "Frame counts, dimensions and frame rate come from the file containers; the ECG sampling rate is the caller-supplied value, recorded verbatim.",
+    "repairs_applied": "none \u2014 every inconsistency is reported as a validation failure",
+    "accuracy_evaluation": "NOT RUN \u2014 this is a readiness inventory, not a benchmark",
+    "benchmark": "NOT RUN \u2014 inventory only; run the benchmark command afterwards"
+  },
+  "generated_at_utc": "2026-11-25T14:11:30Z",
+  "limitations": [
+    "26 participants (Subject_4 excluded by the provider), predominantly young Portuguese university students; Fitzpatrick I\u2013IV only (no V/VI). No generalisation beyond this population.",
+    "Single-site acquisition: one room, natural indoor daylight, 10:00\u201316:00, one webcam type, participants seated and asked to stay still. No claim about other lighting, motion or devices.",
+    "64\u00d764 ROI crops with consumer compression: fine pulsatile detail is limited by the provider's anonymisation pipeline, not by this implementation.",
+    "Video/ECG synchronisation is manual with a documented uncertainty of up to \u00b1500 ms; this protocol therefore evaluates 30 s windows, not sub-second timing.",
+    "The ECG reference is a pulse-rate reference derived from R-peaks. Agreement with it is NOT validation of pulse-rate variability, HRV, or any clinical parameter.",
+    "Non-commercial licence (CC BY-NC-SA 4.0): results are research-use only and share-alike terms apply to redistribution of derived data."
+  ]
+}

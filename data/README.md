@@ -1,4 +1,12 @@
-# Local research data (never commit datasets)
+# Local research data — policy and the rPPG-10 exception
+
+> **One deliberate exception exists:** `data/rPPG-10.zip` (rPPG-10, CC BY-NC-SA 4.0)
+> is committed so that a beginner can run a real ECG-referenced evaluation offline.
+> It is the only dataset file allowed in this repository; the licence permits
+> redistribution for non-commercial use with attribution. `Dataset_rPPG-10.zip`
+> (the inner archive) and everything unpacked into `data/rppg10/` stay out of Git.
+> See the README section "About the bundled dataset" and `docs/RPPG10_VALIDATION.md`.
+> Everything below applies to **all other** data, without exception.
 
 This directory contains schema examples only. Put licensed data outside the repository whenever possible. Configure the root with `RSBVP_DATA_ROOT=/absolute/path/to/research-data` or pass `--data-root /absolute/path` to supported research CLIs. Relative manifest paths resolve under that root; no tool downloads, uploads, or silently searches for data.
 
@@ -9,6 +17,7 @@ $RSBVP_DATA_ROOT/
   ubfc-rppg/                 # locally acquired archive, unchanged
   cohface/                   # locally acquired archive, unchanged
   mmpd/                      # MMPD full dataset (subject<n>/p<n>_*.mat), unchanged
+  rppg10/                    # rPPG-10 unpacked copy (never commit; the zip alone is the exception)
   traces/                    # browser RGB exports or derived traces
   references/                # synchronized reference waveforms
 ```
@@ -23,7 +32,7 @@ Dataset-specific adapters must be configured against the actual downloaded archi
 
 ## Reference schema supported by Sprint 3 tools
 
-A canonical reference CSV has a header and one row per observation. Required columns are `timestamp_s` (seconds on the source sensor clock) and one explicitly mapped numeric signal column such as `ppg`, `bvp`, or `ecg`. `timestamp_s` may be omitted only when the manifest provides a verified positive `reference_fs_hz`, in which case sample times are derived from sample index. `time_offset_s` maps reference-clock seconds onto the trace-clock seconds as `trace_time = reference_time + time_offset_s`. The offset must come from documented synchronization, not a guessed visual match. `reference_type` distinguishes `ppg`, `bvp`, or `ecg`; the current evaluator supports waveform-frequency estimates for PPG/BVP only. ECG rows are intentionally rejected with `ecg_rpeak_estimator_unavailable` until a validated R-peak method is implemented and verified. Respiration must be processed with a separate protocol.
+A canonical reference CSV has a header and one row per observation. Required columns are `timestamp_s` (seconds on the source sensor clock) and one explicitly mapped numeric signal column such as `ppg`, `bvp`, or `ecg`. `timestamp_s` may be omitted only when the manifest provides a verified positive `reference_fs_hz`, in which case sample times are derived from sample index. `time_offset_s` maps reference-clock seconds onto the trace-clock seconds as `trace_time = reference_time + time_offset_s`. The offset must come from documented synchronization, not a guessed visual match. `reference_type` distinguishes `ppg`, `bvp`, or `ecg`; the current evaluator supports waveform-frequency estimates for PPG/BVP only. ECG rows are intentionally rejected by the generic trace manifest path with `ecg_rpeak_estimator_unavailable`: this evaluator never derives a reference rate from the ECG spectrum. A separate, independently tested R-peak pathway now exists (`research/ecg/reference.py`, Pan–Tompkins, documented guards and rejection tokens) and is used only by dataset-specific benchmarks that supply ECG metadata explicitly (`research/rppg10/`, see `docs/RPPG10_VALIDATION.md`). It is not wired into this generic manifest evaluator, supports no HRV/PRV claim, and any use requires verified sampling rate and units. Respiration must be processed with a separate protocol.
 
 ## Citations and provenance
 

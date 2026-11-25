@@ -1,0 +1,18 @@
+# Python dependencies for running RSBVP and its test suite.
+#
+# Pinned deliberately:
+#   * opencv-python-headless < 5 — opencv 5 headless builds removed
+#     cv2.CascadeClassifier, which the legacy live pipeline (gui/rppg_core) uses.
+#     CI pins the same range.
+# Install with:
+#     python -m venv .venv
+#     .venv/bin/python -m pip install -r requirements-dev.txt      (Linux/macOS)
+#     .venv\Scripts\python -m pip install -r requirements-dev.txt  (Windows)
+# or just run:  bash setup.sh   /  setup.cmd   (Windows)
+numpy>=2.0
+scipy>=1.11
+pandas>=2.0
+matplotlib>=3.8
+pillow>=10.0
+opencv-python-headless<5
+pytest>=8.0

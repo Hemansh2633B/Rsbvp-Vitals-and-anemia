@@ -15,7 +15,7 @@ jobs:
       # in opencv 5 headless builds; unpinned installs silently break it.
       - run: python -m pip install pytest numpy scipy pandas matplotlib 'opencv-python-headless<5'
       - run: python -m pytest -q
-      - run: python -m compileall -q gui research
+      - run: python -m compileall -q gui research tests
       - run: python research/backends/benchmark.py tests/fixtures/rppg_rgb_fixture.csv --backends rsbvp_native --output-dir /tmp/rsbvp_benchmark_smoke
   frontend:
     runs-on: ubuntu-latest

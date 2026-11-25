@@ -71,6 +71,40 @@ Scope: poor illumination, face movement, ROI tracking failure, missing/irregular
 
 Acceptance invariant: **a poor-quality result is unavailable, never silently plausible.** Any code path violating this is a P0 defect — report it.
 
+## 7b. ECG reference failure modes (Sprint 11)
+
+The ECG reference pathway is separate from the rPPG estimator path so that no
+reference value can influence an estimate or a quality gate. Its failure modes
+are enumerated as tokens, and every rejection leaves the window out of the
+error statistics while remaining visible in the coverage accounting:
+
+| Failure | Token | Handling |
+|---|---|---|
+| Missing/incorrect sampling rate | `ecg_fs_invalid` | Hard failure; the rate is caller-supplied and recorded, never inferred |
+| Non-finite / empty / 2-D array | `ecg_nonfinite_samples`, `ecg_empty`, `ecg_not_1d` | Window rejected; no interpolation or forward-fill |
+| Flat / saturated / clipped signal | `ecg_flat_signal`, `ecg_saturated` | Window rejected; a rail-clipped ECG cannot yield trustworthy beats |
+| Irregular or non-increasing timestamps | `ecg_timestamps_irregular`, `ecg_timestamps_not_increasing`, `ecg_timestamps_length_mismatch` | Window rejected; no silent re-timing |
+| Fewer than 3 R-peaks / window < 5 s | `ecg_too_few_rpeaks`, `ecg_window_too_short` | Rejected; median R-R not estimable |
+| Implausible R-R bulk | `ecg_rr_out_of_range` | Rejected (>25 % outside 0.3–2.0 s) |
+| No QRS structure (noise only) | `ecg_qrs_prominence_low` | Rejected; prevents a fabricated reference rate |
+| Window outside the recording | `ecg_window_out_of_bounds` | Rejected |
+| Sustained ADC rail runs (real data) | `ecg_rail_saturated` | Runs of ≥10 samples pinned at min/max (observed: 174- and 214-sample runs in rPPG-10) mean saturated beats; the window is rejected. A single-sample clip check does not catch this |
+| Two detectors disagree (real data) | `ecg_cross_check_disagreement` | A matched-filter detector must agree with the Pan–Tompkins detector on median R-R and beat count within 10 %; otherwise the window is ambiguous and rejected |
+| Excessive R-R dispersion | `ecg_rr_dispersion_high` | MAD(R-R)/median(R-R) > 0.25: a misdetection cannot be distinguished from a genuine irregularity, so no reference value is produced |
+| Generic manifest path | `ecg_rpeak_estimator_unavailable` | Unchanged: the generic evaluator still refuses ECG by design |
+
+Evidence tier: **SYNTHETIC-TESTED + DATASET-EXERCISED** — run on the 27 rPPG-10 ECG
+recordings (477/540 windows accepted, 88 %). The three failure modes above were
+discovered by that run, not by the synthetic tests, which is exactly why the
+pathway reports rejections instead of repairing them. Nothing in it supports an
+HRV, PRV, morphology or clinical claim.
+
+Measurement caveat for rPPG-10 specifically: the released `.npy` files contain raw
+BITalino ADC counts (baseline ≈500, range 0–1023), i.e. **arbitrary units, not
+mV**. Amplitude-dependent reasoning (e.g. mV thresholds) would be invalid on them;
+the pathway only uses timing, so this does not affect the reference HR — but any
+future amplitude-based work must not treat these values as calibrated voltages.
+
 ## 8. Open gaps (explicit)
 
 1. No real-illumination or motion study (dataset absent; no rig).
@@ -107,5 +141,12 @@ Every quality threshold below is a documented research heuristic chosen a priori
 | Face-lost handling (browser) | 1.8 s label `reacquiring`; 4.0 s buffer reset | Avoids both flickering state and unbounded stale capture | DOCUMENTED (UX timing) |
 | `min_pixels` (mask QA) | 20 | Minimum non-zero mask pixels for a valid conjunctival mask in the anemia contract validator | SOFTWARE |
 | RGB skin heuristic bounds | lum 35–245, rr≥0.88·gg, gg≥0.82·bb, rr−bb≥8 | Conservative capture-quality filter, **not** universal skin segmentation; documented in `roi.ts` | SOFTWARE |
+| ECG sampling-rate guard | 100–2000 Hz | Implementation guard in `research/ecg/reference.py`; the real rate must come from provider documentation and is recorded verbatim. Not a physiological claim | SOFTWARE |
+| ECG R-R plausibility band | 0.3–2.0 s (30–200 BPM) | Reject implausible intervals; >25 % implausible ⇒ whole window rejected (`ecg_rr_out_of_range`) rather than averaged away | SOFTWARE |
+| ECG QRS prominence floor | median R-peak deflection ≥ 3 robust σ (MAD) | Prevents a reference HR being manufactured from noise-only or artefactual segments (`ecg_qrs_prominence_low`); exposed by a synthetic noise test | SYNTHETIC |
+| ECG QRS refractory period | 200 ms | Pan–Tompkins default; also the physical limit for detecting two beats | DOCUMENTED (published method) |
+| ECG window minimum | 5 s, ≥3 R-peaks | Below this the median R-R is not estimable; yields `ecg_window_too_short` / `ecg_too_few_rpeaks` | SOFTWARE |
+| rPPG-10 window / step | 30 s / 30 s (non-overlapping) | Pre-registered to match the provider baseline and to avoid counting correlated windows as independent; frozen before any data | PRE-REGISTERED |
+| rPPG-10 trace completeness | ≥98 % expected frames finite, timestamp jitter ≤5 % of frames | A window with dropped/corrupt frames is rejected with a token, never interpolated by this pathway | SOFTWARE |
 
 **Calibration statement:** none of these values has been fitted to real camera data. Where a synthetic fixture motivated or exposed a threshold (e.g. concentration/SNR/separation during the low-light POS analysis), the threshold was set before that fixture's acceptance criteria and is not adjusted to flatter it. Real-camera calibration is **NOT RUN**.

@@ -1,0 +1,9 @@
+# rPPG-10 manifest EXAMPLE — schema only. Do not fill with fabricated values.
+# rPPG-10 is NOT a trace-manifest dataset: videos and ECG arrays are read through
+# research/rppg10/run_benchmark.py inspect|benchmark, which derives file facts and
+# requires the provider-declared ECG sampling rate (--ecg-fs-hz). This file exists
+# to document the provenance fields the benchmark report echoes; it is not consumed
+# by the rPPG-10 CLI and must never contain participant identifiers beyond the
+# provider's own Subject_<n> codes.
+dataset,dataset_version,participant_id,recording_id,trace_csv,reference_path,reference_format,reference_type,reference_time_column,reference_signal_column,reference_fs_hz,time_offset_s,source_citation,license_verified
+rPPG-10,1,Subject_1,Subject_1_Forehead,UNUSED_SEE_DOCS,UNUSED_SEE_DOCS,npy_native,ecg,,,1000,0.0,"Rodrigues G., Garcia N.M. Data in Brief 61 (2025) 111888; doi:10.1016/j.dib.2025.111888",false

@@ -1,0 +1,125 @@
+{
+  "schema": "rsbvp.rppg10-readiness.v1",
+  "generated_at_utc": "2026-11-25T13:34:28Z",
+  "status": "NOT RUN",
+  "dataset": "rPPG-10",
+  "citation": "Rodrigues G., Garcia N.M. Evaluating remote photoplethysmography: a 10-minute video dataset in uncontrolled lighting. Data in Brief 61 (2025) 111888. doi:10.1016/j.dib.2025.111888  (dataset doi:10.17632/bx8982xgwt.1, CC BY-NC-SA 4.0)",
+  "license": "CC BY-NC-SA 4.0 \u2014 non-commercial, share-alike; verify at the provider record",
+  "availability": {
+    "public_record": "https://data.mendeley.com/datasets/bx8982xgwt/1",
+    "paper_doi": "10.1016/j.dib.2025.111888",
+    "download": "Mendeley Data zip (approx. 116 MB compressed / 78.4 MB listed payload); no agreement gate documented, but the licence is non-commercial",
+    "obtained_locally": false,
+    "reason_not_run": "No authorized local copy was supplied to this environment; RSBVP_DATA_ROOT is unset and no rPPG-10 files are present."
+  },
+  "documented_structure": {
+    "participants": 26,
+    "excluded_by_provider": [
+      4
+    ],
+    "rois": [
+      "Forehead",
+      "Cheek1 (right)",
+      "Cheek2 (left)"
+    ],
+    "video": "Subject_<n>/Subject_<n>_<ROI>.avi \u2014 provider states 64x64, 30 fps, 600 s",
+    "ecg": "Subject_<n>/Subject_<n>_ECG.npy \u2014 provider states BITalino, 1000 Hz, 3-electrode",
+    "metadata": "provider .xlsx (demographics, environment) \u2014 presence recorded, never parsed"
+  },
+  "adapter": {
+    "module": "research/rppg10/adapter.py",
+    "modes": [
+      "discover",
+      "inventory (container metadata + checksums)",
+      "extract_roi_trace (RGB means)"
+    ],
+    "derives_from_files": [
+      "frame size",
+      "frame count",
+      "declared fps",
+      "duration",
+      "ECG length/dtype"
+    ],
+    "never_guesses": [
+      "ECG sampling rate (must be supplied)",
+      "synchronisation offset",
+      "units"
+    ],
+    "repairs": "none \u2014 inconsistencies are validation failures"
+  },
+  "ecg_reference_pathway": {
+    "module": "research/ecg/reference.py",
+    "method": "Pan\u2013Tompkins QRS detection (1985): 5\u201315 Hz bandpass, derivative, squaring, 150 ms integration, adaptive thresholding, 200 ms refractory, R-peak refinement",
+    "hr_rule": "60 / median(valid R-R) per window",
+    "rejections": [
+      "ecg_fs_invalid",
+      "ecg_nonfinite_samples",
+      "ecg_flat_signal",
+      "ecg_saturated",
+      "ecg_timestamps_irregular",
+      "ecg_window_out_of_bounds",
+      "ecg_too_few_rpeaks",
+      "ecg_rr_out_of_range",
+      "ecg_window_too_short"
+    ],
+    "existing_evaluator_unchanged": true,
+    "why_separate": "research/rppg/dataset_io.py rejects ECG references with ecg_rpeak_estimator_unavailable; that behaviour is preserved and this pathway is the only ECG reader, feeding references after estimation",
+    "explicitly_not": [
+      "HRV/PRV estimation",
+      "arrhythmia detection",
+      "clinical interpretation",
+      "ECG spectral-peak HR"
+    ]
+  },
+  "protocol": {
+    "protocol_version": "rsbvp.rppg10-protocol.v1",
+    "frozen_date": "2026-11-25",
+    "window_seconds": 30.0,
+    "step_seconds": 30.0,
+    "overlap": false,
+    "passband_hz": [
+      0.7,
+      3.5
+    ],
+    "estimators": [
+      "green",
+      "pos",
+      "chrom"
+    ],
+    "rois": [
+      "forehead",
+      "right_cheek",
+      "left_cheek"
+    ],
+    "quality_gates": {
+      "module": "research/backends/reference_methods.py",
+      "min_concentration": 0.2,
+      "min_snr_db": 3.0,
+      "min_separation": 1.5,
+      "note": "unchanged for this dataset; failures yield bpm=None"
+    },
+    "min_window_finite_fraction": 0.98,
+    "max_timestamp_jitter_fraction": 0.05,
+    "reference_hr": "ECG Pan\u2013Tompkins R-peaks; 60 / median(valid R-R)",
+    "bootstrap": {
+      "unit": "participant",
+      "draws": 2000,
+      "seed": 20261125
+    },
+    "no_tuning": true
+  },
+  "blocking_reason": "Dataset not present in this environment. The readiness adapter, ECG reference pathway, frozen protocol and dataset-independent tests are complete; the benchmark itself is NOT RUN.",
+  "limitations": [
+    "26 participants (Subject_4 excluded by the provider), predominantly young Portuguese university students; Fitzpatrick I\u2013IV only (no V/VI). No generalisation beyond this population.",
+    "Single-site acquisition: one room, natural indoor daylight, 10:00\u201316:00, one webcam type, participants seated and asked to stay still. No claim about other lighting, motion or devices.",
+    "64\u00d764 ROI crops with consumer compression: fine pulsatile detail is limited by the provider's anonymisation pipeline, not by this implementation.",
+    "Video/ECG synchronisation is manual with a documented uncertainty of up to \u00b1500 ms; this protocol therefore evaluates 30 s windows, not sub-second timing.",
+    "The ECG reference is a pulse-rate reference derived from R-peaks. Agreement with it is NOT validation of pulse-rate variability, HRV, or any clinical parameter.",
+    "Non-commercial licence (CC BY-NC-SA 4.0): results are research-use only and share-alike terms apply to redistribution of derived data."
+  ],
+  "honesty": {
+    "accuracy_evaluation": "NOT RUN \u2014 no rPPG-10 data was available",
+    "fabricated_numbers": "none",
+    "test_data": "All tests use synthetic ECG/traces and PNG/GIF-encoded synthetic videos; no participant data was created or collected by this project."
+  }
+}

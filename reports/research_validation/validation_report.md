@@ -5,6 +5,46 @@
 
 ---
 
+## Sprint 11b addendum (2026-11-25, rPPG-10 benchmark EXECUTED)
+
+The dataset was supplied (`data/rPPG-10.zip`, inner `Dataset_rPPG-10.zip`, 109 files, 27 subject folders). The frozen protocol ran unchanged: 26 participants (Subject_4 explicitly excluded — its three ROI videos are 0-byte placeholders; the exclusion, the article citation and that evidence are in the report), 3 ROIs, 20 non-overlapping 30 s windows, 1482 window-records, 477/540 ECG reference windows accepted (88 %).
+
+**Results (see `reports/rppg10/rppg10_benchmark.md` for the full accounting):**
+
+| View | GREEN | POS | CHROM |
+|---|---|---|---|
+| Combined ROI, **gates OFF** (provider-comparable, descriptive) | 8.03 BPM pooled MAE (26 participants, 477 windows; median participant 5.23) | 11.29 | 13.19 |
+| Provider's published baseline (context only) | 7.57 ± 0.66 | 7.59 ± 0.46 | 10.05 ± 0.46 |
+| Per-ROI, **gates ON** (frozen protocol, availability-conditional) | forehead 0.95 (n=124, 25 % coverage, 16/26 participants) | 1.22 (n=53) | 0.84 (n=31) |
+
+The gated numbers are **not** evidence of beating the baseline: the frozen gates rejected 75–99 % of windows, and 11 of 26 participants contribute nothing for some estimators. The ungated, provider-comparable row is the honest yardstick and it brackets the provider's own result — which is a positive implementation check, not a performance claim.
+
+**Leakage controls** (mechanical, not biological — the ECG is an independent sensor): permuting references across participants raises forehead-GREEN MAE from 0.95 to 11.39 ± 2.01 BPM; shifting each estimate onto the next window of the same participant raises it to 2.60 BPM. Error shows no trend across reference-HR quartiles (r = 0.10 between reference HR and absolute error).
+
+**Two real-data defects found and fixed in the ECG pathway** (both now regression-tested): ADC rail saturation appearing as sustained runs at 0/1023 (14 of 540 windows rejected), and single-detector ambiguity (a matched-filter cross-check now rejects 3 of 540 windows). The pathway also rejects windows whose R-R dispersion is too high to certify.
+
+Still **not** claimed: chunk-level timing, HRV/PRV, morphology, rhythm classification (Subject_2's ~48 BPM alternating pattern is reported as data, never diagnosed), clinical validity, generalisation beyond this dataset. Anemia remains NOT AVAILABLE. MMPD remains smoke-tested with accuracy NOT RUN.
+
+## Sprint 11 addendum (2026-11-25, rPPG-10 readiness + independent ECG reference)
+
+- **Target dataset**: rPPG-10 (Rodrigues & Garcia, *Data in Brief* 61 (2025) 111888, doi:10.1016/j.dib.2025.111888; data doi:10.17632/bx8982xgwt.1, **CC BY-NC-SA 4.0**). 26 participants × 3 ROI videos (600 s, 64×64, 30 fps) + BITalino ECG (1000 Hz, ±1.5 mV) per participant; single room, natural indoor daylight; manual synchronisation with a documented ≤ ±500 ms uncertainty; Subject_4 excluded by the provider.
+- **Readiness executed, benchmark NOT RUN.** No authorized local copy was supplied to this environment. `reports/rppg10/rppg10_readiness.{json,md}` documents the contents, licence, adapter contract, ECG pathway, frozen protocol and blockers. **No accuracy metric for rPPG-10 exists in this repository.**
+- **Independent ECG reference pathway** (`research/ecg/reference.py`): Pan–Tompkins QRS detection → 60/median(valid R-R) per window, with 16 machine-readable rejection tokens, a QRS-prominence guard against noise-only segments, and dataset-independent tests (22). It is deliberately **not** wired into the generic trace-manifest evaluator, which continues to reject ECG with `ecg_rpeak_estimator_unavailable` (existing regression test unchanged). No HRV, PRV, or clinical claim is supported.
+- **Frozen protocol** (`rsbvp.rppg10-protocol.v1`, frozen 2026-11-25 before data): 30 s non-overlapping windows, GREEN/POS/CHROM, unchanged quality gates, reference joined after estimation, participant-level bootstrap (2000 draws, seed 20261125), explicit coverage/rejection accounting, deviations from the documented dataset attributes require an explicit flag and are echoed into the report.
+- **Evidence tiers unchanged**: every new component is `SOFTWARE-TESTED`/`SYNTHETIC-TESTED` only. MMPD remains smoke-tested / accuracy NOT RUN; UBFC-rPPG and COHFACE remain NOT RUN; anemia remains NOT AVAILABLE.
+
+### New artifacts
+
+| Artifact | Purpose |
+|---|---|
+| `research/ecg/reference.py` | ECG → window reference HR (Pan–Tompkins), rejection tokens |
+| `research/rppg10/adapter.py` | Discovery, inventory, checksums, RGB trace extraction; no repairs |
+| `research/rppg10/protocol.py` | Frozen protocol, estimators, aggregation, bootstrap, report rendering |
+| `research/rppg10/run_benchmark.py` | `readiness` / `inspect` / `benchmark` CLI |
+| `tests/test_ecg_reference.py`, `tests/test_rppg10_adapter.py` | 56 dataset-independent tests |
+| `reports/rppg10/rppg10_readiness.{json,md}` | Readiness assessment (NOT RUN) |
+| `docs/RPPG10_VALIDATION.md`, `data/manifests/rppg10.example.csv` | Terms, protocol, acquisition steps, manifest schema |
+
 ## Sprint 10 addendum (2026-11-24, MMPD acquisition investigation)
 
 - The maintainer directed validation on **MMPD** (Tsinghua, EMBC 2023). The public GitHub repository was enumerated: it carries 16 short sample GIFs (150 frames @112×199, uniform 30 ms/frame ≈4.5 s, no ground truth), the 660-recording label manifest, integrity sizes, the faculty-agreement PDFs, and a toolbox fork with pre-trained checkpoints — **not the dataset** (370 GB/48 GB via OneDrive/Baidu after a faculty-signed data-release agreement; academic use only, no commercial use).
