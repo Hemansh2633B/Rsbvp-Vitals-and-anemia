@@ -12,9 +12,16 @@ REM     deploy.cmd --foreground    run attached to this window (default: backgro
 REM     deploy.cmd --help
 REM
 REM  This file must keep Windows (CRLF) line endings and plain ASCII text.
-REM  Nothing is downloaded except Python packages from PyPI. No webcam or GPU is
-REM  needed to deploy. Local research deployment only: no authentication, no TLS -
-REM  keep it on a trusted network.
+REM
+REM  Redeploying is cheap: the .venv, the installed Python packages, node_modules
+REM  and the built interface are all reused. Nothing is downloaded again unless
+REM  requirements.txt or package-lock.json changed, a package is missing, or the
+REM  frontend sources are newer than the build. Use --status to see what is cached
+REM  and --offline to redeploy with no network at all.
+REM
+REM  Nothing is downloaded except Python packages from PyPI and npm packages from
+REM  the npm registry. No webcam or GPU is needed to deploy. Local research
+REM  deployment only: no authentication, no TLS - keep on a trusted network.
 REM ===========================================================================
 
 setlocal
@@ -27,6 +34,10 @@ set "FG_ARG="
 set "SKIP_INSTALL=0"
 set "STOP=0"
 set "UNPACK=0"
+set "OFFLINE_ARG="
+set "STATUS=0"
+set "RECREATE_ARG="
+set "REBUILD_ARG="
 
 :parse
 if "%~1"=="" goto parsed
@@ -35,6 +46,10 @@ if /i "%~1"=="--port" ( set "PORT=%~2" & shift & shift & goto parse )
 if /i "%~1"=="--open" ( set "OPEN_ARG=--open" & shift & goto parse )
 if /i "%~1"=="--foreground" ( set "FG_ARG=--foreground" & shift & goto parse )
 if /i "%~1"=="--skip-install" ( set "SKIP_INSTALL=1" & shift & goto parse )
+if /i "%~1"=="--offline" ( set "OFFLINE_ARG=--offline" & shift & goto parse )
+if /i "%~1"=="--status" ( set "STATUS=1" & shift & goto parse )
+if /i "%~1"=="--recreate" ( set "RECREATE_ARG=--recreate" & shift & goto parse )
+if /i "%~1"=="--rebuild" ( set "REBUILD_ARG=--rebuild" & shift & goto parse )
 if /i "%~1"=="--stop" ( set "STOP=1" & shift & goto parse )
 if /i "%~1"=="--unpack-dataset" ( set "UNPACK=1" & shift & goto parse )
 if /i "%~1"=="--help" goto usage
@@ -47,16 +62,16 @@ echo ==============================================================
 echo  RSBVP deploy  (Windows)
 echo ==============================================================
 
-REM ---- find Python 3.12+ -----------------------------------------------
+REM ---- find Python 3.10+ -----------------------------------------------
 set "PY="
-py -3 -c "import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,12) else 1)" >nul 2>&1
+py -3 -c "import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,10) else 1)" >nul 2>&1
 if not errorlevel 1 set "PY=py -3"
 if not defined PY (
-    python -c "import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,12) else 1)" >nul 2>&1
+    python -c "import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,10) else 1)" >nul 2>&1
     if not errorlevel 1 set "PY=python"
 )
 if not defined PY (
-    echo     [fail] Python 3.12+ was not found.
+    echo     [fail] Python 3.10+ was not found.
     echo            Install it from https://www.python.org/downloads/
     echo            and TICK "Add python.exe to PATH", then reopen this window.
     echo.
@@ -77,58 +92,36 @@ if "%UNPACK%"=="1" (
     exit /b %errorlevel%
 )
 
-REM ---- Python packages --------------------------------------------------
-if "%SKIP_INSTALL%"=="0" (
-    echo.
-    echo ==^> Installing Python packages
-    %PY% -m pip install -q -r requirements.txt
-    if errorlevel 1 (
-        echo     [fail] pip install failed - check your internet connection
-        echo.
-        pause
-        exit /b 1
-    )
-    echo     [ok] Python packages ready
+if "%STATUS%"=="1" (
+    %PY% deploy_env.py --check
+    exit /b %errorlevel%
 )
 
-REM ---- build the web interface -----------------------------------------
+REM ---- environment: venv + packages + node_modules + build ---------------
+REM  All of the caching logic lives in deploy_env.py so Windows behaves exactly
+REM  like Linux/macOS. Nothing is reinstalled when nothing changed.
 echo.
-echo ==^> Building the web interface
-where npm >nul 2>&1
+echo ==^> Preparing the environment
+set "ENV_ARGS=--build"
+if "%SKIP_INSTALL%"=="1" set "ENV_ARGS=%ENV_ARGS% --skip-install"
+if not "%OFFLINE_ARG%"=="" set "ENV_ARGS=%ENV_ARGS% --offline"
+if not "%RECREATE_ARG%"=="" set "ENV_ARGS=%ENV_ARGS% --recreate"
+if not "%REBUILD_ARG%"=="" set "ENV_ARGS=%ENV_ARGS% --rebuild"
+%PY% deploy_env.py %ENV_ARGS%
 if errorlevel 1 (
-    echo     [fail] npm ^(Node.js^) not found - it is required to build the interface.
-    echo            Install Node.js LTS from https://nodejs.org/ and re-run.
+    echo     [fail] the deployment environment could not be prepared
+    echo            Diagnostics: deploy.cmd --status
     echo.
     pause
     exit /b 1
 )
-pushd gui\frontend
-if "%SKIP_INSTALL%"=="0" (
-    call npm ci --silent
-    if errorlevel 1 (
-        popd
-        echo     [fail] npm ci failed
-        echo.
-        pause
-        exit /b 1
-    )
-)
-call npm run build
-if errorlevel 1 (
-    popd
-    echo     [fail] the frontend build failed
-    echo.
-    pause
-    exit /b 1
-)
-popd
+if exist ".venv\Scripts\python.exe" set "PY=.venv\Scripts\python.exe"
 if not exist "gui\frontend\dist\index.html" (
     echo     [fail] gui\frontend\dist\index.html is missing after the build
     echo.
     pause
     exit /b 1
 )
-echo     [ok] interface built: gui\frontend\dist
 
 REM ---- start the service -----------------------------------------------
 echo.
@@ -147,15 +140,20 @@ exit /b 0
 
 :usage
 echo.
-echo Usage: deploy.cmd [--host ADDR] [--port N] [--open] [--stop] [--unpack-dataset]
-echo                    [--foreground] [--skip-install] [--help]
+echo Usage: deploy.cmd [--host ADDR] [--port N] [--open] [--stop] [--status]
+echo                    [--foreground] [--skip-install] [--offline] [--recreate]
+echo                    [--rebuild] [--unpack-dataset] [--help]
 echo.
 echo   --host ADDR      0.0.0.0 (default: this machine and local network)
 echo   --port N         preferred port (default 8000; next free port if busy)
 echo   --open           open the browser when ready
 echo   --stop           stop a service started by this script
 echo   --foreground     run attached to this window instead of background
-echo   --skip-install   skip pip install and npm ci
+echo   --skip-install   reuse what is installed (fail if packages are missing)
+echo   --offline        redeploy with no network, from .cache\deploy
+echo   --status         show what is installed/cached, change nothing, then exit
+echo   --recreate       delete and rebuild .venv (repair; packages re-download)
+echo   --rebuild        rebuild the interface even if it looks current
 echo   --unpack-dataset only unpack the bundled rPPG-10 dataset, then exit
 echo.
 pause

@@ -11,9 +11,15 @@
 #      ./deploy.sh --foreground    keep it attached to this terminal (default: background)
 #      ./deploy.sh --help
 #
-#  Nothing is downloaded except Python packages from PyPI. No webcam or GPU is
-#  required to deploy. This is a local research deployment: no authentication,
-#  no TLS - keep it on a trusted network.
+#  Redeploying is cheap: the .venv, the installed Python packages, node_modules
+#  and the built interface are all reused. Nothing is downloaded again unless
+#  requirements.txt or package-lock.json changed, a package is missing, or the
+#  frontend sources are newer than the build. Use --status to see what is cached
+#  and --offline to redeploy with no network at all.
+#
+#  Nothing is downloaded except Python packages from PyPI and npm packages from
+#  the npm registry. No webcam or GPU is required to deploy. This is a local
+#  research deployment: no authentication, no TLS - keep on a trusted network.
 #
 #  Exit codes: 0 = deployed, 1 = failed, 2 = bad usage.
 # =============================================================================
@@ -30,6 +36,10 @@ FOREGROUND=0
 STOP=0
 SKIP_INSTALL=0
 UNPACK_DATASET=0
+OFFLINE=0
+STATUS=0
+RECREATE=0
+REBUILD=0
 
 say()  { printf '%s\n' "$*"; }
 step() { printf '\n==> %s\n' "$*"; }
@@ -48,7 +58,11 @@ Usage: ./deploy.sh [options]
   --open            open the browser when the service is ready
   --stop            stop a service started by this script
   --foreground      run attached to this terminal instead of in the background
-  --skip-install    do not run pip install / npm install (already installed)
+  --skip-install    reuse what is installed (fail if packages are missing)
+  --offline         redeploy with no network, from .cache/deploy
+  --status          show what is installed/cached, change nothing, then exit
+  --recreate        delete and rebuild .venv (repair; packages re-download)
+  --rebuild         rebuild the interface even if it looks current
   --unpack-dataset  only unpack the bundled rPPG-10 dataset, then exit
   -h, --help        show this help
 USAGE
@@ -62,6 +76,10 @@ while [ $# -gt 0 ]; do
     --stop)         STOP=1 ;;
     --foreground)   FOREGROUND=1 ;;
     --skip-install) SKIP_INSTALL=1 ;;
+    --offline)      OFFLINE=1 ;;
+    --status)       STATUS=1 ;;
+    --recreate)     RECREATE=1 ;;
+    --rebuild)      REBUILD=1 ;;
     --unpack-dataset) UNPACK_DATASET=1 ;;
     -h|--help)      usage; exit 0 ;;
     *) say "Unknown option: $1"; usage; exit 2 ;;
@@ -70,7 +88,8 @@ while [ $# -gt 0 ]; do
 done
 
 # ---------------------------------------------------------------------------
-# Pick the Python interpreter: prefer .venv, then python3.12+, then python3.
+# Pick the Python interpreter: prefer .venv, then python3.11+, then python3.
+# (Only used to run deploy_env.py, which then creates/validates .venv itself.)
 # ---------------------------------------------------------------------------
 venv_python() {
   if [ -x .venv/bin/python ]; then echo ".venv/bin/python"; return 0; fi
@@ -82,7 +101,7 @@ detect_python() {
   local candidate
   for candidate in python3.13 python3.12 python3 python; do
     if command -v "$candidate" >/dev/null 2>&1 &&
-       "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,12) else 1)' >/dev/null 2>&1; then
+       "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,10) else 1)' >/dev/null 2>&1; then
       echo "$candidate"; return 0
     fi
   done
@@ -101,12 +120,17 @@ if [ "$UNPACK_DATASET" = "1" ]; then
   exec "$PY" deploy_server.py --unpack-dataset
 fi
 
+if [ "$STATUS" = "1" ]; then
+  [ -n "$PY" ] || { bad "no Python interpreter found"; exit 1; }
+  exec "$PY" deploy_env.py --check
+fi
+
 say "=============================================================="
 say " RSBVP deploy  ($(uname -s 2>/dev/null || echo unknown))"
 say "=============================================================="
 
 if [ -z "$PY" ]; then
-  bad "Python 3.12+ not found."
+  bad "Python 3.10+ not found."
   say "     Linux : sudo apt install python3.12 python3.12-venv"
   say "     macOS : brew install python@3.12   (or https://www.python.org/downloads/)"
   say "     Then re-run: ./deploy.sh"
@@ -114,30 +138,25 @@ if [ -z "$PY" ]; then
 fi
 ok "Python: $("$PY" -V 2>&1) ($PY)"
 
-if [ "$SKIP_INSTALL" = "0" ]; then
-  step "Installing Python packages"
-  if ! "$PY" -m pip install -q -r requirements.txt; then
-    bad "pip install failed - check your internet connection"
-    exit 1
-  fi
-  ok "Python packages ready"
-fi
-
-step "Building the web interface"
-if ! command -v npm >/dev/null 2>&1; then
-  bad "npm (Node.js) not found - it is required to build the interface."
-  say "     Install Node.js LTS from https://nodejs.org/ and re-run."
+# ---------------------------------------------------------------------------
+# Environment: create .venv only if missing, install only what changed, build
+# the interface only if its sources changed. deploy_env.py decides; the logic is
+# identical on Windows (deploy.cmd / deploy.ps1 call the same module).
+# ---------------------------------------------------------------------------
+ENV_ARGS=(--build)
+[ "$SKIP_INSTALL" = "1" ] && ENV_ARGS+=(--skip-install)
+[ "$OFFLINE" = "1" ] && ENV_ARGS+=(--offline)
+[ "$RECREATE" = "1" ] && ENV_ARGS+=(--recreate)
+[ "$REBUILD" = "1" ] && ENV_ARGS+=(--rebuild)
+"$PY" deploy_env.py "${ENV_ARGS[@]}" || {
+  bad "the deployment environment could not be prepared"
+  say "     Diagnostics: ./deploy.sh --status"
   exit 1
-fi
-(
-  cd gui/frontend || exit 1
-  if [ "$SKIP_INSTALL" = "0" ]; then
-    npm ci --silent || exit 1
-  fi
-  npm run build || exit 1
-) || { bad "the frontend build failed"; exit 1; }
+}
+
+# deploy_env.py may have just created .venv; prefer it for the server itself.
+PY="$(venv_python || echo "$PY")"
 [ -f gui/frontend/dist/index.html ] || { bad "gui/frontend/dist/index.html is missing after the build"; exit 1; }
-ok "interface built: gui/frontend/dist"
 
 step "Starting the service"
 DEPLOY_ARGS=(--dist gui/frontend/dist --host "$HOST" --port "$PORT")

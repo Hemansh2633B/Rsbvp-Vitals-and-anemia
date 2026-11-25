@@ -40,7 +40,40 @@ clones — for an existing clone run `git rm --cached -r . && git reset --hard`.
 | `--foreground` | `--foreground` / `-Foreground` | keep it attached to the terminal (default: background) |
 | `--skip-install` | `--skip-install` / `-SkipInstall` | skip `pip install` / `npm ci` |
 | `--unpack-dataset` | `--unpack-dataset` / `-UnpackDataset` | only unpack the bundled rPPG-10 dataset, then exit |
+| `--status` | `--status` / `-Status` | show what is installed/cached and exit (changes nothing) |
+| `--offline` | `--offline` / `-Offline` | redeploy with no network, from the local cache |
+| `--recreate` | `--recreate` / `-Recreate` | delete and rebuild `.venv` (repair only) |
+| `--rebuild` | `--rebuild` / `-Rebuild` | rebuild the interface even if it looks current |
 | `--help` | `--help` | show the usage text |
+
+### Redeploying is cheap (and works offline)
+
+**The script never recreates your environment.** A second deploy reuses
+everything it built the first time: `.venv`, the installed Python packages,
+`node_modules` and the built interface. In this repository a first deploy takes
+about a minute; a redeploy takes **2-3 seconds** and downloads nothing.
+
+| What | Reinstalled when |
+|---|---|
+| `.venv` | only if it is missing or broken (never on a normal redeploy) |
+| Python packages | only if `requirements.txt` changed, or a package is missing |
+| `node_modules` | only if `package-lock.json` changed (npm installs are destructive, so they are avoided) |
+| `gui/frontend/dist` | only if the frontend sources are newer than the build |
+
+The decision lives in **`deploy_env.py`**, which all three scripts call, so
+Windows and Linux/macOS behave identically.
+
+- `./deploy.sh --status` prints exactly what is installed, what is stale and
+  where the cache is - it changes nothing.
+- `./deploy.sh --offline` redeploys with **no network at all**, from
+  `.cache/deploy/` (pip wheels + npm cache). Useful on a lab machine or after
+  the first install; `RSBVP_OFFLINE=1` does the same for any script.
+- If an install fails, **nothing is deleted**: the existing `.venv`, packages and
+  `node_modules` are kept, and re-running resumes from where it stopped.
+- `--recreate` (and only that) rebuilds `.venv` from scratch; `--rebuild` forces
+  a fresh frontend build. Both are repair tools, not part of a normal redeploy.
+- The cache in `.cache/deploy/` is ignored by Git and can be deleted at any time;
+  the next deploy will simply populate it again.
 
 ### What "deployed" means here
 
@@ -67,9 +100,12 @@ To also run it on a server/container in the foreground:
 
 **1. Install the two prerequisites (once).**
 
-- **Python 3.12 or newer** — <https://www.python.org/downloads/>. On Windows
-  **tick "Add python.exe to PATH"** during setup. macOS: `brew install python@3.12`.
+- **Python 3.10 or newer** (3.12 recommended, which is what CI uses) —
+  <https://www.python.org/downloads/>. On Windows **tick "Add python.exe to
+  PATH"** during setup. macOS: `brew install python@3.12`.
   Debian/Ubuntu: `sudo apt install python3.12 python3.12-venv`.
+  The script creates a private `.venv` next to the code the first time, so your
+  system Python is never modified.
 - **Node.js 20 LTS** — <https://nodejs.org/>. Needed to *build* the interface;
   once built, only Python is needed to serve it.
 
@@ -100,10 +136,12 @@ exact command to run. The common cases:
 
 | Message | Fix |
 |---|---|
-| `Python 3.12+ not found` | Install Python (see step 1); on Windows reopen the terminal afterwards |
+| `Python 3.10+ not found` | Install Python (see step 1); on Windows reopen the terminal afterwards |
 | `npm (Node.js) not found` | Install Node.js LTS — it is required to build the interface |
-| `pip install failed` | Check your internet connection, then re-run |
-| `the frontend build failed` | Run `cd gui/frontend && npm ci && npm run build` to see the full error |
+| `pip install failed` | Check your internet connection, then re-run — already-installed packages are kept, so it resumes |
+| `offline mode, but the local wheel cache is empty` | The first deploy needs a network connection; afterwards `--offline` works |
+| `the frontend build failed` | Run `cd gui/frontend && npm run build` to see the full error |
+| An older `.venv` behaves oddly | `./deploy.sh --recreate` rebuilds it (the only case where packages are re-downloaded) |
 | `port 8000 is busy` | Nothing to do — the next free port is chosen automatically and printed |
 | PowerShell: `running scripts is disabled` | Use `deploy.cmd`, or once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
 | `bad interpreter ... ^M` (macOS/Linux) | Line endings — see the note above about `.gitattributes` |
