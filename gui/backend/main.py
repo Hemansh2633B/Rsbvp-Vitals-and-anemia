@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import os
 import threading
 import uuid
 from pathlib import Path
@@ -24,7 +25,8 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from rppg_core import analyze
 from rppg_core.device import list_serial_ports
@@ -53,12 +55,14 @@ def _copy_limited(upload: UploadFile, destination: Path, limit: int) -> None:
 
 app = FastAPI(title="mrz rPPG dashboard", version="0.1.0")
 
+# In deployment the built frontend is served from this same app (same origin), so
+# no CORS is needed. CORS is only added for the Vite development server, whose
+# port is not fixed (5173, 5174, ... when the first port is taken).
+_DEV_ORIGIN_RE = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origin_regex=_DEV_ORIGIN_RE,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -348,3 +352,28 @@ async def live_ws(ws: WebSocket) -> None:
             await ws.close()
         except Exception:
             pass
+
+
+# --------------------------------------------------------------------------- #
+# Production deployment: serve the built web interface from this same process.
+#
+# `deploy.sh` / `deploy.cmd` / `deploy.ps1` (via deploy_server.py) build
+# gui/frontend and point RSBVP_FRONTEND_DIST at the output. When that variable is
+# set and the directory exists, the app serves the SPA at "/" so one URL and one
+# port are enough. API routes (/api/...) and the websocket (/ws/...) are declared
+# above and therefore keep precedence over the catch-all mount.
+# --------------------------------------------------------------------------- #
+_FRONTEND_DIST = os.environ.get("RSBVP_FRONTEND_DIST", "").strip()
+if _FRONTEND_DIST:
+    _dist_path = Path(_FRONTEND_DIST).expanduser().resolve()
+    if (_dist_path / "index.html").is_file():
+        app.mount("/", StaticFiles(directory=str(_dist_path), html=True), name="frontend")
+    else:
+        # Fail loudly rather than silently serving an API-only app.
+        @app.get("/")
+        def _frontend_missing() -> JSONResponse:
+            return JSONResponse(
+                status_code=503,
+                content={"detail": "RSBVP_FRONTEND_DIST is set but contains no index.html "
+                                   f"({_dist_path}). Build the frontend first."},
+            )
