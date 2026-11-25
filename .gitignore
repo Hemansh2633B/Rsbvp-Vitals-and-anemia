@@ -181,6 +181,8 @@ venv.bak/
 # MMPD / rPPG-10 caches and any extracted provider archive
 /data/rppg10/
 /reports/rppg10/*_trace*.csv
+# Provider dataset archives are never committed (CC BY-NC-SA 4.0, no redistribution)
+/data/*.zip
 
 # mypy
 .mypy_cache/

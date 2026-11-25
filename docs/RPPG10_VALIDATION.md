@@ -1,9 +1,20 @@
 # rPPG-10 — readiness assessment and benchmark protocol
 
-**Headline: NOT RUN. No accuracy number exists for rPPG-10 in this project, and
-none may be quoted from this repository.** The dataset is publicly downloadable
-(CC BY-NC-SA 4.0) but no authorized local copy was supplied to the development
-environment, so only the readiness path was executed.
+**Headline: RUN on the local authorized copy (2026-11-25).** The benchmark
+executed end-to-end: 26 participants × 3 ROIs × 20 non-overlapping 30 s
+windows, with an ECG-derived reference. The numbers are in
+`reports/rppg10/rppg10_benchmark.{json,md}`.
+
+**Read the result as encoded in code, not as accuracy:** 477 of 540 ECG
+reference windows (88 %) were accepted; the frozen quality gates then accepted
+only 124/477 forehead-GREEN windows (25 % usable coverage, 16 of 26 participants
+contributing). The pooled MAE on those accepted windows (0.95 BPM) is therefore
+**availability-conditional and must never be quoted without its coverage** —
+11 of 26 participants contribute nothing at all because their pulsatile signal
+never passes the gates. The gates-OFF, provider-comparable figure is 8.03 BPM
+pooled MAE on the combined ROI across all 26 participants and 477 windows, which
+brackets the provider's published 7.57 ± 0.66 BPM. Full accounting, including the
+selection-bias diagnostic and per-participant results, is in the report.
 
 - Dataset: **rPPG-10** — Rodrigues G., Garcia N.M., *Evaluating remote
   photoplethysmography: a 10-minute video dataset in uncontrolled lighting*,
@@ -35,7 +46,65 @@ Documented acquisition defects (from the article): ≈15–20 brief face-trackin
 failures per dataset with fallback to the previous frame; Subject_13 partly
 out of focus; Subject_21 last ~20 s obstructed; Subject_4 excluded entirely.
 
-## 2. What was actually executed (2026-11-25)
+## 2a. Result summary (2026-11-25 run)
+
+Protocol `rsbvp.rppg10-protocol.v1`, ECG reference from `research/ecg/reference.py`,
+26 participants (Subject_4 explicitly excluded — see §2b), 78 recordings,
+1482 window-records.
+
+| View | What it means | GREEN | POS | CHROM |
+|---|---|---|---|---|
+| **Combined ROI, gates OFF** (provider-comparable, descriptive) | mean of the three ROI estimates per window, all 477 windows with a reference, all 26 participants | **8.03** BPM pooled MAE (median participant 5.23) | 11.29 (9.82) | 13.19 (12.23) |
+| Provider's published baseline (context only) | rPPG-Toolbox, combined ROI, non-overlapping 30 s windows | 7.57 ± 0.66 | 7.59 ± 0.46 | 10.05 ± 0.46 |
+| **Per-ROI, gates ON** (frozen protocol) | only windows that passed the frozen gates | forehead 0.95 (n=124, 25 % coverage, 16/26 participants) | 1.22 (n=53, 11 %) | 0.84 (n=31, 6 %) |
+
+**Interpretation rules that are part of the result:**
+- The gates-ON numbers are **availability-conditional**. They must always be
+  quoted with coverage and participant count.
+- The gates-ON numbers are **lower than** the provider's baseline without any
+  tuning, because our gates reject ~75–99 % of windows. That is selection, not
+  superiority: the ungated row reproduces the provider's order of magnitude, and
+  the ungated row is the honest yardstick for the implementation.
+- **No leakage**: biological (not algorithmic) leakage is impossible — the ECG is
+  an independent sensor. As a mechanical control, permuting references between
+  participants raises forehead-GREEN MAE from 0.95 to 11.39 ± 2.01 BPM, and
+  shifting each estimate onto the *next* window of the same participant raises it
+  to 2.60 BPM. The pairing is real.
+- CHROM performs worst on this dataset at every ROI (ungated 13–17 BPM), which is
+  a dataset-level finding consistent with the provider reporting CHROM as their
+  weakest method (10.05 BPM).
+
+### Data-quality findings that changed the reference pathway
+Both were found by running the pathway on the real recordings and are now
+enforced in code, with tests:
+1. **ADC rail saturation in beats**: some recordings contain sustained runs of
+   samples pinned at 0 or 1023 (Subject_3: a 174-sample run; Subject_10: 214
+   samples). A single-sample clip check misses this. `ecg_rail_saturated` now
+   rejects the affected windows (14 of 540).
+2. **Ambiguous rhythms cannot be certified by one detector.** A second,
+   mechanically different detector (matched filtering against the median QRS) now
+   cross-checks every window; disagreement yields `ecg_cross_check_disagreement`
+   (3 of 540) instead of a number.
+
+Subject-level detail (e.g. Subject_2's alternating 0.63 s / 0.99 s heart rate at
+57–95 BPM, consistent with bigeminy) is **not** diagnosed or classified here: the
+pathway only guarantees a trustworthy *median* rate per window, and it does not
+claim any rhythm interpretation.
+
+## 2b. What the local copy required (deviations from the documentation)
+
+| Documentation says | The released archive actually contains | Handling |
+|---|---|---|
+| `Subject_<n>_<ROI>.avi` | `Subject_<n>_<ROI>_.avi` (trailing underscore) | both accepted; exact name preserved in the inventory |
+| 26 subjects, Subject_4 excluded | **27 folders** including `Subject_4`, whose three ROI videos are **0-byte placeholders** (ECG file is real) | requires explicit `--exclude-subjects 4`; the exclusion, the provider citation and the 0-byte evidence are written into the report |
+| `.xlsx` metadata | `Dataset_rPPG-10/Subject Data.xlsx` | recorded, never parsed |
+
+The archive in `data/rPPG-10.zip` (SHA-256
+`4faed19048db8dce15bd9c8f5087bc580ab64dc55a9401873804237ebd9ce62f`) is itself a
+zip containing `rPPG-10/Dataset_rPPG-10.zip`; the inner archive (238 MB expanded,
+109 files) is what the adapter reads.
+
+## 2c. What was actually executed (2026-11-25)
 
 1. Verified the provider record, article (methods, limitations, ethics),
    licence, and the authors' public code repository (`GRodrigues4/rPPG-10`).
@@ -48,9 +117,15 @@ out of focus; Subject_21 last ~20 s obstructed; Subject_4 excluded entirely.
    (`research/ecg/reference.py`) with 22 dataset-independent tests.
 4. Froze the benchmark protocol (`research/rppg10/protocol.py`, v1) **before**
    any data was available; 34 dataset-independent protocol tests.
-5. Ran `run_benchmark.py readiness` → `reports/rppg10/rppg10_readiness.{json,md}`.
+5. Ran `run_benchmark.py readiness` → `reports/rppg10/rppg10_readiness.{json,md}`
+   (kept for provenance of the pre-data state).
+6. After the dataset was supplied, ran `inspect` (26 subjects complete, 1
+   deviation: provider spreadsheet, 1 documented-exclusion notice) and then
+   `benchmark` on the full copy → `reports/rppg10/rppg10_benchmark.{json,md}`.
 
-**Not executed:** the benchmark itself, on any real rPPG-10 file.
+**Not executed:** nothing remains blocked on data for this dataset. What is still
+*not* claimed: chunk-level (t < 30 s) estimation, HRV/PRV, morphology, clinical
+validity, generalisation beyond the 26 participants.
 
 ## 3. Frozen benchmark protocol (v1, `rsbvp.rppg10-protocol.v1`)
 
@@ -100,23 +175,34 @@ by an existing regression test. The ECG reference pathway is separate:
 clinical interpretation. Video-vs-ECG agreement measures *pulse-rate* agreement
 only. With ≤±500 ms synchronisation uncertainty, nothing sub-second is claimed.
 
-## 5. Exact steps to complete the real benchmark
+## 5. Reproducing the run exactly
 
-1. Read the current licence at the Mendeley record; confirm non-commercial use
-   is acceptable for your intent (the data, not the article, is NC).
-2. Download `Dataset_rPPG-10.zip` (~116 MB) — **keep it outside Git**.
-3. Extract to `$RSBVP_DATA_ROOT/rppg10/Subject_<n>/...` (provider layout).
-4. `python research/rppg10/run_benchmark.py inspect --data-root $RSBVP_DATA_ROOT/rppg10 --output-dir reports/rppg10 --ecg-fs-hz 1000`
-5. Resolve every `error`-severity validation failure (do not edit the report).
-   Review each `deviation` (duration/fps/size) against the provider docs.
-6. `python research/rppg10/run_benchmark.py benchmark --data-root ... --output-dir reports/rppg10 --ecg-fs-hz 1000 [--allow-deviation] --i-have-verified-the-licence`
-7. Publish `reports/rppg10/rppg10_benchmark.{json,md}` with the dataset
-   citation, the frozen protocol version, and §6 limitations attached.
-8. Do not tune anything on these results. Any later protocol change requires a
-   new protocol version and an explicit note in the report.
+```bash
+# 1. Unpack the provider archive outside Git (the repo's data/rPPG-10.zip is a
+#    zip-in-zip; the inner Archive is what the adapter reads)
+unzip -o data/rPPG-10.zip -d /tmp/rppg10
+unzip -o /tmp/rppg10/rPPG-10/Dataset_rPPG-10.zip -d /tmp/rppg10/extracted
 
-Runtime note: decoding 78 ROI videos × 600 s at 64×64 takes minutes on a
-laptop CPU; the dataset JSON keeps every window row so a re-run is auditable.
+# 2. Readiness (blocks on structural errors, reports deviations)
+python research/rppg10/run_benchmark.py inspect \
+    --data-root /tmp/rppg10/extracted/Dataset_rPPG-10 \
+    --output-dir reports/rppg10 --ecg-fs-hz 1000 --exclude-subjects 4
+
+# 3. Benchmark (frozen protocol; ~3 minutes on a laptop CPU)
+python research/rppg10/run_benchmark.py benchmark \
+    --data-root /tmp/rppg10/extracted/Dataset_rPPG-10 \
+    --output-dir reports/rppg10 --ecg-fs-hz 1000 --exclude-subjects 4 \
+    --allow-deviation --i-have-verified-the-licence
+```
+
+`--allow-deviation` is required only because the provider spreadsheet is present
+and the archive is not byte-identical to the documented naming; both are echoed
+into the report. `--i-have-verified-the-licence` is required because the data
+licence is non-commercial.
+
+Do not tune anything on these results. Any protocol change requires a new
+protocol version and an explicit note in the report. The JSON keeps every window
+row (1482 records) so a re-run and a re-analysis are auditable.
 
 ## 6. Limitations that remain true after a successful run
 
@@ -138,4 +224,4 @@ laptop CPU; the dataset JSON keeps every window row so a re-run is auditable.
 
 ## 7. Honest one-line status
 
-`ADAPTER + ECG REFERENCE PATHWAY + FROZEN PROTOCOL TESTED / BENCHMARK NOT RUN — no authorized local copy in this environment.`
+`RUN on the local authorized copy (26 participants, 477/540 ECG reference windows accepted). Gated per-ROI MAE 0.81–1.64 BPM at 0.2–25 % usable coverage; provider-comparable ungated combined-ROI GREEN MAE 8.03 BPM. Not a clinical result; not evidence of generalisation; not HRV/PRV validation.`

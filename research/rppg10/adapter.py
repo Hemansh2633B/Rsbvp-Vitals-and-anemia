@@ -39,15 +39,23 @@ import numpy as np
 SCHEMA_INVENTORY = "rsbvp.rppg10-inventory.v1"
 SCHEMA_TRACE = "rsbvp.rppg10-trace.v1"
 
-# provider file naming: Subject_<n>_<ROI>.avi
+# Provider file naming. The documentation shows `Subject_<n>_<ROI>.avi`, but the
+# released archive (Dataset_rPPG-10.zip, 2025-04-04) actually contains a trailing
+# underscore: `Subject_<n>_<ROI>_.avi`. Both spellings are accepted; the exact
+# name is preserved in the inventory so the deviation is visible, never silent.
 SUBJECT_DIR_RE = re.compile(r"^Subject_(\d+)$")
-VIDEO_RE = re.compile(r"^Subject_(\d+)_(Forehead|Cheek1|Cheek2)\.avi$")
+VIDEO_RE = re.compile(r"^Subject_(\d+)_(Forehead|Cheek1|Cheek2)_?\.avi$")
 ECG_RE = re.compile(r"^Subject_(\d+)_ECG\.npy$")
+DOCUMENTED_VIDEO_NAME = "Subject_<n>_<ROI>.avi (documented) / Subject_<n>_<ROI>_.avi (as released)"
 
 # documented ROI mapping (Data in Brief 2025, §3): Cheek1 = right, Cheek2 = left
+# Cheek1 = right cheek, Cheek2 = left cheek (Data in Brief 2025, §3). The paper
+# also refers to them as "left and right cheek"; Cheek1 -> right is the provider's
+# own numbering in §3 and is preserved verbatim rather than reinterpreted.
 ROI_TO_PROJECT = {"Forehead": "forehead", "Cheek1": "right_cheek", "Cheek2": "left_cheek"}
 PROJECT_ROIS = ("forehead", "right_cheek", "left_cheek")
 
+DOCUMENTED_EXCLUDED_SUBJECT = 4     # article §4.7: excluded before release for tracking/ECG artifacts
 EXPECTED_VIDEO_SIZE = (64, 64)      # (width, height) — provider documentation
 EXPECTED_FPS = 30.0                 # provider documentation
 EXPECTED_DURATION_S = 600.0         # provider documentation
@@ -72,7 +80,7 @@ ERROR_TOKENS = {
     "file_outside_subject_dir", "filename_subject_mismatch", "duplicate_roi_video", "duplicate_ecg",
     "missing_roi_video", "missing_ecg", "video_unreadable", "video_size_unexpected", "video_fps_unexpected",
     "video_timestamps_not_increasing", "video_too_few_frames", "ecg_not_1d", "ecg_dtype_unsupported",
-    "ecg_fs_invalid", "expected_subject_missing",
+    "ecg_fs_invalid", "expected_subject_missing", "unexpected_file", "documented_excluded_subject_present",
 }
 DEVIATION_TOKENS = {"video_duration_unexpected", "ecg_video_duration_mismatch", "additional_file_recorded"}
 
@@ -125,6 +133,9 @@ def discover(root: str | Path) -> tuple[list[SubjectFiles], list[ValidationFailu
             if child.suffix.lower() in {".avi", ".npy"}:
                 failures.append(ValidationFailure("file_outside_subject_dir", None, child.name,
                                                   "recording files must live inside Subject_<n>/"))
+            elif child.suffix.lower() in {".xlsx", ".xls", ".csv", ".txt", ".md"}:
+                failures.append(ValidationFailure("additional_file_recorded", None, child.name,
+                                                  "provider metadata recorded, not parsed"))
             continue
         match = SUBJECT_DIR_RE.match(child.name)
         if not match:
@@ -152,9 +163,13 @@ def discover(root: str | Path) -> tuple[list[SubjectFiles], list[ValidationFailu
             elif vmatch or ematch:
                 failures.append(ValidationFailure("filename_subject_mismatch", sid, item.name,
                                                   "subject number in filename disagrees with folder"))
+            elif item.name.lower().endswith((".xlsx", ".xls", ".csv", ".txt", ".md")):
+                # provider spreadsheet/metadata: recorded for provenance, never parsed
+                failures.append(ValidationFailure("additional_file_recorded", sid, item.name,
+                                                  "provider metadata recorded, not parsed"))
             else:
-                # provider spreadsheet or notes: recorded, not parsed
-                failures.append(ValidationFailure("additional_file_recorded", sid, item.name, "not part of the adapter contract"))
+                failures.append(ValidationFailure("unexpected_file", sid, item.name,
+                                                  "not part of the adapter contract"))
         subjects[sid] = record
     if not subjects:
         raise AdapterError("no_subject_directories", f"no Subject_<n>/ under {root}")
@@ -212,10 +227,41 @@ def probe_ecg(path: Path, fs_hz: float) -> dict:
 
 def inventory(root: str | Path, *, ecg_fs_hz: float, probe_frames: bool = False,
               frame_probe_limit: int = 300, checksums: bool = True,
-              expected_subjects: Optional[Iterable[int]] = None) -> dict:
-    """Full readiness inventory. Returns a JSON-serialisable dict."""
+              expected_subjects: Optional[Iterable[int]] = None,
+              exclude_subjects: Optional[Iterable[int]] = None) -> dict:
+    """Full readiness inventory. Returns a JSON-serialisable dict.
+
+    ``exclude_subjects`` is an explicit, recorded exclusion (e.g. a participant the
+    provider removed, or a folder whose files are empty). Excluded subjects are not
+    scanned, and the exclusion — with the caller's reason token and the evidence
+    found on disk — is written into the report so it can never pass silently.
+    """
     subjects, failures = discover(root)
     manifest_failures = list(failures)
+    exclusions: list[dict] = []
+    excluded = set(int(s) for s in (exclude_subjects or []))
+    if excluded:
+        kept = []
+        for subject in subjects:
+            if subject.subject in excluded:
+                sizes = {roi: (path.stat().st_size if path.exists() else None)
+                         for roi, path in subject.videos.items()}
+                exclusions.append({
+                    "subject": subject.subject,
+                    "reason": "explicit_exclusion_by_caller",
+                    "provider_documentation": (
+                        "article §4.7 states Subject_4 was excluded before release for persistent "
+                        "tracking failure and non-physiological ECG peaks" if subject.subject == DOCUMENTED_EXCLUDED_SUBJECT
+                        else None),
+                    "video_file_sizes_bytes": sizes,
+                    "ecg_present": subject.ecg is not None,
+                    "adapter_derived_evidence": (
+                        "all ROI videos are 0 bytes (empty placeholder files)" if sizes and all(
+                            size == 0 for size in sizes.values()) else None),
+                })
+            else:
+                kept.append(subject)
+        subjects = kept
     records: list[dict] = []
     for subject in subjects:
         missing = [roi for roi in PROJECT_ROIS if roi not in subject.videos]
@@ -257,7 +303,8 @@ def inventory(root: str | Path, *, ecg_fs_hz: float, probe_frames: bool = False,
                 ecg_info = None
             if ecg_info is not None:
                 ecg_info["sha256"] = sha256_file(subject.ecg) if checksums else None
-                durations = [v["declared_duration_s"] for v in record["videos"].values() if v["declared_duration_s"]]
+                durations = [v.get("declared_duration_s") for v in record["videos"].values()
+                             if v.get("declared_duration_s")]
                 if durations and abs(ecg_info["duration_s"] - max(durations)) > DURATION_TOLERANCE_S:
                     manifest_failures.append(ValidationFailure(
                         "ecg_video_duration_mismatch", subject.subject, subject.ecg.name,
@@ -271,6 +318,14 @@ def inventory(root: str | Path, *, ecg_fs_hz: float, probe_frames: bool = False,
         for sid in expected_subjects:
             if sid not in found:
                 manifest_failures.append(ValidationFailure("expected_subject_missing", sid, "root", "not present"))
+    # Provider documentation states Subject_4 was excluded before release; if it is
+    # present and the caller has not explicitly excluded it, say so loudly.
+    if DOCUMENTED_EXCLUDED_SUBJECT in found and DOCUMENTED_EXCLUDED_SUBJECT not in excluded:
+        manifest_failures.append(ValidationFailure(
+            "documented_excluded_subject_present", DOCUMENTED_EXCLUDED_SUBJECT, "root",
+            "the article states Subject_4 was excluded before release, but Subject_4 is present in this copy; "
+            f"use --expected-subjects to state your exclusion policy, or --allow-deviation to benchmark it"))
+        records = records  # unchanged; the token above is the record of it
     complete = [r["subject"] for r in records
                 if all(roi in r["videos"] for roi in PROJECT_ROIS) and r["ecg"] is not None
                 and not any(r["videos"][roi].get("unreadable") for roi in PROJECT_ROIS)]
@@ -288,6 +343,7 @@ def inventory(root: str | Path, *, ecg_fs_hz: float, probe_frames: bool = False,
         "roi_mapping": {k: v for k, v in ROI_TO_PROJECT.items()},
         "subjects_found": len(records),
         "subjects_complete": len(complete),
+        "excluded_subjects": exclusions,
         "expected_subjects": sorted(expected_subjects) if expected_subjects is not None else None,
         "records": records,
         "validation_failures": [f.to_dict() for f in manifest_failures],
@@ -366,7 +422,8 @@ def extract_roi_trace(video_path: Path, *, max_seconds: Optional[float] = None,
     return {
         "schema": SCHEMA_TRACE,
         "path": str(video_path),
-        "roi": next((v for k, v in ROI_TO_PROJECT.items() if video_path.name.endswith(f"_{k}.avi")), None),
+        "roi": next((v for k, v in ROI_TO_PROJECT.items()
+                     if re.search(rf"_{k}_?\.avi$", video_path.name)), None),
         "timestamps_s": t,
         "rgb": np.asarray(means, dtype=np.float64),
         "frame_count": int(len(t)),

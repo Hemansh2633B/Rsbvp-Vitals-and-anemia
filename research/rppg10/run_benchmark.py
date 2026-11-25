@@ -193,6 +193,7 @@ def cmd_inspect(args) -> int:
         probe_frames=args.probe_frames,
         checksums=not args.no_checksums,
         expected_subjects=args.expected_subjects,
+        exclude_subjects=args.exclude_subjects,
     )
     payload["generated_at_utc"] = _now()
     payload["citation"] = DATASET_CITATION
@@ -200,7 +201,8 @@ def cmd_inspect(args) -> int:
     payload["honesty"]["benchmark"] = "NOT RUN — inventory only; run the benchmark command afterwards"
     _write(Path(args.output_dir) / "rppg10_inventory.json", payload)
     failures = payload["validation_failures"]
-    print(f"subjects found: {payload['subjects_found']} complete: {payload['subjects_complete']}")
+    print(f"subjects found: {payload['subjects_found']} complete: {payload['subjects_complete']} "
+          f"excluded: {[e['subject'] for e in payload['excluded_subjects']]}")
     print(f"validation failures: {len(failures)} (errors: {len(payload['error_tokens'])}, "
           f"deviations: {len(payload['deviation_tokens'])})")
     for failure in failures:
@@ -213,7 +215,8 @@ def cmd_benchmark(args) -> int:
     data_root = Path(args.data_root).expanduser().resolve()
     output_dir = Path(args.output_dir)
     inv = adapter.inventory(data_root, ecg_fs_hz=args.ecg_fs_hz, probe_frames=False,
-                            checksums=True, expected_subjects=args.expected_subjects)
+                            checksums=True, expected_subjects=args.expected_subjects,
+                            exclude_subjects=args.exclude_subjects)
     payload = {
         "schema": "rsbvp.rppg10-benchmark.v1",
         "generated_at_utc": _now(),
@@ -225,6 +228,7 @@ def cmd_benchmark(args) -> int:
         "inventory_summary": {
             "subjects_found": inv["subjects_found"],
             "subjects_complete": inv["subjects_complete"],
+            "excluded_subjects": inv["excluded_subjects"],
             "validation_failures": inv["validation_failures"],
             "error_tokens": inv["error_tokens"],
             "deviation_tokens": inv["deviation_tokens"],
@@ -242,6 +246,18 @@ def cmd_benchmark(args) -> int:
         (output_dir / "rppg10_benchmark.md").write_text(protocol.markdown_report(payload), encoding="utf-8")
         print("NOT RUN: structural validation errors present")
         return 2
+    undocumented = [e for e in inv["excluded_subjects"] if not e.get("provider_documentation")]
+    if undocumented and not args.allow_deviation:
+        payload.update({
+            "status": "NOT RUN",
+            "blocking_reason": "Undocumented participant exclusion requested for "
+                               f"Subject(s) {[e['subject'] for e in undocumented]}. The provider documents "
+                               "no such exclusion, so it requires --allow-deviation and is echoed into the report.",
+        })
+        _write(output_dir / "rppg10_benchmark.json", payload)
+        (output_dir / "rppg10_benchmark.md").write_text(protocol.markdown_report(payload), encoding="utf-8")
+        print("NOT RUN: undocumented exclusion (pass --allow-deviation to proceed)")
+        return 2
     if inv["deviation_tokens"] and not args.allow_deviation:
         payload.update({
             "status": "NOT RUN",
@@ -254,47 +270,69 @@ def cmd_benchmark(args) -> int:
         print("NOT RUN: undocumented deviations present (pass --allow-deviation to proceed)")
         return 2
 
-    subjects = int(args.limit_subjects) if args.limit_subjects else None
+    limit_subjects = int(args.limit_subjects) if args.limit_subjects else None
     records: list[protocol.WindowResult] = []
     reference_audit: list[dict] = []
+    traces: list[dict] = []
     for record in inv["records"]:
-        if subjects is not None and record["subject"] > subjects:
+        if limit_subjects is not None and record["subject"] > limit_subjects:
             continue
         ecg_path = Path(record["ecg"]["path"])
         ecg = adapter.load_ecg(ecg_path)
         fs = float(record["ecg"]["declared_fs_hz"])
+
+        # Decode every ROI first so all three share one window grid (identical
+        # recordings and windows regardless of which ROI decodes fastest).
+        roi_traces: dict[str, dict] = {}
+        grids: dict[tuple, float] = {}
         for roi in protocol.ROIS:
             video = record["videos"].get(roi)
             if not video:
                 continue
             trace = adapter.extract_roi_trace(Path(video["path"]), max_seconds=args.max_seconds)
+            roi_traces[roi] = trace
+            duration = float(trace["timestamps_s"][-1] - trace["timestamps_s"][0])
+            grids[(record["subject"], roi)] = duration
+        if not roi_traces:
+            continue
+        duration = min(grids.values())
+        starts = protocol.window_starts(duration, require_full=not args.allow_partial_window)
+
+        # One reference evaluation per window start, computed once per subject.
+        subject_refs: dict[float, dict] = {}
+        for start in starts:
+            window_ref = ecgref.window_reference_hr(
+                ecg, fs, start, start + protocol.WINDOW_SECONDS,
+                min_window_seconds=protocol.WINDOW_SECONDS,
+            )
+            entry = {"subject": record["subject"], "start_s": start, **window_ref}
+            reference_audit.append(entry)
+            subject_refs[start] = entry
+
+        for roi, trace in roi_traces.items():
             t, rgb = trace["timestamps_s"], trace["rgb"]
-            starts = protocol.window_starts(float(t[-1] - t[0]),
-                                            require_full=not args.allow_partial_window)
-            if roi == protocol.ROIS[0]:
-                for start in starts:
-                    window_ref = ecgref.window_reference_hr(
-                        ecg, fs, start, start + protocol.WINDOW_SECONDS,
-                        min_window_seconds=protocol.WINDOW_SECONDS,
-                    )
-                    reference_audit.append({"subject": record["subject"], "start_s": start, **window_ref})
-            refs = {}
-            for entry in reference_audit:
-                if entry["subject"] == record["subject"]:
-                    refs[entry["start_s"]] = entry
+            traces.append({
+                "subject": record["subject"], "roi": roi, "path": trace["path"],
+                "frame_count": trace["frame_count"], "measured_fps_hz": round(trace["measured_fps_hz"], 4),
+                "dropped_frames": trace["dropped_frames"],
+                "dropped_fraction": round(trace["dropped_fraction"], 6),
+                "duration_s": round(float(t[-1] - t[0]), 3),
+                "timestamp_jitter_fraction": round(trace["timestamp_jitter_fraction"], 6),
+            })
             for index, start in enumerate(starts):
-                ref = refs.get(start)
+                ref = subject_refs[start]
                 result = protocol.estimate_window(
                     record["subject"], roi, index, start, start + protocol.WINDOW_SECONDS,
                     t, rgb,
-                    reference_bpm=(ref or {}).get("hr_bpm"),
-                    reference_reasons=(ref or {}).get("rejection_reasons", ["no_reference_window"]),
+                    reference_bpm=ref.get("hr_bpm"),
+                    reference_reasons=ref.get("rejection_reasons", []),
                 )
                 records.append(result)
 
     payload["status"] = "RUN"
     payload["results"] = protocol.aggregate(records)
     payload["windows"] = [r.to_dict() for r in records]
+    payload["traces"] = traces
     payload["ecg_reference_audit"] = reference_audit
     payload["ecg_reference_summary"] = {
         "windows_total": len(reference_audit),
@@ -332,12 +370,17 @@ def build_parser() -> argparse.ArgumentParser:
     inspect.add_argument("--probe-frames", action="store_true", help="decode a few frames per video")
     inspect.add_argument("--no-checksums", action="store_true")
     inspect.add_argument("--expected-subjects", type=int, nargs="*", default=None)
+    inspect.add_argument("--exclude-subjects", type=int, nargs="*", default=None,
+                         help="explicitly excluded participants (recorded with evidence in the report)")
 
     bench = sub.add_parser("benchmark", help="run the frozen protocol")
     bench.add_argument("--data-root", required=True)
     bench.add_argument("--output-dir", default="reports/rppg10")
     bench.add_argument("--ecg-fs-hz", type=float, required=True)
     bench.add_argument("--expected-subjects", type=int, nargs="*", default=None)
+    bench.add_argument("--exclude-subjects", type=int, nargs="*", default=None,
+                       help="explicitly excluded participants (an undocumented exclusion refuses to run "
+                            "unless --allow-deviation is also given)")
     bench.add_argument("--limit-subjects", type=int, default=None, help="debug only: first N subject ids")
     bench.add_argument("--max-seconds", type=float, default=None, help="debug only: truncate each ROI video")
     bench.add_argument("--allow-partial-window", action="store_true",

@@ -88,11 +88,22 @@ error statistics while remaining visible in the coverage accounting:
 | Implausible R-R bulk | `ecg_rr_out_of_range` | Rejected (>25 % outside 0.3–2.0 s) |
 | No QRS structure (noise only) | `ecg_qrs_prominence_low` | Rejected; prevents a fabricated reference rate |
 | Window outside the recording | `ecg_window_out_of_bounds` | Rejected |
+| Sustained ADC rail runs (real data) | `ecg_rail_saturated` | Runs of ≥10 samples pinned at min/max (observed: 174- and 214-sample runs in rPPG-10) mean saturated beats; the window is rejected. A single-sample clip check does not catch this |
+| Two detectors disagree (real data) | `ecg_cross_check_disagreement` | A matched-filter detector must agree with the Pan–Tompkins detector on median R-R and beat count within 10 %; otherwise the window is ambiguous and rejected |
+| Excessive R-R dispersion | `ecg_rr_dispersion_high` | MAD(R-R)/median(R-R) > 0.25: a misdetection cannot be distinguished from a genuine irregularity, so no reference value is produced |
 | Generic manifest path | `ecg_rpeak_estimator_unavailable` | Unchanged: the generic evaluator still refuses ECG by design |
 
-Evidence tier for the whole pathway: **SYNTHETIC-TESTED** — it has never been
-run on a real ECG recording in this project. Nothing in it supports an HRV,
-PRV, morphology or clinical claim.
+Evidence tier: **SYNTHETIC-TESTED + DATASET-EXERCISED** — run on the 27 rPPG-10 ECG
+recordings (477/540 windows accepted, 88 %). The three failure modes above were
+discovered by that run, not by the synthetic tests, which is exactly why the
+pathway reports rejections instead of repairing them. Nothing in it supports an
+HRV, PRV, morphology or clinical claim.
+
+Measurement caveat for rPPG-10 specifically: the released `.npy` files contain raw
+BITalino ADC counts (baseline ≈500, range 0–1023), i.e. **arbitrary units, not
+mV**. Amplitude-dependent reasoning (e.g. mV thresholds) would be invalid on them;
+the pathway only uses timing, so this does not affect the reference HR — but any
+future amplitude-based work must not treat these values as calibrated voltages.
 
 ## 8. Open gaps (explicit)
 

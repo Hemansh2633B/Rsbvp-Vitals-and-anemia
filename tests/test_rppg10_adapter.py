@@ -426,3 +426,88 @@ def test_readiness_command_writes_not_run_assessment(tmp_path):
     assert payload["protocol"]["no_tuning"] is True
     md = (out / "rppg10_readiness.md").read_text(encoding="utf-8")
     assert "NOT RUN" in md and "Limitations" in md or "limitations" in md.lower()
+
+
+# --------------------------------------------------------------------------- #
+# released-archive layout (Sprint 11b): real filenames, zero-byte videos,
+# provider-documented exclusion
+# --------------------------------------------------------------------------- #
+def test_trailing_underscore_filenames_are_accepted(tmp_path):
+    """The released archive uses Subject_<n>_<ROI>_.avi, not the documented name."""
+    folder = tmp_path / "Subject_1"
+    folder.mkdir()
+    for roi in ("Forehead", "Cheek1", "Cheek2"):
+        _write_video(folder / f"Subject_1_{roi}_.avi", frames=30)
+    np.save(folder / "Subject_1_ECG.npy", np.zeros(30000))
+    subjects, failures = adapter.discover(tmp_path)
+    assert failures == []
+    assert sorted(subjects[0].videos) == ["forehead", "left_cheek", "right_cheek"]
+    assert subjects[0].videos["forehead"].name == "Subject_1_Forehead_.avi"
+
+
+def test_zero_byte_videos_are_reported_as_unreadable_errors(tmp_path):
+    folder = tmp_path / "Subject_4"
+    folder.mkdir()
+    for roi in ("Forehead", "Cheek1", "Cheek2"):
+        (folder / f"Subject_4_{roi}_.avi").write_bytes(b"")
+    np.save(folder / "Subject_4_ECG.npy", np.zeros(30000))
+    result = adapter.inventory(tmp_path, ecg_fs_hz=1000.0, checksums=False)
+    # empty files AND the documented Subject_4 exclusion notice, both as errors
+    assert set(result["error_tokens"]) == {"video_unreadable", "documented_excluded_subject_present"}
+    assert result["subjects_complete"] == 0
+    assert all(f["severity"] == "error" for f in result["validation_failures"])
+
+
+def test_provider_spreadsheet_is_a_deviation_not_an_error(tmp_path):
+    _synthetic_subject(tmp_path, 1, frames=30)
+    (tmp_path / "Subject Data.xlsx").write_bytes(b"PK\x03\x04placeholder")
+    result = adapter.inventory(tmp_path, ecg_fs_hz=1000.0, checksums=False)
+    assert "additional_file_recorded" in result["deviation_tokens"]
+    assert result["error_tokens"] == []
+
+
+def test_documented_excluded_subject_present_blocks_until_declared(tmp_path):
+    _synthetic_subject(tmp_path, 4, frames=30)
+    result = adapter.inventory(tmp_path, ecg_fs_hz=1000.0, checksums=False)
+    assert "documented_excluded_subject_present" in result["error_tokens"]
+
+    declared = adapter.inventory(tmp_path, ecg_fs_hz=1000.0, checksums=False, exclude_subjects=[4])
+    assert declared["error_tokens"] == []
+    assert declared["subjects_found"] == 0
+    exclusion = declared["excluded_subjects"][0]
+    assert exclusion["subject"] == 4
+    assert exclusion["provider_documentation"]  # cites the article's §4.7
+    assert exclusion["ecg_present"] is True
+
+
+def test_exclusion_records_zero_byte_evidence(tmp_path):
+    folder = tmp_path / "Subject_4"
+    folder.mkdir()
+    for roi in ("Forehead", "Cheek1", "Cheek2"):
+        (folder / f"Subject_4_{roi}_.avi").write_bytes(b"")
+    np.save(folder / "Subject_4_ECG.npy", np.zeros(30000))
+    result = adapter.inventory(tmp_path, ecg_fs_hz=1000.0, checksums=False, exclude_subjects=[4])
+    exclusion = result["excluded_subjects"][0]
+    assert exclusion["video_file_sizes_bytes"] == {"forehead": 0, "right_cheek": 0, "left_cheek": 0}
+    assert "0 bytes" in exclusion["adapter_derived_evidence"]
+
+
+def test_undocumented_exclusion_needs_allow_deviation(tmp_path):
+    root = tmp_path / "rppg10"
+    for subject in (1, 2):
+        # 60 s of video is needed for at least one full 30 s protocol window
+        for frame_offset, name in enumerate(["Forehead", "Cheek1", "Cheek2"]):
+            path = root / f"Subject_{subject}" / f"Subject_{subject}_{name}_.avi"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            _write_video(path, frames=1800, level=120 + frame_offset)
+        np.save(root / f"Subject_{subject}" / f"Subject_{subject}_ECG.npy", np.zeros(60000))
+    out = tmp_path / "out"
+    runner = __import__("research.rppg10.run_benchmark", fromlist=["main"])
+    code = runner.main(["benchmark", "--data-root", str(root), "--output-dir", str(out),
+                        "--ecg-fs-hz", "1000", "--exclude-subjects", "2",
+                        "--allow-deviation", "--i-have-verified-the-licence"])
+    payload = json.loads((out / "rppg10_benchmark.json").read_text(encoding="utf-8"))
+    assert code == 0 and payload["status"] == "RUN"
+    exclusion = payload["inventory_summary"]["excluded_subjects"][0]
+    assert exclusion["provider_documentation"] is None  # undocumented -> surfaced as such
+    assert payload["results"]["participant_count"] == 1

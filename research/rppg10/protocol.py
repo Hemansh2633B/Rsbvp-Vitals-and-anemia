@@ -89,6 +89,11 @@ class WindowResult:
     reference_reasons: list[str]
     estimates_bpm: dict[str, Optional[float]] = field(default_factory=dict)
     quality: dict[str, str] = field(default_factory=dict)
+    # Pre-gate spectral peaks, recorded for transparency only. They are NEVER used
+    # as a protocol result: `estimates_bpm` is the gated protocol value. The
+    # ungated numbers exist so a reader can see exactly what the quality gates
+    # remove (they are summarised separately as a descriptive sensitivity analysis).
+    raw_estimates_bpm: dict[str, Optional[float]] = field(default_factory=dict)
     trace_status: str = "ok"
     trace_reasons: list[str] = field(default_factory=list)
 
@@ -98,6 +103,7 @@ class WindowResult:
             "start_s": round(self.start_s, 6), "end_s": round(self.end_s, 6),
             "reference_bpm": self.reference_bpm, "reference_reasons": list(self.reference_reasons),
             "estimates_bpm": dict(self.estimates_bpm), "quality": dict(self.quality),
+            "raw_estimates_bpm": dict(self.raw_estimates_bpm),
             "trace_status": self.trace_status, "trace_reasons": list(self.trace_reasons),
         }
 
@@ -133,6 +139,7 @@ def estimate_window(subject: int, roi: str, index: int, start: float, end: float
         result.trace_status = "rejected"
         result.trace_reasons.append("trace_too_few_samples")
         result.estimates_bpm = {name: None for name in ESTIMATORS}
+        result.raw_estimates_bpm = {name: None for name in ESTIMATORS}
         result.quality = {name: "rejected:trace_too_few_samples" for name in ESTIMATORS}
         return result
     finite_fraction = float(np.isfinite(segment_rgb).all(axis=1).mean())
@@ -149,12 +156,14 @@ def estimate_window(subject: int, roi: str, index: int, start: float, end: float
 
     if result.trace_status != "ok":
         result.estimates_bpm = {name: None for name in ESTIMATORS}
+        result.raw_estimates_bpm = {name: None for name in ESTIMATORS}
         result.quality = {name: f"rejected:{result.trace_reasons[0]}" for name in ESTIMATORS}
         return result
 
     fs = float(1.0 / np.median(diffs)) if diffs.size else 0.0
     if not math.isfinite(fs) or fs <= 2 * PASSBAND_HZ[1]:
         result.estimates_bpm = {name: None for name in ESTIMATORS}
+        result.raw_estimates_bpm = {name: None for name in ESTIMATORS}
         result.quality = {name: "rejected:sampling_rate_insufficient" for name in ESTIMATORS}
         result.trace_status = "rejected"
         result.trace_reasons.append("sampling_rate_insufficient")
@@ -166,13 +175,16 @@ def estimate_window(subject: int, roi: str, index: int, start: float, end: float
             signal, _meta = methods[name](segment_rgb, fs, *PASSBAND_HZ)
         except rm.FlatSignalError:
             result.estimates_bpm[name] = None
+            result.raw_estimates_bpm[name] = None
             result.quality[name] = "rejected:flat_signal"
             continue
         except ValueError as exc:
             result.estimates_bpm[name] = None
+            result.raw_estimates_bpm[name] = None
             result.quality[name] = f"rejected:invalid_trace_{type(exc).__name__}"
             continue
         bpm, peak_fraction, snr_db, separation = rm.spectral_features(signal, fs, *PASSBAND_HZ)
+        result.raw_estimates_bpm[name] = None if bpm is None else float(bpm)
         failures = rm.quality_failures(peak_fraction, snr_db, separation)
         if failures or bpm is None:
             result.estimates_bpm[name] = None
@@ -208,6 +220,18 @@ def _metrics(pairs: Sequence[tuple[float, float]]) -> dict:
         "loa_upper_95_bpm": (bias + 1.96 * sd) if sd is not None else None,
         "pearson_r": pearson,
     }
+
+
+def _pairs_ungated(records: Iterable[WindowResult], estimator: str, roi: Optional[str]) -> list[tuple[float, float]]:
+    out = []
+    for r in records:
+        if roi is not None and r.roi != roi:
+            continue
+        estimate = r.raw_estimates_bpm.get(estimator)
+        if estimate is None or r.reference_bpm is None:
+            continue
+        out.append((float(r.reference_bpm), float(estimate)))
+    return out
 
 
 def _pairs(records: Iterable[WindowResult], estimator: str, roi: Optional[str] = None) -> list[tuple[float, float]]:
@@ -330,8 +354,94 @@ def aggregate(records: Sequence[WindowResult]) -> dict:
             "participant_bootstrap": _participant_bootstrap(values),
         }
 
+    # Post-hoc, descriptive only: what the frozen gates remove. Never a protocol
+    # result and never compared against the provider's baseline.
+    ungated: dict[str, dict] = {}
+    for roi in ROIS:
+        ungated[roi] = {}
+        for estimator in ESTIMATORS:
+            pairs = _pairs_ungated(records, estimator, roi)
+            ungated[roi][estimator] = _metrics(pairs)
+    ungated["_note"] = ("Descriptive sensitivity analysis computed after the frozen protocol ran: these are the "
+                        "same spectral peaks WITHOUT the quality gates. They are not rPPG-10 results and must "
+                        "not be quoted as such; compare them with the gated numbers to see what the gates remove.")
+
+    # Descriptive, ungated, provider-comparable: average the three ROIs of the same
+    # window (the provider's baseline uses a combined ROI with non-overlapping 30 s
+    # windows) and score that average against the ECG reference. This is the only
+    # figure that can be read alongside the provider's published table, and it is
+    # still NOT a validation result.
+    roi_means: dict[tuple, dict] = {}
+    for r in records:
+        key = (r.subject, r.start_s)
+        entry = roi_means.setdefault(key, {"reference_bpm": r.reference_bpm, "raw": {}, "gated": {}})
+        for estimator in ESTIMATORS:
+            entry["raw"].setdefault(estimator, []).append(r.raw_estimates_bpm.get(estimator))
+            entry["gated"].setdefault(estimator, []).append(r.estimates_bpm.get(estimator))
+    combined = {}
+    for estimator in ESTIMATORS:
+        ungated_pairs, gated_pairs = [], []
+        gated_participants: set[int] = set()
+        per_participant_raw: dict[int, list[float]] = {}
+        for (subject, _start), entry in roi_means.items():
+            if entry["reference_bpm"] is None:
+                continue
+            raw = [v for v in entry["raw"].get(estimator, []) if v is not None]
+            if raw:
+                error = abs(float(np.mean(raw)) - entry["reference_bpm"])
+                ungated_pairs.append((entry["reference_bpm"], float(np.mean(raw))))
+                per_participant_raw.setdefault(subject, []).append(error)
+            gated = [v for v in entry["gated"].get(estimator, []) if v is not None]
+            if gated:
+                gated_pairs.append((entry["reference_bpm"], float(np.mean(gated))))
+                gated_participants = gated_participants | {subject}
+        subject_mae = {k: float(np.mean(v)) for k, v in per_participant_raw.items()}
+        combined[estimator] = {
+            "ungated_combined_roi": dict(_metrics(ungated_pairs), participants=len(per_participant_raw),
+                                          median_participant_mae_bpm=(round(float(np.median(list(subject_mae.values()))), 3)
+                                                                      if subject_mae else None)),
+            "gated_combined_roi": dict(_metrics(gated_pairs), participants=len(gated_participants)),
+        }
+    combined["_note"] = ("Descriptive only. 'ungated_combined_roi' averages the three ROI estimates of the same "
+                         "window (provider-comparable: their baseline uses a combined ROI over non-overlapping 30 s "
+                         "windows); 'gated_combined_roi' uses only windows that survived the frozen quality gates. "
+                         "Neither is a validation result and neither may be quoted as this project's accuracy.")
+
+    participation = {}
+    for estimator in ESTIMATORS:
+        contributing = sorted({r.subject for r in records
+                               if r.estimates_bpm.get(estimator) is not None and r.reference_bpm is not None})
+        participation[estimator] = {
+            "participants_with_any_pair": len(contributing),
+            "participants": contributing,
+            "participants_with_no_pairs": sorted({r.subject for r in records} - set(contributing)),
+        }
+
+    selection_bias = {}
+    for roi in ROIS:
+        for estimator in ESTIMATORS:
+            accepted = [r for r in records if r.roi == roi and r.estimates_bpm.get(estimator) is not None
+                        and r.reference_bpm is not None]
+            rejected = [r for r in records if r.roi == roi and r.estimates_bpm.get(estimator) is None
+                        and r.reference_bpm is not None]
+            if not accepted or not rejected:
+                selection_bias[f"{roi}|{estimator}"] = None
+                continue
+            selection_bias[f"{roi}|{estimator}"] = {
+                "accepted_windows": len(accepted),
+                "rejected_windows": len(rejected),
+                "accepted_reference_hr_mean_bpm": round(float(np.mean([r.reference_bpm for r in accepted])), 3),
+                "rejected_reference_hr_mean_bpm": round(float(np.mean([r.reference_bpm for r in rejected])), 3),
+                "difference_bpm": round(float(np.mean([r.reference_bpm for r in accepted])
+                                              - np.mean([r.reference_bpm for r in rejected])), 3),
+            }
+
     return {
         "per_roi": per_roi,
+        "descriptive_ungated": ungated,
+        "combined_roi_descriptive": combined,
+        "participation": participation,
+        "selection_bias_diagnostic": selection_bias,
         "per_participant": participant_summary,
         "participant_level": pooled_participant_mae,
         "participant_count": len(participant_summary),
@@ -359,6 +469,22 @@ def markdown_report(payload: dict) -> str:
         lines += [payload.get("blocking_reason", "Benchmark not executed."), ""]
         lines.append("No accuracy metric exists for rPPG-10 in this project. Nothing here is a result.")
         return "\n".join(lines) + "\n"
+    lines.append("## How to read these numbers (read this first)")
+    lines.append("")
+    results = payload["results"]
+    lines.append(
+        "Two things must be said together, or the table below will be misread:\n\n"
+        "1. **The per-ROI table is availability-conditional.** Those numbers describe only the windows whose "
+        "signal passed the frozen quality gates. Check the *usable coverage* column and the participation table: "
+        "if coverage is low, the errors describe the easiest windows, not the method's accuracy.\n"
+        "2. **The gates-OFF sensitivity analysis (bottom) is what the protocol would report without quality "
+        "gating on nearly every window.** For an implementation check, compare that row with the provider's own "
+        "published baseline (GREEN MAE 7.57 ± 0.66 BPM using a combined forehead+both-cheek ROI) — not with the "
+        "gated row.\n\n"
+        "Neither row is a clinical result, and neither may be quoted without the limitations at the end."
+    )
+    lines.append("")
+
     lines.append("## Per-ROI results")
     lines.append("")
     lines.append("| ROI | Estimator | n pairs | MAE (BPM) | RMSE (BPM) | Bias (BPM) | LoA 95% | Pearson r | usable coverage | participants | MAE CI95 (BPM) |")
@@ -378,10 +504,83 @@ def markdown_report(payload: dict) -> str:
                 f"{_fmt((m.get('usable_coverage') or 0) * 100, 1)}% | {m['participants_with_pairs']} | {ci_text} |"
             )
     lines.append("")
+    inv = payload.get("inventory_summary") or {}
+    excluded = inv.get("excluded_subjects") or []
+    if excluded:
+        lines.append("## Participant exclusions")
+        lines.append("")
+        lines.append("| Subject | Reason | Provider documentation | Evidence found on disk |")
+        lines.append("|---|---|---|---|")
+        for entry in excluded:
+            doc = entry.get("provider_documentation") or "**none — undocumented exclusion**"
+            evidence = entry.get("adapter_derived_evidence") or "—"
+            lines.append(f"| {entry['subject']} | {entry['reason']} | {doc} | {evidence} |")
+        lines.append("")
+
     lines.append("## Coverage and rejection accounting")
     lines.append("")
     lines.append("See the JSON report for per-window quality tokens; rejected windows are listed, not hidden.")
     lines.append("")
+    results = payload["results"]
+    lines.append("## Participation (who the numbers actually describe)")
+    lines.append("")
+    lines.append("| Estimator | Participants contributing any pair | Participants with no usable window |")
+    lines.append("|---|---|---|")
+    for estimator, info in results.get("participation", {}).items():
+        lines.append(f"| {estimator} | {info['participants_with_any_pair']} of "
+                     f"{info['participants_with_any_pair'] + len(info['participants_with_no_pairs'])} "
+                     f"| {', '.join(str(s) for s in info['participants_with_no_pairs']) or '—'} |")
+    lines.append("")
+
+    lines.append("## Selection-bias diagnostic (accepted vs rejected windows)")
+    lines.append("")
+    lines.append("If the mean reference HR of accepted windows differs materially from rejected ones, the "
+                 "error statistics describe only the easier part of the dataset.")
+    lines.append("")
+    lines.append("| ROI \| estimator | accepted | rejected | accepted ref HR | rejected ref HR | difference |")
+    lines.append("|---|---|---|---|---|---|")
+    for key, value in (results.get("selection_bias_diagnostic") or {}).items():
+        if not value:
+            lines.append(f"| {key} | — | — | — | — | — |")
+            continue
+        lines.append(f"| {key} | {value['accepted_windows']} | {value['rejected_windows']} | "
+                     f"{value['accepted_reference_hr_mean_bpm']:.1f} | {value['rejected_reference_hr_mean_bpm']:.1f} | "
+                     f"{value['difference_bpm']:+.1f} |")
+    lines.append("")
+
+    combined = results.get("combined_roi_descriptive") or {}
+    if combined:
+        lines.append("## Provider-comparable view — combined ROI, gates OFF (not a result)")
+        lines.append("")
+        lines.append(combined.get("_note", ""))
+        lines.append("")
+        lines.append("| Estimator | n windows | pooled MAE (BPM) | RMSE (BPM) | bias (BPM) | median participant MAE (BPM) | participants |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for estimator in ESTIMATORS:
+            entry = combined.get(estimator) or {}
+            row = entry.get("ungated_combined_roi")
+            if not row:
+                continue
+            lines.append(f"| {estimator} | {row['n_pairs']} | {_fmt(row['mae_bpm'])} | {_fmt(row['rmse_bpm'])} | "
+                         f"{_fmt(row['bias_bpm'])} | {_fmt(row.get('median_participant_mae_bpm'))} | {row.get('participants')} |")
+        lines.append("")
+
+    ungated = results.get("descriptive_ungated") or {}
+    if ungated:
+        lines.append("## Descriptive sensitivity analysis — gates OFF (not a result)")
+        lines.append("")
+        lines.append(ungated.get("_note", ""))
+        lines.append("")
+        lines.append("| ROI | estimator | n pairs | MAE (BPM) | RMSE (BPM) | bias (BPM) |")
+        lines.append("|---|---|---|---|---|---|")
+        for roi, per_estimator in ungated.items():
+            if roi == "_note":
+                continue
+            for estimator, m in per_estimator.items():
+                lines.append(f"| {roi} | {estimator} | {m['n_pairs']} | {_fmt(m['mae_bpm'])} | "
+                             f"{_fmt(m['rmse_bpm'])} | {_fmt(m['bias_bpm'])} |")
+        lines.append("")
+
     lines.append("## Interpretation limits (binding)")
     lines.append("")
     for item in payload.get("limitations", []):

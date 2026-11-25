@@ -60,6 +60,19 @@ MAX_VALID_TIMING_IRREGULARITY_FRACTION = 0.05
 # (MAD-based). Guards against "detecting" R-peaks in pure noise or a signal
 # without QRS structure; empirically ~10-100 for synthetic ECGs with SNR > 0 dB.
 MIN_QRS_PROMINENCE_SIGMA = 3.0
+# A rail run is consecutive samples pinned at the extreme value. Brief single
+# samples are ordinary clipping; a sustained run means the ADC saturated and the
+# channel cannot be trusted for beat timing.
+RAIL_RUN_SAMPLES = 10
+RAIL_RUN_MIN_FRACTION = 0.001
+# Per-window R-R dispersion gate: MAD(R-R)/median(R-R). Above this we cannot
+# distinguish a misdetection from a genuine arrhythmia, so the window is
+# rejected rather than reported as a reference.
+MAX_RR_DISPERSION = 0.25
+# Two independent detectors must agree on the median R-R within this relative
+# tolerance, and on the beat count within the same tolerance, or the window is
+# rejected (ambiguous reference).
+CROSS_CHECK_TOLERANCE = 0.10
 
 
 class ECGReferenceError(ValueError):
@@ -119,7 +132,31 @@ def validate_signal(signal, fs_hz, min_seconds: float = 1.0) -> tuple[np.ndarray
         saturated = float(np.mean(np.abs(np.abs(x) - extreme) < 1e-12))
         if saturated > 0.02:
             raise ECGReferenceError("ecg_saturated", f"{saturated:.1%} of samples at a rail ({extreme:g})")
+        rail_fraction = _rail_run_fraction(x)
+        if rail_fraction > RAIL_RUN_MIN_FRACTION:
+            raise ECGReferenceError(
+                "ecg_rail_saturated",
+                f"{rail_fraction:.2%} of samples sit in runs of >= {RAIL_RUN_SAMPLES} consecutive "
+                "samples pinned at the minimum or maximum value (ADC rail) — beat timing is untrustworthy",
+            )
     return x, fs
+
+
+def _rail_run_fraction(x: np.ndarray) -> float:
+    """Fraction of samples inside runs of >= RAIL_RUN_SAMPLES at min or max."""
+    total = 0
+    for level in (float(x.min()), float(x.max())):
+        at_level = np.flatnonzero(np.abs(x - level) < 1e-12)
+        if at_level.size < RAIL_RUN_SAMPLES:
+            continue
+        breaks = np.flatnonzero(np.diff(at_level) > 1)
+        starts = np.concatenate([[0], breaks + 1])
+        ends = np.concatenate([breaks, [at_level.size - 1]])
+        for start, end in zip(starts, ends):
+            run = int(end - start + 1)
+            if run >= RAIL_RUN_SAMPLES:
+                total += run
+    return total / x.size
 
 
 def validate_timestamps(timestamps, n_samples: int, fs: float, regularity_tol: float = MAX_VALID_TIMING_IRREGULARITY_FRACTION) -> np.ndarray:
@@ -219,6 +256,73 @@ def detect_rpeaks(ecg, fs_hz, *, bandpass_low_hz: float = 5.0, bandpass_high_hz:
     return peaks_array
 
 
+def detect_rpeaks_matched_filter(ecg, fs_hz, template_peaks: Sequence[int], *,
+                                 bandpass_low_hz: float = 5.0, bandpass_high_hz: float = 15.0,
+                                 refractory_s: float = REFRACTORY_S) -> np.ndarray:
+    """Second, independent detector: matched filtering against the median QRS.
+
+    A QRS template is built from the median of the bandpassed signal around the
+    first-pass detections, then the signal is correlated with that template and
+    peaks are picked above half the median correlation with a fixed refractory
+    distance. A different detection principle (correlation instead of
+    derivative/energy thresholding) makes an agreement check meaningful.
+    """
+    from scipy.signal import find_peaks
+
+    x, fs = validate_signal(ecg, fs_hz, min_seconds=1.0)
+    sos = butter(2, [bandpass_low_hz, bandpass_high_hz], btype="band", fs=fs, output="sos")
+    filtered = sosfiltfilt(sos, x)
+    half = int(round(0.06 * fs))
+    candidates = [int(p) for p in template_peaks if half <= p < filtered.size - half]
+    if len(candidates) < 3:
+        raise ECGReferenceError("ecg_cross_check_unavailable", "fewer than 3 template peaks")
+    segments = np.stack([filtered[p - half:p + half] for p in candidates])
+    template = np.median(segments, axis=0)
+    template = template - template.mean()
+    norm = float(np.linalg.norm(template))
+    if norm <= 0:
+        raise ECGReferenceError("ecg_cross_check_unavailable", "degenerate QRS template")
+    template = template / norm
+    correlation = np.correlate(filtered, template, mode="same")
+    # Refractory distance is driven by the first-pass rhythm (never below the
+    # fixed 250 ms floor) so a slow rhythm cannot produce double detections.
+    median_rr = float(np.median(np.diff(candidates))) if len(candidates) > 1 else refractory_s * fs
+    distance = max(int(round(0.25 * fs)), int(round(0.5 * median_rr)))
+    peaks, _ = find_peaks(correlation, distance=max(1, distance))
+    if peaks.size == 0:
+        return np.array([], dtype=np.int64)
+    # Threshold relative to the correlation AT the first-pass peaks — the T wave
+    # correlates poorly with a QRS template, so this rejects it without needing
+    # an absolute amplitude rule.
+    reference_corr = correlation[np.asarray(candidates, dtype=np.int64)]
+    threshold = 0.6 * float(np.median(reference_corr))
+    peaks = peaks[correlation[peaks] >= threshold]
+    return np.asarray(peaks, dtype=np.int64)
+
+
+def cross_check_detectors(primary: np.ndarray, secondary: np.ndarray, fs_hz: float,
+                          tolerance: float = CROSS_CHECK_TOLERANCE) -> dict:
+    """Compare two independent detections; disagreement means an ambiguous window."""
+    if primary.size < 2 or secondary.size < 2:
+        return {"status": "unavailable", "reason": "ecg_cross_check_unavailable"}
+    rr_primary = float(np.median(rr_intervals_s(primary, fs_hz)))
+    rr_secondary = float(np.median(rr_intervals_s(secondary, fs_hz)))
+    relative_rr_diff = abs(rr_primary - rr_secondary) / max(rr_primary, 1e-9)
+    relative_count_diff = abs(int(primary.size) - int(secondary.size)) / max(int(primary.size), 1)
+    ok = relative_rr_diff <= tolerance and relative_count_diff <= tolerance
+    return {
+        "status": "ok" if ok else "disagreement",
+        "reason": None if ok else "ecg_cross_check_disagreement",
+        "primary_median_rr_s": round(rr_primary, 6),
+        "secondary_median_rr_s": round(rr_secondary, 6),
+        "relative_rr_difference": round(relative_rr_diff, 6),
+        "primary_beats": int(primary.size),
+        "secondary_beats": int(secondary.size),
+        "relative_beat_count_difference": round(relative_count_diff, 6),
+        "tolerance": tolerance,
+    }
+
+
 def rr_intervals_s(peaks: Sequence[int], fs_hz: float) -> np.ndarray:
     fs = validate_fs(fs_hz)
     peaks = np.asarray(peaks, dtype=np.int64)
@@ -246,6 +350,8 @@ class WindowReference:
     coverage_ratio: Optional[float]
     window_start_s: float
     window_end_s: float
+    rr_dispersion: Optional[float] = None
+    cross_check: Optional[dict] = None
 
     def to_dict(self) -> dict:
         return {
@@ -255,12 +361,22 @@ class WindowReference:
             "rr_median_s": self.rr_median_s,
             "rr_mad_s": self.rr_mad_s,
             "rr_implausible_fraction": self.rr_implausible_fraction,
+            "rr_dispersion": self.rr_dispersion,
             "n_rpeaks": self.n_rpeaks,
             "n_rr_intervals": self.n_rr_intervals,
             "coverage_ratio": self.coverage_ratio,
             "window_start_s": self.window_start_s,
             "window_end_s": self.window_end_s,
+            "cross_check": self.cross_check,
         }
+
+
+def _reject(reason: str | list[str], start_s: float, end_s: float, *, implausible: float = 1.0,
+            n_peaks: int = 0, n_rr: int = 0, dispersion: Optional[float] = None,
+            cross_check: Optional[dict] = None) -> dict:
+    reasons = [reason] if isinstance(reason, str) else list(reason)
+    return WindowReference("rejected", reasons, None, None, None, implausible, n_peaks, n_rr, None,
+                           start_s, end_s, dispersion, cross_check).to_dict()
 
 
 def window_reference_hr(ecg, fs_hz, start_s: float, end_s: float, *,
@@ -271,60 +387,74 @@ def window_reference_hr(ecg, fs_hz, start_s: float, end_s: float, *,
     try:
         x = _finite_1d(ecg)
     except ECGReferenceError as exc:
-        return WindowReference("rejected", [exc.token], None, None, None, 1.0, 0, 0,
-                               None, float(start_s), float(end_s)).to_dict()
+        return _reject(exc.token, float(start_s), float(end_s))
 
     try:
         start_s = float(start_s)
         end_s = float(end_s)
     except (TypeError, ValueError):
-        return WindowReference("rejected", ["ecg_window_bounds_invalid"], None, None, None,
-                               1.0, 0, 0, None, float("nan"), float("nan")).to_dict()
+        return _reject("ecg_window_bounds_invalid", float("nan"), float("nan"))
     if not (math.isfinite(start_s) and math.isfinite(end_s)) or end_s <= start_s:
-        return WindowReference("rejected", ["ecg_window_bounds_invalid"], None, None, None,
-                               1.0, 0, 0, None, start_s, end_s).to_dict()
+        return _reject("ecg_window_bounds_invalid", start_s, end_s)
     if (end_s - start_s) < min_window_seconds:
-        return WindowReference("rejected", ["ecg_window_too_short"], None, None, None,
-                               1.0, 0, 0, None, start_s, end_s).to_dict()
+        return _reject("ecg_window_too_short", start_s, end_s)
 
     total_s = x.size / fs
     if start_s >= total_s or end_s > total_s + (1.0 / fs):
-        return WindowReference("rejected", ["ecg_window_out_of_bounds"], None, None, None,
-                               1.0, 0, 0, None, start_s, end_s).to_dict()
+        return _reject("ecg_window_out_of_bounds", start_s, end_s)
 
     i0, i1 = int(math.floor(start_s * fs)), int(math.ceil(end_s * fs))
     segment = x[max(0, i0):min(x.size, i1)]
     try:
         validate_signal(segment, fs, min_seconds=min_window_seconds)
     except ECGReferenceError as exc:
-        return WindowReference("rejected", [exc.token], None, None, None, 1.0, 0, 0,
-                               None, start_s, end_s).to_dict()
+        return _reject(exc.token, start_s, end_s)
 
     try:
         peaks = detect_rpeaks(segment, fs)
     except ECGReferenceError as exc:
-        return WindowReference("rejected", [exc.token], None, None, None, 1.0, 0, 0,
-                               None, start_s, end_s).to_dict()
+        return _reject(exc.token, start_s, end_s)
     if peaks.size < min_peaks:
-        return WindowReference("rejected", ["ecg_too_few_rpeaks"], None, None, None,
-                               1.0, int(peaks.size), 0, None, start_s, end_s).to_dict()
+        return _reject("ecg_too_few_rpeaks", start_s, end_s, n_peaks=int(peaks.size))
 
     rr = rr_intervals_s(peaks, fs)
     implausible = _implausible_fraction(rr)
     if implausible > MAX_IMPLAUSIBLE_RR_FRACTION:
-        return WindowReference("rejected", ["ecg_rr_out_of_range"], None, None, None,
-                               implausible, int(peaks.size), int(rr.size), None,
-                               start_s, end_s).to_dict()
+        return _reject("ecg_rr_out_of_range", start_s, end_s, implausible=implausible,
+                       n_peaks=int(peaks.size), n_rr=int(rr.size))
 
     valid_rr = rr[(rr >= MIN_RR_S) & (rr <= MAX_RR_S)]
     rr_median = float(np.median(valid_rr))
     rr_mad = float(np.median(np.abs(valid_rr - rr_median))) if valid_rr.size else None
+    dispersion = (rr_mad / rr_median) if rr_mad is not None and rr_median > 0 else None
+
+    # Second independent detector on the same window; disagreement = ambiguity.
+    try:
+        secondary = detect_rpeaks_matched_filter(segment, fs, peaks)
+    except ECGReferenceError as exc:
+        return _reject(exc.token, start_s, end_s, implausible=implausible,
+                       n_peaks=int(peaks.size), n_rr=int(rr.size), dispersion=round(dispersion, 6) if dispersion else None)
+    check = cross_check_detectors(peaks, secondary, fs)
+    check = {k: v for k, v in check.items()}
+
+    if dispersion is not None and dispersion > MAX_RR_DISPERSION:
+        return _reject("ecg_rr_dispersion_high", start_s, end_s, implausible=implausible,
+                       n_peaks=int(peaks.size), n_rr=int(rr.size),
+                       dispersion=round(dispersion, 6), cross_check=check)
+
+    if check["status"] != "ok":
+        return _reject(check["reason"] or "ecg_cross_check_unavailable", start_s, end_s,
+                       implausible=implausible, n_peaks=int(peaks.size), n_rr=int(rr.size),
+                       dispersion=round(dispersion, 6) if dispersion is not None else None, cross_check=check)
+
     hr = 60.0 / rr_median
     coverage = float(min(1.0, max(0.0, (float(peaks[-1]) - float(peaks[0])) / fs / (end_s - start_s))))
     return WindowReference("ok", [], round(hr, 6), round(rr_median, 6),
                            None if rr_mad is None else round(rr_mad, 6),
                            implausible, int(peaks.size), int(rr.size),
-                           round(coverage, 6), start_s, end_s).to_dict()
+                           round(coverage, 6), start_s, end_s,
+                           round(dispersion, 6) if dispersion is not None else None,
+                           check).to_dict()
 
 
 def window_references_for_starts(ecg, fs_hz, window_starts_s: Sequence[float],
