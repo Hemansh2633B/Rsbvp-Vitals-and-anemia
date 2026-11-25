@@ -2177,6 +2177,38 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
             peak_guidance_hr
         )
 
+    # Sprint 10: per-ROI cross-agreement gating. Each skin ROI yields an
+    # independent HR estimate; the corrected consensus candidate must stay
+    # within tolerance of every estimator (including ROI anchors) and the
+    # per-ROI estimates must not diverge from each other.
+    from . import quality as Q
+    roi_estimates: dict[str, float] = {}
+    for roi_name in ("forehead", "left_cheek", "right_cheek"):
+        roi_trace = data.get("roi_rgb_signals", {}).get(roi_name)
+        if roi_trace is None or len(roi_trace) < int(sampling_rate * 6):
+            continue
+        roi_green = roi_trace[:, 1]
+        roi_pos_raw = P.pos_rppg(
+            roi_trace, fs=sampling_rate, window_seconds=P.POS_WINDOW_SECONDS
+        )
+        try:
+            roi_pos_raw = P.detrend(roi_pos_raw)
+        except Exception:
+            roi_pos_raw = roi_pos_raw - np.mean(roi_pos_raw)
+        roi_pos_filt = P.bandpass_filter(
+            P.normalize_signal(roi_pos_raw), fs=sampling_rate,
+            min_bpm=P.MIN_BPM, max_bpm=P.MAX_BPM,
+        )
+        _, _, roi_consensus, _, _ = P.estimate_smart_fft_pair(
+            roi_green, roi_pos_filt, sampling_rate,
+            min_bpm=P.MIN_BPM, max_bpm=P.MAX_BPM,
+            trim_start_seconds=P.TRIM_START_SECONDS,
+        )
+        if roi_consensus is not None and np.isfinite(roi_consensus):
+            roi_estimates[roi_name] = float(roi_consensus)
+
+    roi_agreement = Q.agreement_report(roi_estimates)
+
     # Quality gate applies after all legacy motion corrections so a heuristic
     # rescue cannot override disagreement between independently extracted signals.
     from .research import measurement_gate
@@ -2188,6 +2220,22 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
     legacy_corrected_hr = hr_consensus
     if not quality_gate["valid"]:
         hr_consensus = None
+
+    # Cross-ROI agreement: per-ROI estimates must not diverge from each other.
+    # Delegates to assess_window so the roi_agreement concept is scored
+    # consistently with the rest of the quality model.
+    if hr_consensus is not None and roi_agreement.n_valid >= 2:
+        roi_gate = Q.assess_window(
+            roi_agreement=roi_agreement,
+            min_window_s=P.MIN_WINDOW_SECONDS,
+        )
+        if not roi_gate.available:
+            hr_consensus = None
+            quality_gate = {
+                "valid": False,
+                "state": "low_signal_quality",
+                "reason": roi_gate.reason,
+            }
 
     print("\n===== Smart Green-only rPPG Results =====")
     print(f"HR Green FFT: {hr_green_fft:.2f} bpm" if hr_green_fft is not None else "HR Green FFT: Not available")

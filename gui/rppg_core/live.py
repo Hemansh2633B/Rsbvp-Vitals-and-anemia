@@ -353,6 +353,10 @@ def estimate_live_rppg_from_buffer(rgb_times, rgb_values, selected_pipeline,
                                   min_bpm=P.MIN_BPM, max_bpm=P.MAX_BPM,
                                   trim_start_seconds=P.TRIM_START_SECONDS)
 
+    # Keep the uncorrected estimates so the corrected consensus candidate can be
+    # validated against values no legacy heuristic has touched.
+    hr_green_fft_uncorrected, hr_pos_fft_uncorrected = hr_green_fft, hr_pos_fft
+
     hr_green_peak = P.estimate_hr_peaks(green_filt, sampling_rate,
                                         min_bpm=P.MIN_BPM, max_bpm=P.MAX_BPM)
     hr_pos_peak = P.estimate_hr_peaks(pos_filt, sampling_rate,
@@ -391,9 +395,11 @@ def estimate_live_rppg_from_buffer(rgb_times, rgb_values, selected_pipeline,
     trace = Q.trace_report(times)
     acquisition = Q.acquisition_report(rgb_signal)
     spectral = Q.spectral_quality(np.asarray(pos_filt, dtype=float), sampling_rate)
-    agreement = Q.agreement_report({"green_fft": hr_green_fft, "pos_fft": hr_pos_fft})
+    agreement = Q.agreement_report({"green_fft": hr_green_fft_uncorrected,
+                                    "pos_fft": hr_pos_fft_uncorrected})
     verdict = Q.assess_window(trace=trace, acquisition=acquisition, spectral=spectral,
-                              agreement=agreement, min_window_s=min_seconds_for_hr)
+                              agreement=agreement, candidate_bpm=hr_consensus,
+                              min_window_s=min_seconds_for_hr)
     if not verdict.available:
         # Unavailable, never a plausible-looking number. Per-estimator
         # values stay visible so disagreement is never hidden.

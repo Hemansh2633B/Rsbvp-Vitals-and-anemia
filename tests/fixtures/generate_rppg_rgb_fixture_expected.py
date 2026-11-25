@@ -24,6 +24,13 @@ HERE = Path(__file__).resolve().parent
 CSV_PATH = HERE / "rppg_rgb_fixture.csv"
 JSON_PATH = HERE / "rppg_rgb_fixture_expected.json"
 WINDOW_SECONDS = 12.0
+ROIS = ("forehead", "left_cheek", "right_cheek")
+CHANNELS = ("r", "g", "b")
+METHODS = ("green", "pos", "chrom")
+
+
+def _rgb_for_roi(rows, roi):
+    return np.array([[float(r[f"{roi}_{c}"]) for c in CHANNELS] for r in rows], dtype=float)
 
 
 def spectral_features(signal, fs, lo=0.7, hi=3.5):
@@ -88,18 +95,29 @@ def main():
     rows = [r for r in rows if float(r["timestamp_s"]) < WINDOW_SECONDS]
     ts = np.array([float(r["timestamp_s"]) for r in rows])
     fs = 1.0 / np.median(np.diff(ts))
-    forehead = np.array([[float(r["forehead_r"]), float(r["forehead_g"]), float(r["forehead_b"])] for r in rows])
 
     diagnostics = {
         "fs_hz": float(fs),
         "window_seconds": WINDOW_SECONDS,
         "n_samples": int(len(rows)),
-        "forehead_green": spectral_features(forehead[:, 1], fs),
-        "forehead_pos": spectral_features(pos_projection(forehead), fs),
-        "forehead_chrom": spectral_features(chrom_projection(forehead, fs), fs),
     }
+    reference_free = {}
+
+    for roi in ROIS:
+        rgb = _rgb_for_roi(rows, roi)
+        projections = {
+            "green": rgb[:, 1],
+            "pos": pos_projection(rgb),
+            "chrom": chrom_projection(rgb, fs),
+        }
+        for method in METHODS:
+            key = f"{roi}_{method}"
+            feats = spectral_features(projections[method], fs)
+            diagnostics[key] = feats
+            reference_free[key] = feats["bpm"]
 
     doc = json.loads(JSON_PATH.read_text())
+    doc["reference_free_expected_python_estimates_bpm"] = reference_free
     doc["python_spectral_diagnostics_first_12_seconds"] = diagnostics
     doc["python_spectral_diagnostics_note"] = (
         "Independent Python evaluation of the TypeScript projections in "

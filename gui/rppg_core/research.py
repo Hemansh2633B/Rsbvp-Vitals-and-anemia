@@ -84,8 +84,24 @@ def resample_rgb_traces(timestamps, traces, *, max_gap_seconds=0.25):
     return grid, result, fs
 
 
-def measurement_gate(estimates, reliabilities, duration_seconds, *, candidate=None, agreement_bpm=12.0, minimum_reliability=0.25):
-    """Conservative cross-estimator gate; corrections cannot override rejection."""
+# A legacy motion/heuristic correction may nudge consensus but must not
+# manufacture agreement where none exists. The corrected candidate must be
+# within the full agreement tolerance of *every* trustworthy estimator, and
+# within half that tolerance of at least one — so a single strong spectral
+# peak cannot override two independent windowed estimates.
+CANDIDATE_AGREEMENT_BPM = 12.0      # candidate vs every trustworthy estimate
+CANDIDATE_NEAR_ESTIMATOR_BPM = 6.0  # candidate vs at least one trustworthy estimate
+
+
+def measurement_gate(estimates, reliabilities, duration_seconds, *, candidate=None, agreement_bpm=CANDIDATE_AGREEMENT_BPM, minimum_reliability=0.25):
+    """Conservative cross-estimator gate; corrections cannot override rejection.
+
+    A corrected consensus candidate is accepted only when it stays close to
+    the uncorrected, independently estimated values: within ``agreement_bpm``
+    of every trustworthy estimate and within half that tolerance of at least
+    one. This prevents legacy heuristics from manufacturing a plausible
+    consensus that no estimator actually supports.
+    """
     if duration_seconds < 8:
         return {"valid": False, "state": "warming_up", "reason": "At least 8 seconds of usable trace are required"}
     pairs = [(float(v), float(q)) for v, q in zip(estimates, reliabilities)
@@ -96,8 +112,17 @@ def measurement_gate(estimates, reliabilities, duration_seconds, *, candidate=No
     values = [v for v, _ in trustworthy]
     if max(values) - min(values) > agreement_bpm:
         return {"valid": False, "state": "low_signal_quality", "reason": "Independent estimator disagreement exceeds the configured tolerance"}
-    if candidate is not None and (not np.isfinite(candidate) or abs(float(candidate)-float(np.median(values))) > agreement_bpm):
-        return {"valid": False, "state": "low_signal_quality", "reason": "Legacy correction candidate disagrees with uncorrected estimators"}
+    if candidate is not None:
+        if not np.isfinite(candidate):
+            return {"valid": False, "state": "low_signal_quality", "reason": "Legacy correction candidate is not finite"}
+        candidate = float(candidate)
+        # Candidate must be within full tolerance of every trustworthy estimate...
+        within_all = all(abs(candidate - v) <= agreement_bpm for v in values)
+        # ...and within half tolerance of at least one, so some estimator
+        # actually supports the corrected value.
+        near_one = any(abs(candidate - v) <= agreement_bpm / 2.0 for v in values)
+        if not (within_all and near_one):
+            return {"valid": False, "state": "low_signal_quality", "reason": "Legacy correction candidate disagrees with uncorrected estimators"}
     return {"valid": True, "state": "valid", "reason": "Independent estimates agree and pass reliability checks"}
 
 
