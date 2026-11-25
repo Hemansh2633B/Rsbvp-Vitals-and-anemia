@@ -38,6 +38,7 @@ SPECTRAL_MIN_SEPARATION = 1.5         # top peak vs best competing local maximum
 PEAK_GUARD_RADIUS_HZ = 0.15           # bins around the peak excluded from the noise floor
 COMPETITOR_MIN_DISTANCE_HZ = 0.25     # minimum distance to a competing local maximum
 AGREEMENT_TOLERANCE_BPM = 12.0        # cross-estimator spread ceiling (browser convention)
+CANDIDATE_NEAR_ESTIMATOR_BPM = 6.0    # corrected candidate vs at least one estimator
 MIN_WINDOW_SECONDS = 10.0             # minimum duration before any estimate is reported
 MIN_SAMPLING_RATE_HZ = 12.0           # below this, passband estimation is not meaningful
 MAX_GAP_SECONDS = 0.25                # timestamp gaps longer than this invalidate a window
@@ -164,6 +165,7 @@ class AgreementReport:
     spread_bpm: float | None
     within_tolerance: bool
     median_bpm: float | None
+    values: tuple[float, ...] = field(default_factory=tuple)
 
     @property
     def passing(self) -> bool:
@@ -173,10 +175,10 @@ class AgreementReport:
 def agreement_report(estimates: dict[str, float | None], tolerance_bpm: float = AGREEMENT_TOLERANCE_BPM) -> AgreementReport:
     values = sorted(v for v in estimates.values() if v is not None and np.isfinite(v))
     if len(values) < 2:
-        return AgreementReport(len(values), None, False, None)
+        return AgreementReport(len(values), None, False, None, tuple(values))
     spread = values[-1] - values[0]
     return AgreementReport(len(values), float(spread), bool(spread <= tolerance_bpm),
-                           float(np.median(values)))
+                           float(np.median(values)), tuple(values))
 
 
 @dataclass(frozen=True)
@@ -239,16 +241,24 @@ def assess_window(*, trace: TraceReport | None = None,
                   acquisition: AcquisitionReport | None = None,
                   spectral: SpectralQuality | None = None,
                   agreement: AgreementReport | None = None,
+                  roi_agreement: AgreementReport | None = None,
                   roi_coverage: float | None = None,
                   face_detected: bool = True,
                   tracking_lost: bool = False,
                   excessive_motion: bool = False,
+                  candidate_bpm: float | None = None,
                   age_s: float | None = None,
                   min_window_s: float = MIN_WINDOW_SECONDS) -> QualityAssessment:
     """Composite window verdict. Hierarchical; the most fundamental failure wins.
 
     Estimator agreement is only meaningful once signal quality passes; agreement is
     therefore checked after spectral checks, not instead of them.
+
+    A corrected consensus ``candidate_bpm`` (from legacy motion heuristics) is
+    validated against the uncorrected estimates: it must stay within the full
+    agreement tolerance of every trustworthy estimator and within half that
+    tolerance of at least one, so a heuristic cannot manufacture agreement that
+    no estimator supports.
     """
     reasons: list[str] = []
     scores: dict[str, float | None] = {}
@@ -313,13 +323,40 @@ def assess_window(*, trace: TraceReport | None = None,
     if acquisition is not None and not acquisition.passing:
         pulse_state = FAIL
     agreement_state = NOT_EVALUATED
+    agreement_values: list[float] = []
     if agreement is not None:
         scores.update({"agreement_spread_bpm": agreement.spread_bpm,
                        "estimators_within_tolerance": float(agreement.within_tolerance)})
+        agreement_values.extend(agreement.values)
         if agreement.n_valid >= 2 and agreement.spread_bpm is not None:
             agreement_state = PASS if agreement.spread_bpm <= AGREEMENT_TOLERANCE_BPM else FAIL
             if agreement.spread_bpm > AGREEMENT_TOLERANCE_BPM:
                 reasons.append(f"estimator_disagreement_{agreement.spread_bpm:.1f}bpm")
+    # Cross-ROI agreement: independent skin regions must not yield divergent
+    # estimates, else the consensus is unsupported even when per-ROI spectra look clean.
+    roi_agreement_state = NOT_EVALUATED
+    if roi_agreement is not None:
+        scores.update({"roi_agreement_spread_bpm": roi_agreement.spread_bpm,
+                       "roi_estimators_within_tolerance": float(roi_agreement.within_tolerance)})
+        agreement_values.extend(roi_agreement.values)
+        if roi_agreement.n_valid >= 2 and roi_agreement.spread_bpm is not None:
+            roi_agreement_state = PASS if roi_agreement.spread_bpm <= AGREEMENT_TOLERANCE_BPM else FAIL
+            if roi_agreement.spread_bpm > AGREEMENT_TOLERANCE_BPM:
+                reasons.append(f"roi_estimator_disagreement_{roi_agreement.spread_bpm:.1f}bpm")
+    # A corrected consensus candidate must not override independent estimates.
+    # With no trustworthy estimator anchor, a heuristic-manufactured consensus
+    # cannot be validated and must be rejected.
+    if candidate_bpm is not None:
+        if not agreement_values:
+            reasons.append("candidate_no_estimator_backing")
+        elif not np.isfinite(candidate_bpm):
+            reasons.append("candidate_not_finite")
+        else:
+            candidate_bpm = float(candidate_bpm)
+            within_all = all(abs(candidate_bpm - v) <= AGREEMENT_TOLERANCE_BPM for v in agreement_values)
+            near_one = any(abs(candidate_bpm - v) <= CANDIDATE_NEAR_ESTIMATOR_BPM for v in agreement_values)
+            if not (within_all and near_one):
+                reasons.append("candidate_disagrees_with_estimators")
     if reasons:
         return QualityAssessment("low_signal_quality",
                                  "Inadequate signal quality: " + ", ".join(reasons),

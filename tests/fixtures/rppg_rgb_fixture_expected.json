@@ -2,9 +2,15 @@
   "provenance": "Synthetic software-test fixture; not physiological data or validation results.",
   "window_seconds": 12,
   "reference_free_expected_python_estimates_bpm": {
-    "forehead_green": 70.0,
-    "forehead_pos": 70.0,
-    "forehead_chrom": 70.0
+    "forehead_green": 70.00000000000026,
+    "forehead_pos": 70.00000000000026,
+    "forehead_chrom": 70.00000000000026,
+    "left_cheek_green": 70.00000000000026,
+    "left_cheek_pos": 70.00000000000026,
+    "left_cheek_chrom": 70.00000000000026,
+    "right_cheek_green": 70.00000000000026,
+    "right_cheek_pos": 70.00000000000026,
+    "right_cheek_chrom": 70.00000000000026
   },
   "python_spectral_diagnostics_first_12_seconds": {
     "fs_hz": 20.00000000000007,
@@ -29,6 +35,48 @@
       "bpm": 70.00000000000026,
       "peak_fraction": 0.5398650771385508,
       "snr_db": 73.88220080207171,
+      "separation_ratio": null
+    },
+    "left_cheek_green": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771286188,
+      "snr_db": 73.8822006180804,
+      "separation_ratio": null
+    },
+    "left_cheek_pos": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771286043,
+      "snr_db": 73.88220062379138,
+      "separation_ratio": null
+    },
+    "left_cheek_chrom": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771536793,
+      "snr_db": 73.88220004122834,
+      "separation_ratio": null
+    },
+    "right_cheek_green": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771286785,
+      "snr_db": 73.88220056079385,
+      "separation_ratio": null
+    },
+    "right_cheek_pos": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771286312,
+      "snr_db": 73.88220060588681,
+      "separation_ratio": null
+    },
+    "right_cheek_chrom": {
+      "peak_hz": 1.166666666666671,
+      "bpm": 70.00000000000026,
+      "peak_fraction": 0.5398650771123511,
+      "snr_db": 73.88220231731478,
       "separation_ratio": null
     }
   },

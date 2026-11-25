@@ -180,6 +180,71 @@ def test_estimator_agreement_passes_when_consistent():
     assert out.status == "valid" and out.available
 
 
+# ------------------------------------------------- candidate validation -------
+
+def _clean_window():
+    t = np.arange(int(12 * FS)) / FS
+    return dict(
+        trace=trace_report(t),
+        acquisition=acquisition_report(np.full((10, 3), 150.0) + np.arange(30).reshape(10, 3) % 40),
+        spectral=spectral_quality(pulse(), FS),
+        agreement=agreement_report({"green": 70.0, "pos": 71.0}),
+    )
+
+
+def test_candidate_supported_by_an_estimator_passes():
+    base = _clean_window()
+    out = assess_window(**base, candidate_bpm=70.5)
+    assert out.status == "valid" and out.available
+    assert not any("candidate" in r for r in out.reasons)
+
+
+def test_candidate_within_full_tolerance_but_near_none_is_rejected():
+    # candidate=78 is within 12 BPM of the median (70.5) but more than 6 BPM
+    # from it, so no uncorrected estimator actually supports 78.
+    base = _clean_window()
+    out = assess_window(**base, candidate_bpm=78.0)
+    assert out.status == "low_signal_quality" and not out.available
+    assert any("candidate_disagrees_with_estimators" in r for r in out.reasons)
+
+
+def test_candidate_outside_full_tolerance_is_rejected():
+    base = _clean_window()
+    out = assess_window(**base, candidate_bpm=85.0)
+    assert out.status == "low_signal_quality" and not out.available
+    assert any("candidate_disagrees_with_estimators" in r for r in out.reasons)
+
+
+def test_non_finite_candidate_is_rejected():
+    base = _clean_window()
+    out = assess_window(**base, candidate_bpm=float("nan"))
+    assert out.status == "low_signal_quality" and not out.available
+    assert any("candidate_not_finite" in r for r in out.reasons)
+
+
+def test_candidate_no_estimator_backing_is_rejected():
+    # candidate_bpm with no agreement anchor (no estimators to validate against)
+    # must be rejected: a heuristic-manufactured consensus needs estimator backing.
+    base = dict(_clean_window())
+    del base["agreement"]
+    out = assess_window(**base, candidate_bpm=70.5)
+    assert out.status == "low_signal_quality" and not out.available
+    assert any("candidate_no_estimator_backing" in r for r in out.reasons)
+
+
+def test_candidate_validated_against_every_estimator_not_just_median():
+    # estimates [70, 70, 82]: spread 12 -> agreement passes, median 70.
+    # candidate=64 is within 6 of the median (near_one passes) and within 12
+    # of the median (within_all vs median passes), but |64-82|=18 > 12 from
+    # estimator e3 -- must be rejected because it is not within tolerance of
+    # *every* estimator.
+    base = dict(_clean_window())
+    base["agreement"] = agreement_report({"e1": 70.0, "e2": 70.0, "e3": 82.0})
+    out = assess_window(**base, candidate_bpm=64.0)
+    assert out.status == "low_signal_quality" and not out.available
+    assert any("candidate_disagrees_with_estimators" in r for r in out.reasons)
+
+
 def test_low_light_clipped_acquisition_never_reports_valid():
     # Low illumination + clipping at the black rail: conservative path must reject
     # even though a 1.166 Hz sinusoid dominates the periodogram.
@@ -190,6 +255,65 @@ def test_low_light_clipped_acquisition_never_reports_valid():
                         spectral=spectral_quality(pulse(), FS),
                         agreement=agreement_report({"green": 70.0, "pos": 70.0}))
     assert out.status == "low_signal_quality" and not out.available
+
+
+# ------------------------------------------------- cross-ROI agreement -------
+
+def test_roi_agreement_passes_when_rois_consistent():
+    # Three ROI estimates within tolerance -> cross-ROI agreement passes.
+    base = _clean_window()
+    base["roi_agreement"] = agreement_report(
+        {"forehead": 70.0, "left_cheek": 71.0, "right_cheek": 69.5}
+    )
+    out = assess_window(**base)
+    assert out.status == "valid" and out.available
+    assert out.concepts["algorithm_agreement"] == "pass"
+
+
+def test_roi_agreement_rejected_when_rois_diverge():
+    # ROI estimates spread > 12 BPM -> cross-ROI agreement fails.
+    base = _clean_window()
+    base["roi_agreement"] = agreement_report(
+        {"forehead": 70.0, "left_cheek": 85.0, "right_cheek": 72.0}
+    )
+    out = assess_window(**base)
+    assert out.status == "low_signal_quality" and not out.available
+    assert any("roi_estimator_disagreement" in r for r in out.reasons)
+
+
+def test_roi_agreement_single_roi_does_not_reject():
+    # Only one ROI estimate -> n_valid < 2, no cross-ROI disagreement possible.
+    base = _clean_window()
+    base["roi_agreement"] = agreement_report({"forehead": 70.0})
+    out = assess_window(**base)
+    assert out.status == "valid" and out.available
+
+
+def test_candidate_validated_against_roi_anchors():
+    # candidate must be within tolerance of ROI estimates too, not just
+    # green/pos/chrom. ROI estimates [70, 70, 82]: spread 12 -> agreement OK,
+    # but candidate=64 is |64-82|=18 > 12 from the right-cheek anchor ->
+    # rejected even though it is within 6 of the 70 BPM anchors.
+    base = _clean_window()
+    base["agreement"] = agreement_report({"green": 70.0, "pos": 70.0})
+    base["roi_agreement"] = agreement_report(
+        {"forehead": 70.0, "left_cheek": 70.0, "right_cheek": 82.0}
+    )
+    out = assess_window(**base, candidate_bpm=64.0)
+    assert out.status == "low_signal_quality" and not out.available
+    assert any("candidate_disagrees_with_estimators" in r for r in out.reasons)
+
+
+def test_candidate_supported_by_roi_anchors_passes():
+    # candidate=70.5 within 12 of every estimator (green/pos/ROI) and within
+    # 6 of the forehead ROI anchor (70.0) -> accepted.
+    base = _clean_window()
+    base["agreement"] = agreement_report({"green": 70.0, "pos": 70.0})
+    base["roi_agreement"] = agreement_report(
+        {"forehead": 70.0, "left_cheek": 71.0, "right_cheek": 69.0}
+    )
+    out = assess_window(**base, candidate_bpm=70.5)
+    assert out.status == "valid" and out.available
 
 
 # Sprint 8 regression coverage: the six quality concepts are reported
