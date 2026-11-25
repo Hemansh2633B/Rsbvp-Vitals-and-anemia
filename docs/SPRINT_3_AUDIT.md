@@ -30,7 +30,7 @@ Review of the first PR implementation found the reference estimator treated PPG/
 - validates finite, strictly increasing timestamps, reports a robust median-absolute interval jitter, and makes the maximum gap (default 0.25 s) and jitter tolerance (default 0.05) configurable;
 - requires full `[start, end)` overlap with the RGB trace window (allowing at most one source-sample endpoint quantization), checks missing values/jitter/gaps before any interpolation, and linearly resamples accepted windows at measured median-rate to a uniform grid;
 - runs a bandpass-filtered, Hann-periodogram waveform-frequency estimator only for PPG/BVP, with Nyquist, duration, flat-signal and spectral peak-fraction checks;
-- explicitly rejects ECG with `ecg_rpeak_estimator_unavailable`; no validated R-peak method or ECG-HRV processing is claimed;
+- explicitly rejects ECG with `ecg_rpeak_estimator_unavailable`; no ECG-HRV processing is claimed. (Sprint 11 update: a separate, independently tested R-peak pathway exists in `research/ecg/reference.py` for dataset-specific benchmarks; this evaluator still rejects ECG by design.)
 - records declared/original, timestamp-measured and effective rates, jitter, peak quality and exact reference rejection reason per window;
 - reports total, valid-reference, estimate-available and paired-window counts separately. Quality-gate coverage remains unavailable for RGB-only trace exports and is not mislabeled as estimate availability.
 

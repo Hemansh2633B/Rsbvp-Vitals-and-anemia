@@ -178,6 +178,9 @@ venv.bak/
 *.hdf5
 *.npz
 *.npy
+# MMPD / rPPG-10 caches and any extracted provider archive
+/data/rppg10/
+/reports/rppg10/*_trace*.csv
 
 # mypy
 .mypy_cache/

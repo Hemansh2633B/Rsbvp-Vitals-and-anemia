@@ -5,6 +5,26 @@
 
 ---
 
+## Sprint 11 addendum (2026-11-25, rPPG-10 readiness + independent ECG reference)
+
+- **Target dataset**: rPPG-10 (Rodrigues & Garcia, *Data in Brief* 61 (2025) 111888, doi:10.1016/j.dib.2025.111888; data doi:10.17632/bx8982xgwt.1, **CC BY-NC-SA 4.0**). 26 participants × 3 ROI videos (600 s, 64×64, 30 fps) + BITalino ECG (1000 Hz, ±1.5 mV) per participant; single room, natural indoor daylight; manual synchronisation with a documented ≤ ±500 ms uncertainty; Subject_4 excluded by the provider.
+- **Readiness executed, benchmark NOT RUN.** No authorized local copy was supplied to this environment. `reports/rppg10/rppg10_readiness.{json,md}` documents the contents, licence, adapter contract, ECG pathway, frozen protocol and blockers. **No accuracy metric for rPPG-10 exists in this repository.**
+- **Independent ECG reference pathway** (`research/ecg/reference.py`): Pan–Tompkins QRS detection → 60/median(valid R-R) per window, with 16 machine-readable rejection tokens, a QRS-prominence guard against noise-only segments, and dataset-independent tests (22). It is deliberately **not** wired into the generic trace-manifest evaluator, which continues to reject ECG with `ecg_rpeak_estimator_unavailable` (existing regression test unchanged). No HRV, PRV, or clinical claim is supported.
+- **Frozen protocol** (`rsbvp.rppg10-protocol.v1`, frozen 2026-11-25 before data): 30 s non-overlapping windows, GREEN/POS/CHROM, unchanged quality gates, reference joined after estimation, participant-level bootstrap (2000 draws, seed 20261125), explicit coverage/rejection accounting, deviations from the documented dataset attributes require an explicit flag and are echoed into the report.
+- **Evidence tiers unchanged**: every new component is `SOFTWARE-TESTED`/`SYNTHETIC-TESTED` only. MMPD remains smoke-tested / accuracy NOT RUN; UBFC-rPPG and COHFACE remain NOT RUN; anemia remains NOT AVAILABLE.
+
+### New artifacts
+
+| Artifact | Purpose |
+|---|---|
+| `research/ecg/reference.py` | ECG → window reference HR (Pan–Tompkins), rejection tokens |
+| `research/rppg10/adapter.py` | Discovery, inventory, checksums, RGB trace extraction; no repairs |
+| `research/rppg10/protocol.py` | Frozen protocol, estimators, aggregation, bootstrap, report rendering |
+| `research/rppg10/run_benchmark.py` | `readiness` / `inspect` / `benchmark` CLI |
+| `tests/test_ecg_reference.py`, `tests/test_rppg10_adapter.py` | 56 dataset-independent tests |
+| `reports/rppg10/rppg10_readiness.{json,md}` | Readiness assessment (NOT RUN) |
+| `docs/RPPG10_VALIDATION.md`, `data/manifests/rppg10.example.csv` | Terms, protocol, acquisition steps, manifest schema |
+
 ## Sprint 10 addendum (2026-11-24, MMPD acquisition investigation)
 
 - The maintainer directed validation on **MMPD** (Tsinghua, EMBC 2023). The public GitHub repository was enumerated: it carries 16 short sample GIFs (150 frames @112×199, uniform 30 ms/frame ≈4.5 s, no ground truth), the 660-recording label manifest, integrity sizes, the faculty-agreement PDFs, and a toolbox fork with pre-trained checkpoints — **not the dataset** (370 GB/48 GB via OneDrive/Baidu after a faculty-signed data-release agreement; academic use only, no commercial use).

@@ -1,6 +1,6 @@
 # Implementation status — authoritative capability matrix
 
-**Last updated:** 2026-11-24 (Sprint 10). Baseline: `main` @ `64c258c`. Evidence
+**Last updated:** 2026-11-25 (Sprint 11). Baseline: `main` @ `79c29c6`. Evidence
 tiers are never upgraded because tests pass; a green CI run is
 software verification, not physiological or clinical validation. Status
 vocabulary: `DONE` (implemented + software-tested for its stated scope) ·
@@ -35,6 +35,10 @@ executed) · `BLOCKED` (cannot proceed without external input).
 | MMPD sample-GIF pipeline smoke (public samples) | DONE (pipeline check) | `research/mmpd/mmpd_probe.py`, `reports/mmpd/` | yes (`test_mmpd_probe.py`) | Diagnostic only; 4.5 s clips, no reference PPG; face-loss clips report unavailable | SYNTHETIC/UNCALIBRATED DIAGNOSTICS | Full dataset run (blocked on agreement) |
 | MMPD full dataset validation | NOT RUN — DATASET NOT OBTAINED | `research/mmpd/mmpd_probe.py --inspect-mat`, `docs/MMPD_VALIDATION.md` | probe tests yes | Academic-use agreement (faculty email) required; 660 recordings × 33 subjects; PPG GT in `.mat` files | NOT RUN | Sign agreement; acquire; run checklist §5 |
 | MMPD neural checkpoints (TS-CAN/DeepPhys/EfficientPhys/PhysNet) | NOT RUN | not vendored (`rPPG-Toolbox_MMPD`, MIT repo) | — | Requires full dataset + isolated ML env; weights not audited into this repo | NOT RUN | Acquire dataset; isolated env; provenance note |
+| **ECG reference pathway** (independent) | DONE (software) | `research/ecg/reference.py` | yes (`test_ecg_reference.py`, 22 tests) | Pan–Tompkins R-peaks → 60/median R-R per window; guards + 16 rejection tokens; NOT wired into the generic evaluator (which still rejects ECG by design); no HRV/PRV/clinical claim | SYNTHETIC-TESTED — never run on real ECG | First real ECG run at rPPG-10 benchmark |
+| rPPG-10 adapter (readiness) | DONE (software) | `research/rppg10/adapter.py` | yes (`test_rppg10_adapter.py`) | Derives file facts, reports every inconsistency as a token; never guesses ECG rate/sync; no repairs | SYNTHETIC-TESTED — no authorized local copy | `inspect` on acquired data |
+| rPPG-10 frozen benchmark protocol | DONE (software), **NOT RUN** | `research/rppg10/protocol.py`, `run_benchmark.py` | yes | 30 s non-overlapping windows, GREEN/POS/CHROM, unchanged gates, participant-level bootstrap; protocol frozen before data | NOT RUN — DATASET NOT OBTAINED (CC BY-NC-SA 4.0, public but absent here) | Download, inspect, run |
+| rPPG-10 dataset validation (accuracy) | NOT RUN | `docs/RPPG10_VALIDATION.md` | protocol tests only | 26 young Portuguese students, Fitzpatrick I–IV, one room, 64×64 crops, ±500 ms manual sync | NOT RUN | Owner downloads data (non-commercial). |
 | UBFC-rPPG dataset validation | NOT RUN | `research/rppg/{validate_dataset,ubfcrppg_probe}.py`, `reports/research_validation/` | probe tests yes | Archive absent; mirror claims (e.g. Kaggle CC0) not accepted as provider authorization | NOT RUN | Obtain archive per DATA_READINESS.md §5 |
 | COHFACE validation | NOT RUN | — | — | Not present; EULA-gated; do not redistribute | NOT RUN | Authorized access only |
 | rPPG-Toolbox backend integration | PARTIAL | `research/backends/rppg_toolbox.py` (unavailable; RAIL-1.1, not vendored) | availability-gated tests | Requires external env + checkpoints; license boundaries enforced | NOT RUN (backend absent) | Install in isolated env |
