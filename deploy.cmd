@@ -38,6 +38,7 @@ set "OFFLINE_ARG="
 set "STATUS=0"
 set "RECREATE_ARG="
 set "REBUILD_ARG="
+set "TLS_ARG="
 
 :parse
 if "%~1"=="" goto parsed
@@ -50,6 +51,7 @@ if /i "%~1"=="--offline" ( set "OFFLINE_ARG=--offline" & shift & goto parse )
 if /i "%~1"=="--status" ( set "STATUS=1" & shift & goto parse )
 if /i "%~1"=="--recreate" ( set "RECREATE_ARG=--recreate" & shift & goto parse )
 if /i "%~1"=="--rebuild" ( set "REBUILD_ARG=--rebuild" & shift & goto parse )
+if /i "%~1"=="--tls" ( set "TLS_ARG=--tls" & shift & goto parse )
 if /i "%~1"=="--stop" ( set "STOP=1" & shift & goto parse )
 if /i "%~1"=="--unpack-dataset" ( set "UNPACK=1" & shift & goto parse )
 if /i "%~1"=="--help" goto usage
@@ -126,7 +128,7 @@ if not exist "gui\frontend\dist\index.html" (
 REM ---- start the service -----------------------------------------------
 echo.
 echo ==^> Starting the service
-%PY% deploy_server.py --dist gui\frontend\dist --host %HOST% --port %PORT% %OPEN_ARG% %FG_ARG%
+%PY% deploy_server.py --dist gui\frontend\dist --host %HOST% --port %PORT% %OPEN_ARG% %FG_ARG% %TLS_ARG%
 set "RC=%errorlevel%"
 if not "%RC%"=="0" (
     echo     [fail] deployment failed ^(exit %RC%^) - see the messages above
@@ -142,7 +144,7 @@ exit /b 0
 echo.
 echo Usage: deploy.cmd [--host ADDR] [--port N] [--open] [--stop] [--status]
 echo                    [--foreground] [--skip-install] [--offline] [--recreate]
-echo                    [--rebuild] [--unpack-dataset] [--help]
+echo                    [--rebuild] [--tls] [--unpack-dataset] [--help]
 echo.
 echo   --host ADDR      0.0.0.0 (default: this machine and local network)
 echo   --port N         preferred port (default 8000; next free port if busy)
@@ -154,6 +156,7 @@ echo   --offline        redeploy with no network, from .cache\deploy
 echo   --status         show what is installed/cached, change nothing, then exit
 echo   --recreate       delete and rebuild .venv (repair; packages re-download)
 echo   --rebuild        rebuild the interface even if it looks current
+echo   --tls            serve over HTTPS (camera on a phone/other device)
 echo   --unpack-dataset only unpack the bundled rPPG-10 dataset, then exit
 echo.
 pause

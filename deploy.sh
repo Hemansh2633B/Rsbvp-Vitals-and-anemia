@@ -40,6 +40,7 @@ OFFLINE=0
 STATUS=0
 RECREATE=0
 REBUILD=0
+TLS=0
 
 say()  { printf '%s\n' "$*"; }
 step() { printf '\n==> %s\n' "$*"; }
@@ -63,6 +64,8 @@ Usage: ./deploy.sh [options]
   --status          show what is installed/cached, change nothing, then exit
   --recreate        delete and rebuild .venv (repair; packages re-download)
   --rebuild         rebuild the interface even if it looks current
+  --tls             serve over HTTPS with a local certificate (needed for the
+                    camera on a phone or another device on the local network)
   --unpack-dataset  only unpack the bundled rPPG-10 dataset, then exit
   -h, --help        show this help
 USAGE
@@ -80,6 +83,7 @@ while [ $# -gt 0 ]; do
     --status)       STATUS=1 ;;
     --recreate)     RECREATE=1 ;;
     --rebuild)      REBUILD=1 ;;
+    --tls)          TLS=1 ;;
     --unpack-dataset) UNPACK_DATASET=1 ;;
     -h|--help)      usage; exit 0 ;;
     *) say "Unknown option: $1"; usage; exit 2 ;;
@@ -162,4 +166,5 @@ step "Starting the service"
 DEPLOY_ARGS=(--dist gui/frontend/dist --host "$HOST" --port "$PORT")
 [ "$OPEN_BROWSER" = "1" ] && DEPLOY_ARGS+=(--open)
 [ "$FOREGROUND" = "1" ] && DEPLOY_ARGS+=(--foreground)
+[ "$TLS" = "1" ] && DEPLOY_ARGS+=(--tls)
 exec "$PY" deploy_server.py "${DEPLOY_ARGS[@]}"

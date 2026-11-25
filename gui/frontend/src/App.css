@@ -571,3 +571,12 @@ pre.log {
 @media (max-width: 800px) {
   .subcards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 }
+
+/* local camera preview (frames from the device that opened the page) */
+.local-preview video {
+  width: 100%;
+  max-height: 280px;
+  border-radius: 10px;
+  background: #000;
+  object-fit: cover;
+}

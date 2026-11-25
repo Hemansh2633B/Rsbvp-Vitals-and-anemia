@@ -44,6 +44,7 @@ clones — for an existing clone run `git rm --cached -r . && git reset --hard`.
 | `--offline` | `--offline` / `-Offline` | redeploy with no network, from the local cache |
 | `--recreate` | `--recreate` / `-Recreate` | delete and rebuild `.venv` (repair only) |
 | `--rebuild` | `--rebuild` / `-Rebuild` | rebuild the interface even if it looks current |
+| `--tls` | `--tls` / `-Tls` | serve over HTTPS with a local certificate (needed for the camera on other devices) |
 | `--help` | `--help` | show the usage text |
 
 ### Redeploying is cheap (and works offline)
@@ -74,6 +75,45 @@ Windows and Linux/macOS behave identically.
   a fresh frontend build. Both are repair tools, not part of a normal redeploy.
 - The cache in `.cache/deploy/` is ignored by Git and can be deleted at any time;
   the next deploy will simply populate it again.
+
+### The camera is the one on the device you opened the page with
+
+The live view measures **the camera of the device showing the page** - your
+phone measures your phone's camera, a second laptop measures its own. The server
+never opens its own webcam for this pathway. Frames are captured in the browser
+(`getUserMedia`), downscaled to 640 px wide JPEG, streamed to the server over the
+same WebSocket, and processed there by the same rPPG pipeline - so the numbers
+are directly comparable to a local run. Nothing is stored unless you press
+record, and then only in that run's folder (`gui/runs/<run_id>/`, with a
+`live_source.txt` noting which device supplied the frames).
+
+**One browser rule to know about:** camera access requires a *secure context*.
+
+| How you open it | Camera access |
+|---|---|
+| `http://localhost:8000` on the machine running the server | allowed (localhost counts as secure) |
+| `http://<lan-ip>:8000` on a phone or another computer | **blocked by the browser** - not by this app |
+| `https://<lan-ip>:8443` on a phone or another computer | allowed (accept the self-signed warning once) |
+
+So to use a phone's camera, deploy with HTTPS:
+
+```bash
+./deploy.sh --tls                 # https://localhost:8000 and https://<lan-ip>:8000
+./deploy.sh --tls --port 8443     # pick the port explicitly
+deploy.cmd --tls                  # Windows
+.\deploy.ps1 -Tls                 # Windows PowerShell
+```
+
+`--tls` creates a self-signed certificate once, in `.run/tls/` (private key mode
+`600`, ignored by Git), valid for `localhost`, `127.0.0.1` and this machine's
+current LAN addresses. On each device you accept the browser warning once
+("Advanced" -> "Proceed"). It is fine on a trusted lab network; for anything
+exposed beyond it, use a real certificate (reverse proxy / Let's Encrypt), which
+this project does not set up.
+
+If a page is opened over plain HTTP from another device, the interface says so
+plainly instead of silently measuring the wrong camera. Serving HTTPS also means
+the WebSocket runs over `wss://`.
 
 ### What "deployed" means here
 
@@ -145,6 +185,8 @@ exact command to run. The common cases:
 | `port 8000 is busy` | Nothing to do — the next free port is chosen automatically and printed |
 | PowerShell: `running scripts is disabled` | Use `deploy.cmd`, or once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
 | `bad interpreter ... ^M` (macOS/Linux) | Line endings — see the note above about `.gitattributes` |
+| Phone shows "Secure context required" / camera never opens | You opened `http://<lan-ip>` — redeploy with `--tls` and accept the certificate warning on the phone |
+| Camera permission prompt never appears | Check the browser's site permissions; on iOS Safari use HTTPS and a current browser |
 
 ### Development mode (hot reload)
 

@@ -23,6 +23,7 @@
     .\deploy.ps1 -UnpackDataset
     .\deploy.ps1 -Status
     .\deploy.ps1 -Offline
+    .\deploy.ps1 -Tls
 
 .NOTES
     If PowerShell blocks the script ("running scripts is disabled"), either use
@@ -41,6 +42,7 @@ param(
     [switch]$Status,
     [switch]$Recreate,
     [switch]$Rebuild,
+    [switch]$Tls,
     [switch]$UnpackDataset
 )
 
@@ -118,6 +120,7 @@ Say-Step "Starting the service"
 $deployArgs = @("deploy_server.py", "--dist", "gui/frontend/dist", "--host", $Host, "--port", $Port)
 if ($Open)       { $deployArgs += "--open" }
 if ($Foreground) { $deployArgs += "--foreground" }
+if ($Tls)        { $deployArgs += "--tls" }
 
 & $pythonCmd @pythonPre @deployArgs
 if ($LASTEXITCODE -ne 0) {
