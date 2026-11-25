@@ -104,6 +104,15 @@ The archive in `data/rPPG-10.zip` (SHA-256
 zip containing `rPPG-10/Dataset_rPPG-10.zip`; the inner archive (238 MB expanded,
 109 files) is what the adapter reads.
 
+**Repository exception (deliberate, documented).** This is the only dataset file
+stored in Git. `data/README.md` otherwise requires licensed data to live outside
+the repository, and `.gitignore` blocks `*.avi`, `*.npy`, `*.h5`, `/data/rppg10/`
+and `/data/*.zip`. The exception is acceptable **only** because rPPG-10 is
+CC BY-NC-SA 4.0 (redistribution permitted for non-commercial use with
+attribution) and because it lets a beginner reproduce the evaluation offline with
+`bash setup.sh` / `setup.cmd`. The inner archive and the unpacked copy are never
+committed. Any other dataset — MMPD, UBFC-rPPG, COHFACE — remains outside Git.
+
 ## 2c. What was actually executed (2026-11-25)
 
 1. Verified the provider record, article (methods, limitations, ethics),
