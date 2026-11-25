@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import logging
 import os
 import threading
@@ -31,6 +32,13 @@ from fastapi.staticfiles import StaticFiles
 from rppg_core import analyze
 from rppg_core.device import list_serial_ports
 from rppg_core.live import LiveSession
+from rppg_core.remote_live import (
+    FrameDecodeError,
+    RemoteLiveSession,
+    SourceFrameCamera,
+    decode_envelope,
+    decode_frame,
+)
 from rppg_core.live_eval import evaluate_live_recording
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -184,25 +192,53 @@ def list_devices() -> dict:
     }
 
 
+def _browser_source_label(cfg: dict) -> str:
+    """Human-readable name for the device the frames came from (for the record)."""
+    label = (cfg.get("camera_label") or "").strip()
+    return label[:120] if label else "browser camera"
+
+
 @app.websocket("/ws/live")
 async def live_ws(ws: WebSocket) -> None:
     """Stream live rPPG (and optional CMS50D) state to the browser.
 
-    Protocol: client sends one JSON start message, e.g.
-        {"camera_index": 0, "serial_port": null, "duration": 60, "record": false}
-    Server streams {"type": "frame", ...} messages and a final
-    {"type": "done"} (or {"type": "error", ...}).
-    Client may send {"action": "stop"} at any time.
+    Two camera sources are supported, chosen by the client in its first message:
+
+    ``camera_source: "browser"`` (what the bundled interface sends)
+        The camera on **the device that opened the page** is used. The browser
+        acquires it with ``getUserMedia`` and streams frames over this websocket
+        (binary JPEG/PNG frames, or ``{"type": "frame", "data": "<base64>"}``).
+        Nothing is read from the machine running the server. This is what makes
+        a phone or a second laptop measure *its* camera instead of the host's.
+
+    ``camera_source: "host"``
+        Legacy behaviour: OpenCV opens ``camera_index`` on the server machine.
+        Kept for local-only research runs where that is intentional.
+
+    Message flow (server -> client): ``started``, then repeated ``frame``
+    messages with the live state and a JPEG preview, then ``done`` (with
+    segments/evaluation when recording). The client may send
+    ``{"action": "stop"}`` at any time.
+
+    Frame payloads are processed in memory. With ``record`` on, the server keeps
+    the same local AVI + sync CSV it keeps for a host camera, inside that run's
+    directory only.
     """
     await ws.accept()
     session: LiveSession | None = None
     stop = threading.Event()  # shared with the capture thread
+    source: SourceFrameCamera | None = None
 
     # Preview streaming rate (decoupled from the ~30 FPS processing loop).
     stream_fps = 15
 
     try:
         cfg = await ws.receive_json()
+        camera_source = str(cfg.get("camera_source") or "browser").strip().lower()
+        if camera_source not in ("browser", "host"):
+            raise ValueError(
+                f"Unknown camera_source '{cfg.get('camera_source')}'; use 'browser' or 'host'."
+            )
         camera_index = int(cfg.get("camera_index", 0))
         serial_port = cfg.get("serial_port") or None
         duration = cfg.get("duration")  # seconds, or None for unbounded
@@ -218,20 +254,85 @@ async def live_ws(ws: WebSocket) -> None:
             run_dir = _run_dir(run_id)
             run_dir.mkdir(parents=True, exist_ok=True)
             record_path = run_dir / "live_input.avi"
+            if camera_source == "browser":
+                note = run_dir / "live_source.txt"
+                note.write_text(
+                    f"camera_source=browser\nlabel={_browser_source_label(cfg)}\n"
+                    "note=frames came from the browser that opened the dashboard, not "
+                    "from the machine running this server\n",
+                    encoding="utf-8",
+                )
 
         loop = asyncio.get_running_loop()
-        session = await loop.run_in_executor(
-            None,
-            lambda: LiveSession(
+
+        if camera_source == "browser":
+            source = SourceFrameCamera()
+            # The processing loop blocks on read(); give it a moment to receive
+            # the first frame before starting, so the "started" message is
+            # honest about opening the capture.
+            session = RemoteLiveSession(
+                camera_index=0,
+                serial_port=serial_port,
+                record_path=record_path,
+                segment_mode=segment_mode,
+                source=source,
+            )
+            # open() runs in a worker thread: it waits (briefly) for a frame.
+        else:
+            session = LiveSession(
                 camera_index=camera_index,
                 serial_port=serial_port,
                 record_path=record_path,
                 segment_mode=segment_mode,
-            ).open(),
-        )
+            )
+        # Watch for client messages: "stop", and (browser source) incoming frames.
+        async def _watch_client() -> None:
+            try:
+                while not stop.is_set():
+                    message = await ws.receive()
+                    if message.get("type") == "websocket.disconnect":
+                        stop.set()
+                        return
+                    data = message.get("bytes")
+                    if data:
+                        try:
+                            if source is not None:
+                                source.push(decode_frame(data))
+                        except FrameDecodeError:
+                            # A single bad frame must not end the session; the
+                            # next good one continues the measurement.
+                            continue
+                        continue
+                    text = message.get("text")
+                    if not text:
+                        continue
+                    try:
+                        payload = json.loads(text)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(payload, dict):
+                        if payload.get("action") == "stop":
+                            stop.set()
+                            return
+                        if source is not None:
+                            try:
+                                frame_bytes = decode_envelope(payload)
+                            except FrameDecodeError:
+                                continue
+                            if frame_bytes is not None:
+                                try:
+                                    source.push(decode_frame(frame_bytes))
+                                except FrameDecodeError:
+                                    continue
+            except Exception:
+                stop.set()
+
+
 
         await ws.send_json({
             "type": "started",
+            "camera_source": camera_source,
+            "camera_label": _browser_source_label(cfg) if camera_source == "browser" else None,
             "cms_connected": session.cms_connected,
             "cms_streaming": session.cms_streaming,
             "cms_error": session.cms_error,
@@ -240,19 +341,16 @@ async def live_ws(ws: WebSocket) -> None:
             "segment_mode": session.segment_mode,
         })
 
-        # Watch for a client stop message without blocking the stream loop.
-        async def _watch_stop() -> None:
-            try:
-                while not stop.is_set():
-                    msg = await ws.receive_json()
-                    if msg.get("action") == "stop":
-                        stop.set()
-                        return
-            except Exception:
-                stop.set()
-
-        watcher = asyncio.create_task(_watch_stop())
-
+        # Start receiving client messages BEFORE opening the session: for a
+        # browser camera the first frame has to arrive while open() waits for
+        # it, otherwise opening could only ever time out.
+        watcher = asyncio.create_task(_watch_client())
+        try:
+            session = await loop.run_in_executor(None, session.open)
+        except Exception:
+            stop.set()
+            watcher.cancel()
+            raise
         # Run the capture+processing loop in its own thread so the motion/RGB
         # buffers fill at the camera's ~30 FPS (matching the scripts), while we
         # stream the preview to the browser at a lower, throttled rate.
@@ -283,6 +381,7 @@ async def live_ws(ws: WebSocket) -> None:
                 out["frame"] = await loop.run_in_executor(
                     None, session.encode_last_preview
                 )
+                out["camera_source"] = camera_source
                 await ws.send_json(out)
         finally:
             stop.set()
@@ -301,7 +400,7 @@ async def live_ws(ws: WebSocket) -> None:
         if session is not None and record_path is not None:
             await asyncio.get_running_loop().run_in_executor(None, session.close)
 
-        done_msg = {"type": "done"}
+        done_msg = {"type": "done", "camera_source": camera_source}
         if session is not None and session.segment_mode:
             done_msg["segments"] = session.segment_summaries()
             # Persist the motion-segment HR summary CSV (2-min script parity).

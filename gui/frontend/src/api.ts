@@ -122,6 +122,9 @@ export interface LiveState {
   serial_port?: string | null
   recording?: boolean
   segment_mode?: boolean
+  /** 'browser' = frames came from the device that opened the page. */
+  camera_source?: 'browser' | 'host'
+  camera_label?: string | null
   segments?: MotionSegment[]
   evaluation?: LiveEvaluation
   evaluation_error?: string

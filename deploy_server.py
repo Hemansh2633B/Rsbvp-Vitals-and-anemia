@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import signal
 import socket
 import subprocess
@@ -63,11 +64,26 @@ def free_port(host: str, preferred: int, attempts: int = 25) -> int:
     raise SystemExit(f"no free port in range {preferred}-{preferred + attempts - 1}")
 
 
-def wait_until_healthy(url: str, timeout_s: float = 45.0) -> bool:
+def _ssl_context(insecure: bool):
+    if not insecure:
+        return None
+    import ssl
+
+    context = ssl.create_default_context()
+    # Local health probe against our own self-signed certificate: the connection
+    # never leaves this machine, so verification is deliberately skipped here
+    # and nowhere else.
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
+
+
+def wait_until_healthy(url: str, timeout_s: float = 45.0, insecure: bool = False) -> bool:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=2) as response:
+            with urllib.request.urlopen(
+                    url, timeout=2, context=_ssl_context(insecure)) as response:
                 if response.status == 200:
                     body = response.read(4096).decode("utf-8", "replace")
                     if '"status"' in body or "ok" in body.lower():
@@ -118,6 +134,131 @@ def unpack_dataset(dest: Path) -> int:
     return 0
 
 
+def local_ip_addresses() -> list[str]:
+    """IPv4 addresses this machine answers on (best effort, no external calls)."""
+    addresses: list[str] = []
+    lan = lan_address()
+    if lan:
+        addresses.append(lan)
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            candidate = info[4][0]
+            if candidate not in addresses and not candidate.startswith("127."):
+                addresses.append(candidate)
+    except OSError:
+        pass
+    return addresses
+
+
+def ensure_certificate(directory: Path) -> tuple[Path, Path]:
+    """Create (once) a self-signed certificate for this machine's addresses.
+
+    Browsers only expose a camera on a *secure context*. ``http://localhost``
+    counts as secure, but ``http://192.168.1.5:8000`` does not - so a phone on
+    the same Wi-Fi cannot use its camera over plain HTTP. Serving the same app
+    over HTTPS with this certificate fixes that.
+
+    The certificate is generated locally, stored under ``.run/tls`` (ignored by
+    Git), and covers localhost plus this machine's LAN addresses. It is
+    self-signed: the browser will warn once and you accept it ("Advanced ->
+    Proceed"), which is appropriate for a trusted lab network. It is NOT a
+    substitute for a real certificate on an untrusted network.
+    """
+    cert = directory / "cert.pem"
+    key = directory / "key.pem"
+    if cert.is_file() and key.is_file():
+        return cert, key
+    directory.mkdir(parents=True, exist_ok=True)
+
+    config = directory / "openssl.cnf"
+    sans = ["DNS:localhost", "IP:127.0.0.1", f"IP:{lan_address() or '127.0.0.1'}"]
+    for address in local_ip_addresses():
+        entry = f"IP:{address}"
+        if entry not in sans:
+            sans.append(entry)
+    config.write_text(
+        "[req]\n"
+        "distinguished_name = dn\n"
+        "x509_extensions = v3\n"
+        "prompt = no\n"
+        "[dn]\n"
+        "CN = RSBVP local deployment\n"
+        "O = RSBVP research prototype\n"
+        "[v3]\n"
+        "subjectAltName = " + ",".join(sans) + "\n"
+        "basicConstraints = CA:FALSE\n"
+        "keyUsage = digitalSignature, keyEncipherment\n"
+        "extendedKeyUsage = serverAuth\n",
+        encoding="utf-8",
+    )
+
+    openssl = shutil.which("openssl")
+    if openssl:
+        result = subprocess.run(
+            [openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "825",
+             "-keyout", str(key), "-out", str(cert), "-config", str(config)],
+            capture_output=True, text=True)
+        if result.returncode == 0:
+            try:
+                os.chmod(key, 0o600)
+            except OSError:
+                pass
+            return cert, key
+    else:
+        result = None
+
+    # No usable openssl: fall back to the cryptography package when present.
+    try:
+        import datetime as _dt
+
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.x509.oid import NameOID
+
+        key_obj = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        subject = x509.Name([
+            x509.NameAttribute(NameOID.COMMON_NAME, "RSBVP local deployment"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "RSBVP research prototype"),
+        ])
+        alt_names: list[x509.GeneralName] = [x509.DNSName("localhost"),
+                                            x509.IPAddress(__import__("ipaddress").ip_address("127.0.0.1"))]
+        for address in local_ip_addresses():
+            try:
+                alt_names.append(x509.IPAddress(__import__("ipaddress").ip_address(address)))
+            except ValueError:
+                continue
+        now = _dt.datetime.now(_dt.timezone.utc)
+        certificate = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(subject)
+            .public_key(key_obj.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - _dt.timedelta(minutes=5))
+            .not_valid_after(now + _dt.timedelta(days=825))
+            .add_extension(x509.SubjectAlternativeName(alt_names), critical=False)
+            .sign(key_obj, hashes.SHA256())
+        )
+        key.write_bytes(key_obj.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.TraditionalOpenSSL,
+            serialization.NoEncryption()))
+        cert.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+        try:
+            os.chmod(key, 0o600)
+        except OSError:
+            pass
+        return cert, key
+    except Exception as exc:  # pragma: no cover - environment dependent
+        detail = (result.stderr.strip().splitlines()[-1] if result and result.stderr else str(exc))
+        raise SystemExit(
+            "could not create a TLS certificate.\n"
+            "  Install OpenSSL (Linux: openssl package, macOS: preinstalled, Windows: Git for "
+            "Windows includes it) or run 'pip install cryptography'.\n"
+            f"  Detail: {detail}")
+
+
 def cmd_stop(args) -> int:
     pidfile = Path(args.pidfile)
     if not pidfile.is_file():
@@ -161,6 +302,10 @@ def main(argv=None) -> int:
     parser.add_argument("--dataset-dest", default=str(ROOT / "data" / "rppg10"))
     parser.add_argument("--foreground", action="store_true",
                         help="do not detach; log to the terminal (for containers/CI)")
+    parser.add_argument("--tls", action="store_true",
+                        help="serve over HTTPS (needed for camera access on other devices)")
+    parser.add_argument("--certfile", default="", help="TLS certificate (with --tls)")
+    parser.add_argument("--keyfile", default="", help="TLS private key (with --tls)")
     args = parser.parse_args(argv)
 
     if args.unpack_dataset:
@@ -191,6 +336,15 @@ def main(argv=None) -> int:
 
     command = [sys.executable, "-m", "uvicorn", "backend.main:app",
                "--host", args.host, "--port", str(port)]
+
+    scheme = "http"
+    if args.tls:
+        if args.certfile and args.keyfile:
+            certfile, keyfile = Path(args.certfile), Path(args.keyfile)
+        else:
+            certfile, keyfile = ensure_certificate(ROOT / ".run" / "tls")
+        command += ["--ssl-certfile", str(certfile), "--ssl-keyfile", str(keyfile)]
+        scheme = "https"
     if not args.foreground:
         command += ["--log-level", "info"]
 
@@ -198,15 +352,19 @@ def main(argv=None) -> int:
     print(" RSBVP deployment")
     print("=" * 74)
     print(f" interface : {dist}")
-    print(f" open      : http://localhost:{port}")
+    print(f" open      : {scheme}://localhost:{port}")
     if args.host == "0.0.0.0":
         lan = lan_address()
         print(f" listening : 0.0.0.0:{port} (reachable from this network)")
         if lan:
-            print(f" same Wi-Fi: http://{lan}:{port}")
+            print(f" same Wi-Fi: {scheme}://{lan}:{port}")
+            if scheme == "https":
+                print("             (self-signed certificate: accept the browser warning "
+                      "once per device)")
     else:
         print(f" listening : {args.host}:{port} (this machine only)")
-    print(f" health    : http://127.0.0.1:{port}/api/health")
+    health_scheme = scheme
+    print(f" health    : {health_scheme}://127.0.0.1:{port}/api/health")
     print(f" stop with : python deploy_server.py --stop --pidfile {args.pidfile}")
     print("=" * 74)
 
@@ -224,7 +382,8 @@ def main(argv=None) -> int:
                                start_new_session=(os.name != "nt"))
     Path(args.pidfile).write_text(str(process.pid), encoding="utf-8")
 
-    healthy = wait_until_healthy(f"http://127.0.0.1:{port}/api/health")
+    healthy = wait_until_healthy(
+        f"{scheme}://127.0.0.1:{port}/api/health", insecure=(scheme == "https"))
     if not healthy:
         print("ERROR: the server did not become healthy. Last log lines:", file=sys.stderr)
         try:
@@ -237,12 +396,13 @@ def main(argv=None) -> int:
         return 1
 
     print(f"[ok] server is up (pid {process.pid}, log {args.logfile})")
-    print(f"     open http://localhost:{port}")
+    print(f"     open {scheme}://localhost:{port}")
     print(json.dumps({"pid": process.pid, "port": port, "host": args.host,
-                      "url": f"http://localhost:{port}", "dist": str(dist)}))
+                      "url": f"{scheme}://localhost:{port}", "dist": str(dist),
+                      "tls": bool(args.tls)}))
 
     if args.open:
-        threading.Thread(target=lambda: webbrowser.open(f"http://localhost:{port}"),
+        threading.Thread(target=lambda: webbrowser.open(f"{scheme}://localhost:{port}"),
                          daemon=True).start()
     if args.check:
         cmd_stop(args)

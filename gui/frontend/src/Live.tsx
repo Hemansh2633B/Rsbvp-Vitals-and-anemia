@@ -7,6 +7,14 @@ import {
   type LiveState,
   type MotionSegment,
 } from './api'
+import {
+  cameraContextAvailable,
+  describeCameraError,
+  INSECURE_CONTEXT_MESSAGE,
+  listLocalCameras,
+  startBrowserCamera,
+  type BrowserCameraHandles,
+} from './browserCamera'
 
 type Mode = 'original' | 'segment'
 
@@ -24,7 +32,11 @@ function clock(sec: number) {
 export function Live() {
   const [devices, setDevices] = useState<Devices | null>(null)
   const [mode, setMode] = useState<Mode>('original')
-  const [cameraIndex, setCameraIndex] = useState(0)
+  // The camera always belongs to the device that opened this page. The server
+  // never opens its own webcam for this pathway.
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
+  const [deviceId, setDeviceId] = useState('')
+  const [secureContext, setSecureContext] = useState(true)
   const [serialPort, setSerialPort] = useState<string>('')
   const [duration, setDuration] = useState(30)
   // Always on: recording writes the sync CSV the post-run 2×2 evaluation
@@ -40,6 +52,8 @@ export function Live() {
   const [evaluation, setEvaluation] = useState<LiveEvaluation | null>(null)
 
   const wsRef = useRef<WebSocket | null>(null)
+  const cameraRef = useRef<BrowserCameraHandles | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   function selectMode(m: Mode) {
     if (running) return
@@ -51,21 +65,61 @@ export function Live() {
     listDevices()
       .then((d) => {
         setDevices(d)
-        setCameraIndex(d.default_camera_index)
         if (d.cms_candidate) setSerialPort(d.cms_candidate)
       })
+      // Only the serial ports come from the server now; the camera is local.
       .catch(() => setDevices({ serial_ports: [], cms_candidate: null, default_camera_index: 0 }))
-    return () => wsRef.current?.close()
+    setSecureContext(cameraContextAvailable())
+    listLocalCameras().then(setCameras).catch(() => setCameras([]))
+    return () => {
+      cameraRef.current?.stop()
+      wsRef.current?.close()
+    }
   }, [])
 
-  function start() {
+  async function start() {
     setError(null)
     setFrame(null)
     setState(null)
     setSegments(null)
     setEvaluation(null)
-    setStatus('connecting…')
+    setStatus('opening camera…')
 
+    // 1. Acquire the camera of THIS device. If the user denies it (or the page
+    //    is not a secure context), say so plainly and never fall back to the
+    //    server's webcam - that would measure the wrong person.
+    const video = videoRef.current
+    if (!video) {
+      setError('The live preview element is not ready; reload the page.')
+      setStatus('error')
+      return
+    }
+    let handles: BrowserCameraHandles
+    try {
+      handles = await startBrowserCamera(video, {
+        deviceId,
+        fps: 30,
+        width: 640,
+        onFrame: (jpeg) => {
+          const socket = wsRef.current
+          if (socket && socket.readyState === WebSocket.OPEN) socket.send(jpeg)
+        },
+        onError: (message) => {
+          setError(message)
+          setStatus('error')
+        },
+      })
+    } catch (err) {
+      setError(describeCameraError(err))
+      setStatus('error')
+      return
+    }
+    cameraRef.current = handles
+    // Camera permission granted: labels become readable, so refresh the list.
+    listLocalCameras().then(setCameras).catch(() => setCameras([]))
+
+    // 2. Then connect the socket that carries those frames to the measurement.
+    setStatus('connecting…')
     const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const ws = new WebSocket(`${proto}://${window.location.host}/ws/live`)
     wsRef.current = ws
@@ -73,7 +127,9 @@ export function Live() {
     ws.onopen = () => {
       ws.send(
         JSON.stringify({
-          camera_index: cameraIndex,
+          // Explicit: the frames come from this browser, not the server host.
+          camera_source: 'browser',
+          camera_label: cameras.find((c) => c.deviceId === deviceId)?.label || 'this device',
           serial_port: serialPort || null,
           duration: duration || null,
           record,
@@ -92,7 +148,8 @@ export function Live() {
           else if (msg.cms_connected) cms = ' · CMS50D port open, no data'
           else cms = ' · CMS50D failed'
         }
-        setStatus(`live${cms}${msg.recording ? ' · recording' : ''}`)
+        const source = msg.camera_source === 'browser' ? 'this device' : 'host camera'
+        setStatus(`live · ${source}${cms}${msg.recording ? ' · recording' : ''}`)
         if (msg.cms_error) setError(msg.cms_error)
       } else if (msg.type === 'frame') {
         if (msg.frame) setFrame(msg.frame)
@@ -108,15 +165,25 @@ export function Live() {
       }
     }
 
-    ws.onerror = () => setError('WebSocket connection failed.')
+    ws.onerror = () => {
+      setError('WebSocket connection failed.')
+      cameraRef.current?.stop()
+      cameraRef.current = null
+    }
     ws.onclose = () => {
+      cameraRef.current?.stop()
+      cameraRef.current = null
       setRunning(false)
       if (status !== 'error') setStatus((s) => (s === 'live' || s.startsWith('live') ? 'finished' : s))
     }
   }
 
   function stop() {
-    wsRef.current?.send(JSON.stringify({ action: 'stop' }))
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ action: 'stop' }))
+    }
+    cameraRef.current?.stop()
+    cameraRef.current = null
   }
 
   const warming = state?.warming_up ?? true
@@ -126,8 +193,45 @@ export function Live() {
     <div className="live">
       <BrowserPulse />
       <section className="panel">
-        <h2>Local host capture (legacy)</h2>
-        <p className="muted">This optional mode uses the webcam attached to the FastAPI host and is suitable for local research runs. For a remote browser user's camera, use the browser-local capture above.</p>
+        <h2>Live capture (this device's camera)</h2>
+        <p className="muted">
+          Frames come from the camera on the device you are using now - a phone,
+          tablet or another laptop measures its own camera, not the server's. The
+          video is streamed to the analysing server over this connection; nothing
+          is read from, or recorded by, any other machine's webcam.
+        </p>
+        <div className="live-controls">
+          <label className="ctl">
+            Camera
+            <select
+              value={deviceId}
+              disabled={running}
+              onChange={(e) => setDeviceId(e.target.value)}
+            >
+              <option value="">
+                {cameras.length ? 'Default camera (this device)' : 'Default camera'}
+              </option>
+              {cameras.map((c, i) => (
+                <option value={c.deviceId} key={c.deviceId || `cam-${i}`}>
+                  {c.label || `Camera ${i + 1}`}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {!secureContext && (
+          <div className="status error">
+            {INSECURE_CONTEXT_MESSAGE}
+          </div>
+        )}
+        <div className="live-video local-preview">
+          <video ref={videoRef} autoPlay playsInline muted />
+          {!running && (
+            <div className="live-placeholder muted">
+              The preview appears here once you press Start.
+            </div>
+          )}
+        </div>
         <div className="mode-switch">
           <button
             className={mode === 'original' ? 'mode active' : 'mode'}
@@ -200,10 +304,10 @@ export function Live() {
       <section className="panel live-stage">
         <div className="live-video">
           {frame ? (
-            <img src={frame} alt="live preview" />
+            <img src={frame} alt="processed frames as seen by the server" />
           ) : (
             <div className="live-placeholder muted">
-              {running ? 'Waiting for frames…' : 'Press Start to begin'}
+              {running ? 'Waiting for measurements…' : 'Measurements appear after Start'}
             </div>
           )}
           {running && warming && (
