@@ -42,6 +42,7 @@ This is the **living** capability statement for the repository. It is distinct f
 | Mask validation + coverage + ROI stats | Implemented | TESTED-SOFTWARE | Explicit reject reasons; percentiles/histograms; illumination indicators |
 | Dataset audit (hashes, exact + near `aHash` duplicates, label join, patient grouping, QA buckets) | Implemented | TESTED-SOFTWARE (`test_anemia_audit.py`) | Output is sensitive research metadata; never commit |
 | Patient-level split integrity | Implemented | TESTED-SOFTWARE | `grouped_holdout`, `assert_patient_disjoint`; image-level splits rejected |
+| Composite anemia-image QA aggregation (contract + image QA + mask) | Implemented | TESTED-SOFTWARE (`test_anemia_quality.py`) | `build_composite_qa`/`QA_Verdict` in `gui/anemia_core/quality.py`; aggregates contract, image QA and mask results into `usable`/`rejected`/`not_evaluated` verdicts with machine-readable reasons; no Hb estimation or diagnosis |
 | Anemia / Hb prediction, diagnosis, risk, thresholds | **Missing — by design** | — | Model card: no model until a governed, independently evaluated study exists; prohibited in this project |
 | Automatic conjunctiva localization | **Missing** | — | Must be separately implemented, tested and labelled experimental; never conjunctival colour = Hb |
 
@@ -58,7 +59,7 @@ This is the **living** capability statement for the repository. It is distinct f
 
 | Item | Status | Value |
 |---|---|---|
-| Python test suite | Implemented | **203 passed** (`python -m pytest -q`) |
+| Python test suite | Implemented | **214 passed** (`python -m pytest -q`) |
 | Frontend tests | Implemented | **17 passed** (`npm test`) |
 | Frontend build / lint | Implemented | build OK (`vite`, ~388 kB); `oxlint` 0 errors |
 | `compileall` / `git diff --check` | Implemented | clean |
