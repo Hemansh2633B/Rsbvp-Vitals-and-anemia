@@ -4,9 +4,9 @@ RSBVP is an academic research prototype investigating two **independent** questi
 
 ## Current status
 
-- **Pulse research:** Existing Green and POS extraction, motion classification/corrections, FFT/peak estimation, experimental tachogram respiratory analysis, local webcam capture and optional CMS50D evaluation remain available. Defaults now use a 0.7–3.5 Hz (42–210 BPM) search passband. CHROM processing, per-ROI RGB retention with a conservative skin-color mask, timestamp-derived sampling-rate helper, and frame-gap accounting are included. The ROI mask is a heuristic, not MediaPipe landmark segmentation. An algorithm comparison CLI scores Green/POS/CHROM and ROI/multi-ROI variants from a supplied synchronized RGB-trace CSV; it does not create reference data.
-- **Anemia research:** No verified dataset or trained model is included. The image quality and RGB/HSV/Lab feature helpers, a standardized input-image contract and a researcher-reviewed conjunctival-ROI annotation format (`docs/ANEMIA_IMAGE_CONTRACT.md`, `research/anemia/contract.py`) are research foundations only; they do not locate conjunctiva or produce hemoglobin/anemia predictions. Status: **NOT AVAILABLE — NO VERIFIED LABELED DATASET**.
-- **Validation:** No new reference recordings, clinical results, dataset performance, or hardware tests are claimed by this update. UBFC-rPPG and COHFACE remain absent; CI never requires datasets, GPU, webcams or CMS50D.
+- **Pulse research:** Existing Green and POS extraction, motion classification/corrections, FFT/peak estimation, experimental tachogram respiratory analysis, local webcam capture and optional CMS50D evaluation remain available. Defaults now use a 0.7–3.5 Hz (42–210 BPM) search passband. CHROM processing, per-ROI RGB retention with a conservative skin-color mask, timestamp-derived sampling-rate helper, and frame-gap accounting are included. The ROI mask is a heuristic, not MediaPipe landmark segmentation. An algorithm comparison CLI scores Green/POS/CHROM and ROI/multi-ROI variants from a supplied synchronized RGB-trace CSV; it does not create reference data. Python↔browser DSP parity now covers all 3 ROIs × 3 estimators (9 combos) on a shared synthetic fixture, and cross-ROI agreement gating plus candidate_bpm validation hardening are in place.
+- **Anemia research:** No verified dataset or trained model is included. The image quality and RGB/HSV/Lab feature helpers, a standardized input-image contract and a researcher-reviewed conjunctival-ROI annotation format (`docs/ANEMIA_IMAGE_CONTRACT.md`, `research/anemia/contract.py`) are research foundations only; they do not locate conjunctiva or produce hemoglobin/anemia predictions. A composite image-QA aggregation layer (contract + image QA + mask) is implemented and software-tested, emitting machine-readable rejection reasons; it performs no Hb estimation or diagnosis. Status: **NOT AVAILABLE — NO VERIFIED LABELED DATASET**.
+- **Validation:** No new reference recordings, clinical results, dataset performance, or hardware tests are claimed by this update. UBFC-rPPG and COHFACE remain absent; CI never requires datasets, GPU, webcams or CMS50D. CI runs 214 Python tests plus 34 frontend tests and remains dataset/GPU/webcam-free.
 
 The original research scripts, notebooks and archive remain in the repository. The original MIT license and attribution are preserved.
 
@@ -37,6 +37,8 @@ Run tests from the repository root after installing test dependencies:
 ```bash
 python -m pytest -q
 ```
+
+The Python suite now comprises 214 tests.
 
 Build and lint the standalone UI:
 
