@@ -19,7 +19,7 @@ This is the **living** capability statement for the repository. It is distinct f
 |---|---|---|---|
 | Green / POS / CHROM transforms (Python) | Implemented | TESTED-SOFTWARE (`tests/test_rppg_*`, `test_backends_reference`) | Rolling POS retained; CHROM independent transform; 0.7–3.5 Hz passband |
 | Green / POS / CHROM (browser TS) | Implemented (experimental variants) | TESTED-FIXTURE (`liveDsp.parity.test.ts`) | In-browser POS/CHROM are documented experimental variants; agreement **demonstrated only on one synthetic fixture** |
-| Python↔TypeScript DSP parity | Implemented | TESTED-FIXTURE (`tests/fixtures/generate_rppg_rgb_fixture_expected.py`) | Peak frequency, peak fraction, SNR dB, separation asserted to tight tolerance on the shared fixture; not evidence beyond it |
+| Python↔TypeScript DSP parity | Implemented | TESTED-FIXTURE (`tests/fixtures/generate_rppg_rgb_fixture_expected.py`) | Peak frequency, peak fraction, SNR dB, separation asserted to tight tolerance on the shared fixture across all 9 ROI×estimator combos (forehead/left_cheek/right_cheek × green/pos/chrom); not evidence beyond one synthetic fixture |
 | Quality verdicts per window (Python + browser) | Implemented | TESTED-SOFTWARE (`tests/test_quality.py`, `test_reliability.py`) | Six separated concepts (`face_tracking`, `roi_extraction`, `temporal_acquisition`, `pulse_signal`, `algorithm_agreement`, `availability`) + union ROI-coverage gate ≥ 0.50; status tokens incl. `irregular_timestamps`, `processing_error`; unavailable ⇒ no number. Sprint 10: `candidate_bpm` from legacy motion heuristics is now rejected unless within `AGREEMENT_TOLERANCE_BPM` (12) of every trustworthy estimator AND within 6 BPM of at least one; cross-ROI agreement (`roi_agreement`) added; no estimator anchor ⇒ candidate rejected (`candidate_no_estimator_backing`). |
 | Low-light false-accept handling | Partially implemented | TESTED-FIXTURE | Diagnostics flag marginal low-light POS windows (native 0.556 / reference 0.630 quality-ok). Forehead of the perfectly periodic fixture still passes — an artifact of idealized input, not robustness evidence. Cross-estimator agreement is the remaining mitigation; **no real-world light validation exists** (NOT RUN) |
 | Multi-ROI extraction (browser) | Implemented | TESTED-SOFTWARE (roi.ts tests) + HARDWARE-UNTESTED | 3 ROIs, RGB skin heuristic, eye/lip/brow exclusion; **not** MediaPipe segmentation; dropout accounting in exports |
@@ -60,8 +60,8 @@ This is the **living** capability statement for the repository. It is distinct f
 | Item | Status | Value |
 |---|---|---|
 | Python test suite | Implemented | **214 passed** (`python -m pytest -q`) |
-| Frontend tests | Implemented | **17 passed** (`npm test`) |
-| Frontend build / lint | Implemented | build OK (`vite`, ~388 kB); `oxlint` 0 errors |
+| Frontend tests | Implemented | **34 passed** (`npm test`) |
+| Frontend build / lint | Implemented | build OK (`vite`, ~391 kB); `oxlint` 0 errors |
 | `compileall` / `git diff --check` | Implemented | clean |
 | CI (`.github/workflows/ci.yml`) | Implemented | Python + frontend gates; dataset/GPU-independent; extend-only (no replacement) |
 | MIT license + attribution preserved | Implemented | third-party notices in docs; no relabeling |
