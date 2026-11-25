@@ -10,110 +10,142 @@ RSBVP is an academic research prototype investigating two **independent** questi
 
 The original research scripts, notebooks and archive remain in the repository. The original MIT license and attribution are preserved.
 
-## Beginner setup (all platforms)
+## Deploy it (Linux, macOS, Windows)
 
-> **New to this? Do this and nothing else.** Copy-paste the one line for your
-> operating system. The script installs everything, runs the tests, and unpacks
-> the bundled dataset. It never downloads a dataset, never needs a webcam, GPU or
-> internet login, and never touches your other files.
+> **Just want it running?** One command. It installs the Python packages, builds
+> the web interface, starts the service on a single port, waits until it is
+> healthy, and prints the URL. No webcam, GPU or dataset download is involved.
 
-| Your system | One command | Where to type it |
+| Your system | Command | Where to run it |
 |---|---|---|
-| **Linux** | `bash setup.sh` | Terminal |
-| **macOS** | `bash setup.sh` | Terminal (Terminal.app) |
-| **Windows 11/10** | `setup.cmd` | Double-click the file, or type it in Command Prompt |
-| Windows, PowerShell fan | `.\setup.ps1` | PowerShell, inside the repo folder |
-| Windows, using Git Bash / WSL | `bash setup.sh` | Git Bash / WSL terminal |
+| **Linux** | `./deploy.sh` | Terminal, in the repo folder |
+| **macOS** | `./deploy.sh` | Terminal, in the repo folder |
+| **Windows** (simplest) | `deploy.cmd` | Double-click the file, or type it in Command Prompt |
+| Windows PowerShell | `.\deploy.ps1` | PowerShell, in the repo folder |
+| Windows Git Bash / WSL | `./deploy.sh` | Git Bash / WSL terminal |
 
-What the script does, in order (each step prints `[ok]`, `[warn]` or `[fail]`):
+`deploy.sh` may need `chmod +x deploy.sh` once (or run `bash deploy.sh`).
+If macOS or Linux says `bad interpreter: /usr/bin/env bash^M`, your checkout has
+Windows line endings: the repository's `.gitattributes` prevents this for new
+clones — for an existing clone run `git rm --cached -r . && git reset --hard`.
 
-1. **checks Python 3.12+** — if it is missing, it tells you exactly what to install;
-2. **creates `.venv`** (a private Python folder inside the repo) and installs the
-   packages from `requirements-dev.txt`;
-3. **runs the Python tests** (280 tests, no camera or dataset needed);
-4. **installs the web interface** (`gui/frontend`) and runs its 34 tests, build and lint;
-5. **unpacks the bundled rPPG-10 dataset** into `data/rppg10/` and validates it;
-6. **prints what to do next** (start the backend, start the interface, open the browser).
+### Options (identical on every platform)
 
-Useful variations:
+| Bash | Windows | Meaning |
+|---|---|---|
+| `--host 127.0.0.1` | `--host 127.0.0.1` / `-Host 127.0.0.1` | this machine only (the default `0.0.0.0` also allows your phone / LAN) |
+| `--port 8080` | `--port 8080` / `-Port 8080` | preferred port (the next free one is used if busy) |
+| `--open` | `--open` / `-Open` | open the browser when the service is ready |
+| `--stop` | `--stop` / `-Stop` | stop the running service |
+| `--foreground` | `--foreground` / `-Foreground` | keep it attached to the terminal (default: background) |
+| `--skip-install` | `--skip-install` / `-SkipInstall` | skip `pip install` / `npm ci` |
+| `--unpack-dataset` | `--unpack-dataset` / `-UnpackDataset` | only unpack the bundled rPPG-10 dataset, then exit |
+| `--help` | `--help` | show the usage text |
 
-```bash
-bash setup.sh --no-dataset      # skip the dataset entirely
-bash setup.sh --dataset-only    # only unpack + validate the dataset
-bash setup.sh --no-frontend     # Python only (no JavaScript/TypeScript)
-bash setup.sh --benchmark       # also re-run the research benchmark (~3 min)
-bash setup.sh --recreate        # delete and rebuild .venv
-bash setup.sh --help            # all options
-```
+### What "deployed" means here
 
-### Step-by-step for a complete beginner
+The backend and the built interface are served **from the same process on one
+port** (`http://localhost:8000`), so there is no second server to start:
+
+- `/` serves the built web interface (`gui/frontend/dist`), listening on
+  `0.0.0.0:8000` so the same URL also works from your phone on the same Wi-Fi;
+- `/api/...` and `/ws/live` are the backend;
+- the launcher polls `/api/health` and only reports success when it answers — if
+  the server fails to start, the last 20 log lines are printed;
+- the service runs in the background with a PID file, and `--stop` shuts it down;
+- logs: `.run/server.log`, PID: `.run/rsbvp.pid`.
+
+This is a **local research deployment**: no authentication, no TLS, no
+multi-user isolation. Keep it on a trusted network. For anything internet-facing
+you need a reverse proxy with TLS and access control, which this project does
+not provide.
+
+To also run it on a server/container in the foreground:
+`./deploy.sh --host 0.0.0.0 --foreground --skip-install`.
+
+### Beginner walkthrough
 
 **1. Install the two prerequisites (once).**
 
-- **Python 3.12 or newer** — <https://www.python.org/downloads/>.
-  On Windows, **tick "Add python.exe to PATH"** during installation. On macOS you
-  can also use `brew install python@3.12`. On Debian/Ubuntu:
-  `sudo apt install python3.12 python3.12-venv`.
-- **Node.js 20 LTS** — <https://nodejs.org/>. Needed only for the web interface;
-  if you skip it, run the script with `--no-frontend`.
+- **Python 3.12 or newer** — <https://www.python.org/downloads/>. On Windows
+  **tick "Add python.exe to PATH"** during setup. macOS: `brew install python@3.12`.
+  Debian/Ubuntu: `sudo apt install python3.12 python3.12-venv`.
+- **Node.js 20 LTS** — <https://nodejs.org/>. Needed to *build* the interface;
+  once built, only Python is needed to serve it.
 
-Check them (optional):
-
-```bash
-python3 --version     # Windows: python --version
-node --version
-```
-
-**2. Get the code.** Either download the ZIP from GitHub and unzip it, or:
+**2. Get the code.**
 
 ```bash
 git clone https://github.com/Hemansh2633B/Rsbvp-Vitals-and-anemia.git
 cd Rsbvp-Vitals-and-anemia
 ```
 
-**3. Run the setup script** — the one line from the table above.
+(Or download the ZIP from GitHub and unzip it.)
 
-**4. If something goes wrong.** The script never stops silently. Read the
-`[fail]` line and the two lines under it; they name the missing tool or the failing
-command. The most common cases:
+**3. Deploy.**
+
+```bash
+./deploy.sh
+```
+
+On Windows: double-click `deploy.cmd`.
+
+**4. Open the URL it prints** — normally <http://localhost:8000>. The browser
+asks for camera permission for the live view; nothing is uploaded.
+
+**5. Stop it** with `./deploy.sh --stop` (or `deploy.cmd --stop`).
+
+**If something goes wrong**, every step prints `[ok]` or `[fail]` followed by the
+exact command to run. The common cases:
 
 | Message | Fix |
 |---|---|
-| `Python was not found` / `Python 3.x is too old` | Install Python 3.12+; on Windows re-open the terminal after installing |
-| `could not create .venv` (Linux) | `sudo apt install python3.12-venv` |
-| `Node.js was not found` | Install Node.js LTS, **or** run `bash setup.sh --no-frontend` (the Python research tools still work) |
-| `npm ci failed` | Check your internet connection, then re-run; it is safe to re-run |
-| `[warn] validation reported items to review` | **Normal.** The provider spreadsheet is a known, recorded deviation, not an error |
-| PowerShell: `running scripts is disabled` | Use `setup.cmd` instead, or once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| `Python 3.12+ not found` | Install Python (see step 1); on Windows reopen the terminal afterwards |
+| `npm (Node.js) not found` | Install Node.js LTS — it is required to build the interface |
+| `pip install failed` | Check your internet connection, then re-run |
+| `the frontend build failed` | Run `cd gui/frontend && npm ci && npm run build` to see the full error |
+| `port 8000 is busy` | Nothing to do — the next free port is chosen automatically and printed |
+| PowerShell: `running scripts is disabled` | Use `deploy.cmd`, or once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| `bad interpreter ... ^M` (macOS/Linux) | Line endings — see the note above about `.gitattributes` |
 
-**5. Start it (two terminals).**
+### Development mode (hot reload)
+
+If you are changing the code, run the two dev servers instead; the frontend then
+proxies `/api` and `/ws` to the backend:
 
 ```bash
-# terminal 1 — backend
+# terminal 1 - backend
 cd gui
-../.venv/bin/python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+../.venv/bin/python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ```bash
-# terminal 2 — web interface
+# terminal 2 - interface with hot reload
 cd gui/frontend
 npm run dev -- --host 0.0.0.0
 ```
 
-Then open <http://localhost:5173>. On Windows use
-`..\.venv\Scripts\python -m uvicorn ...` in terminal 1. The browser asks for camera
-permission for the live view; nothing is uploaded.
+Then open <http://localhost:5173>. Windows: `..\.venv\Scripts\python -m uvicorn ...`.
 
-**6. Where the results are.**
+### Tests (optional - CI runs these, deployment does not)
+
+```bash
+.venv/bin/python -m pytest -q                 # 295 Python tests, dataset-free
+cd gui/frontend && npm test && npm run build && npm run lint
+```
+
+### Where the research results are
 
 | What | Where |
 |---|---|
-| Research benchmark report (human-readable) | `reports/rppg10/rppg10_benchmark.md` |
+| Research benchmark report | `reports/rppg10/rppg10_benchmark.md` |
 | Full benchmark data (every window) | `reports/rppg10/rppg10_benchmark.json` |
 | Dataset validation output | `reports/rppg10/rppg10_inventory.json` |
-| The unpacked dataset | `data/rppg10/Dataset_rPPG-10/Subject_<n>/` |
 
-### About the bundled dataset — a deliberate, documented exception
+The bundled dataset is unpacked with `bash deploy.sh --unpack-dataset` (ask for it
+explicitly; deployment never touches data).
+
+### About the bundled dataset - a deliberate, documented exception
 
 Every other dataset in this repository is **not** stored in Git: `data/README.md`
 requires licensed data to live outside the repository (`RSBVP_DATA_ROOT`), and
@@ -125,19 +157,16 @@ without hunting for data. The details that make this defensible:
 
 | Question | Answer |
 |---|---|
-| Which dataset? | **rPPG-10** — Rodrigues & Garcia, *Data in Brief* 61 (2025) 111888 (doi:10.1016/j.dib.2025.111888); data doi:10.17632/bx8982xgwt.1 |
-| Licence | **CC BY-NC-SA 4.0** — research / **non-commercial** use only, share-alike, attribution required |
+| Which dataset? | **rPPG-10** - Rodrigues & Garcia, *Data in Brief* 61 (2025) 111888 (doi:10.1016/j.dib.2025.111888); data doi:10.17632/bx8982xgwt.1 |
+| Licence | **CC BY-NC-SA 4.0** - research / **non-commercial** use only, share-alike, attribution required |
 | Is a dataset in Git allowed here? | Yes, **only** for this file, because the licence permits redistribution. No other dataset, recording, derived trace or participant data may be added. `.gitignore` still blocks `*.avi`, `*.npy`, `*.h5` etc., and `/data/rppg10/` (the unpacked copy) is ignored |
 | May I redistribute it? | Only under the same CC BY-NC-SA 4.0 terms, with attribution and the citation above |
-| May I use it commercially? | **No** — the licence forbids it |
-| Which participants? | 26 of the provider's 27 subjects. `Subject_4` is **excluded by the provider** (its three ROI videos are 0-byte placeholders); the scripts pass `--exclude-subjects 4` and the exclusion, the citation and that evidence are recorded in every report |
-| What does the benchmark show? | ECG-referenced pulse-rate agreement on a small, single-site dataset (26 young Portuguese students, Fitzpatrick I–IV, natural indoor light, 64×64 crops, manual sync ≤ ±500 ms). It is **research evidence, not a medical result** |
+| May I use it commercially? | **No** - the licence forbids it |
+| Which participants? | 26 of the provider's 27 subjects. `Subject_4` is **excluded by the provider** (its three ROI videos are 0-byte placeholders); tooling passes `--exclude-subjects 4` and the exclusion, citation and evidence are recorded in every report |
+| What does the benchmark show? | ECG-referenced pulse-rate agreement on a small, single-site dataset (26 young Portuguese students, Fitzpatrick I-IV, natural indoor light, 64x64 crops, manual sync <= +/-500 ms). **Research evidence, not a medical result** |
 
-If you do not want the dataset, run `bash setup.sh --no-dataset` and everything
-else (tests, web interface, and the research tooling on your own traces) still works.
-
-See also [MMPD](docs/MMPD_VALIDATION.md) — smoke-tested only, still blocked on the
-provider's signed data-release agreement — and [rPPG-10 validation details](docs/RPPG10_VALIDATION.md).
+See also [MMPD](docs/MMPD_VALIDATION.md) - smoke-tested only, still blocked on the
+provider's signed data-release agreement - and [rPPG-10 validation details](docs/RPPG10_VALIDATION.md).
 
 ## Local development
 

@@ -242,3 +242,5 @@ __marimo__/
 *.onnx
 *.ckpt
 /rsbvp_model_root/
+
+.run/

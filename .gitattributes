@@ -1,0 +1,12 @@
+# Keep shell scripts LF so `./deploy.sh` works on macOS/Linux/Git Bash even when
+# Git is configured with core.autocrlf=true (CRLF breaks the "#!" interpreter line,
+# which produces the classic "bad interpreter: /usr/bin/env bash^M" error).
+*.sh   text eol=lf
+*.py   text eol=lf
+*.txt  text eol=lf
+*.md   text eol=lf
+
+# Windows scripts must be CRLF: cmd.exe and some PowerShell hosts mis-parse LF.
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
