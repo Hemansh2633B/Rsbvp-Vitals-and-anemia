@@ -10,8 +10,26 @@ import datetime
 import queue
 import threading
 
-import serial
-import serial.tools.list_ports
+# The oximeter is optional hardware, and CI's dataset-independent job installs
+# only pytest/numpy/scipy/pandas/matplotlib/opencv. Importing pyserial lazily
+# keeps `rppg_core` (and therefore the live pathway) importable without it: a
+# camera-only run needs no serial hardware at all. A clear error is raised only
+# if someone actually asks for the oximeter.
+try:
+    import serial
+    import serial.tools.list_ports
+except ImportError:  # pragma: no cover - exercised by the CI environment
+    serial = None
+
+
+def _require_serial():
+    if serial is None:
+        raise RuntimeError(
+            "pyserial is not installed, so the CMS50D oximeter cannot be used. "
+            "Install it with 'pip install pyserial' (the deploy scripts do), or "
+            "leave the serial port blank for a camera-only run."
+        )
+    return serial
 
 
 class CMS50D:
@@ -27,6 +45,7 @@ class CMS50D:
         self.thread = None
 
     def connect(self):
+        _require_serial()
         self.connection = serial.Serial(
             port=self.port,
             baudrate=self.baudrate,
@@ -205,6 +224,9 @@ def list_serial_ports():
     a candidate when it looks like a USB-serial device (the CMS50D uses a
     USB bridge), so the UI can pre-select it.
     """
+    if serial is None:
+        # Camera-only deployment: no oximeter library, so no ports to offer.
+        return []
     ports = []
     for p in serial.tools.list_ports.comports():
         if _is_ignored(p.device):

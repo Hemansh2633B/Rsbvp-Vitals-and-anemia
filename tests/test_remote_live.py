@@ -15,6 +15,18 @@ import numpy as np
 import pytest
 
 pytest.importorskip("cv2")
+# The optional CMS50D oximeter needs pyserial; CI's dataset-independent job does
+# not install it. Camera-only behaviour must keep working without it, so the
+# end-to-end session tests (which construct a LiveSession) are skipped there.
+try:  # pragma: no cover - depends on the environment
+    import serial  # noqa: F401
+
+    HAS_SERIAL = True
+except ImportError:  # pragma: no cover
+    HAS_SERIAL = False
+
+needs_serial = pytest.mark.skipif(
+    not HAS_SERIAL, reason="pyserial not installed (camera-only environment)")
 
 from rppg_core.remote_live import (  # noqa: E402
     MAX_FRAME_BYTES,
@@ -145,12 +157,14 @@ def test_remote_session_never_opens_the_host_webcam(monkeypatch):
     assert type(session).__name__ == "RemoteLiveSession"
 
 
+@needs_serial
 def test_remote_session_waits_for_the_first_frame_before_opening():
     session = RemoteLiveSession(source=SourceFrameCamera())
     with pytest.raises(RuntimeError, match="No camera frames"):
         session.open()
 
 
+@needs_serial
 def test_remote_session_processes_browser_frames_end_to_end():
     """One pushed frame produces one processed state with a preview image."""
     source = SourceFrameCamera()
@@ -212,3 +226,25 @@ def test_frontend_declares_the_browser_source_and_sends_frames():
     # the host camera *index* must not be sent; only a camera_source marker
     sent = [line for line in live.splitlines() if " camera_index:" in line]
     assert not sent, f"the host camera index must not be sent any more: {sent}"
+
+
+# ---------------------------------------------------------------------------
+# the oximeter stays optional
+# ---------------------------------------------------------------------------
+def test_device_module_imports_without_pyserial(monkeypatch):
+    """CI installs no pyserial; importing the live pathway must still work.
+
+    A camera-only deployment needs no serial hardware, so a missing pyserial is
+    only an error for the person who actually asks for the oximeter.
+    """
+    import importlib
+
+    import rppg_core.device as device
+
+    monkeypatch.setattr(device, "serial", None)
+    assert device.list_serial_ports() == []
+    assert device.detect_cms50d_port() is None
+    with pytest.raises(RuntimeError, match="pyserial is not installed"):
+        device.CMS50D(port="COM1").connect()
+    # and the module can be re-imported cleanly afterwards
+    importlib.reload(device)
