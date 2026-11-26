@@ -164,4 +164,13 @@ timing defect short-circuits to `irregular_timestamps`/`insufficient_frames`
 before any BPM is produced — the gates reject, they never repair, and no threshold
 was relaxed to raise the acceptance rate.
 
+**Session aggregation (Sprint 13).** A session average is shown only when at least
+five readings passed the existing gates *and* at least two of them are
+non-overlapping; below that the interface says "Insufficient data" and shows no
+headline number. The plausibility bands (30-220 BPM, 4-60 br/min) are data-hygiene
+filters that catch unit mix-ups and lost estimates, not clinical ranges. The
+standard error is computed from the independent subset only and is omitted (null)
+when fewer than three independent windows exist. No gate was relaxed to make the
+session result appear sooner, and no confidence score is invented.
+
 **Calibration statement:** none of these values has been fitted to real camera data. Where a synthetic fixture motivated or exposed a threshold (e.g. concentration/SNR/separation during the low-light POS analysis), the threshold was set before that fixture's acceptance criteria and is not adjusted to flatter it. Real-camera calibration is **NOT RUN**.
