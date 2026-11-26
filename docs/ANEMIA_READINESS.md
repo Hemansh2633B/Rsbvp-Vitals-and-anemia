@@ -49,3 +49,31 @@ audit, not a capability.
 and a checklist. Any UI or API surface implying a hemoglobin reading, screening
 result, or risk score would be a fabrication and is out of scope for every
 phase of this project.
+
+## Sprint 12 — dataset risk audit (software only)
+
+`research/anemia/audit_dataset.py::audit_rows` now answers, from a local dataset
+directory alone, whether a supervised run would even be legitimate. It reports
+(counts, never repairs):
+
+| Risk reported | Why it blocks a run |
+|---|---|
+| `hemoglobin_present / missing / invalid` | A subject without a usable Hb value cannot be labelled |
+| `hemoglobin_not_available_for_every_image` | Partial labels silently turn into a biased subset |
+| `patient_id_missing` | Without participant ids, any split leaks between train and test |
+| `exact_duplicate_groups`, `near_duplicate_groups` | Augmented/duplicate images across a split inflate results |
+| `participants_with_conflicting_hemoglobin` | Two different Hb values for one person means the label join is wrong |
+| `unmatched_label_count` | Labels and images drifted apart |
+| `supervised_training_ready` | The single boolean: **false** unless every blocker above is clear |
+
+The Hb sanity window (1.0–25.0 g/dL) only catches impossible values such as a unit
+mix-up or a sentinel like `-1`. It is **not** a diagnostic range and must not be
+used to define anemia: any threshold depends on age, sex, pregnancy and altitude,
+so a future implementation must take population-specific criteria as an explicit
+input rather than a compiled-in 11 g/dL.
+
+Covered by `tests/test_anemia_dataset_risks.py` (22 tests, synthetic metadata
+only — no images, no identifiable data, no dataset in Git).
+
+**No model, no training, no Hb output, no anemia probability exists, and this
+audit does not change that.**

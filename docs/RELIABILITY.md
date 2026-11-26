@@ -149,4 +149,19 @@ Every quality threshold below is a documented research heuristic chosen a priori
 | rPPG-10 window / step | 30 s / 30 s (non-overlapping) | Pre-registered to match the provider baseline and to avoid counting correlated windows as independent; frozen before any data | PRE-REGISTERED |
 | rPPG-10 trace completeness | ≥98 % expected frames finite, timestamp jitter ≤5 % of frames | A window with dropped/corrupt frames is rejected with a token, never interpolated by this pathway | SOFTWARE |
 
+| `DUPLICATE_EPSILON_S` (browser + Python) | 0.001 s | Interval at or below ~1 ms ⇒ the read loop outran the sensor and sampled the same camera frame twice. Duplicates are excluded from the rate estimate and flag the window | SOFTWARE (unit-tested, parity-tested) |
+| `hasDuplicateSamples` | > 2 % of intervals | Above this the duplicate rate is not a rounding artefact; the window is reported `irregular_timestamps`, never `valid` | SOFTWARE |
+| `STALL_INTERVAL_MULTIPLE` | 2.5× median interval | A single interval this far beyond the typical one is a stall (tab throttling, GC, thermal), even when the coefficient of variation stays small | SOFTWARE |
+| `intervalJitterCv` | > 0.25 | Interval variability that breaks the uniform-sampling premise of the estimators | SOFTWARE |
+| Recovery backoff (browser) | 1 s → 2 s → 4 s → 8 s, cap 30 s, 4 attempts | Reopen a dropped camera without a tight retry loop; after the budget the user is told to press Start | SOFTWARE (unit-tested) |
+
+**Acquisition integrity (Sprint 12).** Whether a window's timestamps describe a
+signal the estimators can interpret is now decided explicitly, from the capture
+timestamps, in both languages (`gui/frontend/src/rppg/captureIntegrity.ts` and
+`gui/rppg_core/quality.py::trace_report`). The two are checked against a shared
+fixture (`tests/fixtures/capture_integrity_cases.json`) so they cannot drift. A
+timing defect short-circuits to `irregular_timestamps`/`insufficient_frames`
+before any BPM is produced — the gates reject, they never repair, and no threshold
+was relaxed to raise the acceptance rate.
+
 **Calibration statement:** none of these values has been fitted to real camera data. Where a synthetic fixture motivated or exposed a threshold (e.g. concentration/SNR/separation during the low-light POS analysis), the threshold was set before that fixture's acceptance criteria and is not adjusted to flatter it. Real-camera calibration is **NOT RUN**.

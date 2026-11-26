@@ -4,8 +4,15 @@
 Optional labels CSV must contain image_id and may include patient_id, hemoglobin,
 sex, age, pregnancy_status and original_status. Output CSV includes hashes for
 near-duplicate review. Protect output as potentially sensitive research metadata.
+
+The summary reports *risks*, not just counts. A dataset can look clean (every
+image present, every hash unique) while still being unusable for a supervised
+experiment: missing laboratory Hb, missing participant identifiers, the same
+participant on both sides of a future split, or the same eye photographed twice.
+Those are reported explicitly by :func:`audit_rows` so they cannot be discovered
+only after a training run.
 """
-import argparse, csv, hashlib, json, sys
+import argparse, csv, hashlib, json, math, sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "gui"))
@@ -26,6 +33,104 @@ def ahash(path, size=8):
 
 def hamming(a, b):
     return sum(c1 != c2 for c1, c2 in zip(a, b))
+
+#: A hemoglobin value outside this sanity window is treated as a data defect.
+#: This is NOT a clinical threshold and NOT an anaemia cut-off: it only separates
+#: "a laboratory value was recorded" from "a typo or a placeholder".
+HB_SANITY_G_DL = (1.0, 25.0)
+
+
+def _hb_status(raw):
+    """Classify one hemoglobin cell: ('present', value) | ('missing', None) | ('invalid', None)."""
+    text = (raw or '').strip()
+    if not text:
+        return 'missing', None
+    try:
+        value = float(text)
+    except (TypeError, ValueError):
+        return 'invalid', None
+    if not math.isfinite(value) or not (HB_SANITY_G_DL[0] <= value <= HB_SANITY_G_DL[1]):
+        return 'invalid', None
+    return 'present', value
+
+
+def audit_rows(rows):
+    """Dataset-level risks that matter before any training attempt.
+
+    Returns a dict of counts plus the identifiers behind each risk, so the report
+    is actionable ("which participants", not just "how many"). Nothing here
+    changes the data; the audit only describes it.
+    """
+    hb_present = [r for r in rows if _hb_status(r.get('hemoglobin'))[0] == 'present']
+    hb_missing = [r for r in rows if _hb_status(r.get('hemoglobin'))[0] == 'missing']
+    hb_invalid = [r for r in rows if _hb_status(r.get('hemoglobin'))[0] == 'invalid']
+
+    patient_ids = [(r.get('patient_id') or '').strip() for r in rows]
+    unlabelled_patient = [r['image_id'] for r, pid in zip(rows, patient_ids) if not pid]
+    patient_counts = {}
+    for pid in patient_ids:
+        if pid:
+            patient_counts[pid] = patient_counts.get(pid, 0) + 1
+
+    # Exact duplicates: identical bytes under different names are one image.
+    by_sha = {}
+    for r in rows:
+        by_sha.setdefault(r.get('sha256', ''), []).append(r['image_id'])
+    exact_groups = {h: ids for h, ids in by_sha.items() if h and len(ids) > 1}
+
+    # Near duplicates are a *review* signal only (aHash collisions are possible).
+    near_groups = {}
+    for r in rows:
+        group = r.get('near_duplicate_group')
+        if group:
+            near_groups.setdefault(group, []).append(r['image_id'])
+
+    # Label records that exist but cannot be joined to an image (image_id drift).
+    unmatched_labels = sorted(
+        {label for row in rows for label in (row.get('unmatched_label_ids') or [])})
+
+    # A participant whose images disagree on Hb cannot be used at participant
+    # level without a documented rule.
+    conflicting_hb = []
+    for pid in patient_counts:
+        values = {_hb_status(r.get('hemoglobin'))[1] for r in rows
+                  if (r.get('patient_id') or '').strip() == pid}
+        values.discard(None)
+        if len(values) > 1:
+            conflicting_hb.append(pid)
+
+    blockers = []
+    if hb_missing or hb_invalid:
+        blockers.append('hemoglobin_not_available_for_every_image')
+    if unlabelled_patient:
+        blockers.append('patient_id_missing')
+    if exact_groups:
+        blockers.append('exact_duplicate_images')
+    if conflicting_hb:
+        blockers.append('inconsistent_hemoglobin_per_participant')
+
+    return {
+        'image_count': len(rows),
+        'hemoglobin_present_count': len(hb_present),
+        'hemoglobin_missing_count': len(hb_missing),
+        'hemoglobin_invalid_count': len(hb_invalid),
+        'hemoglobin_missing_image_ids': [r['image_id'] for r in hb_missing][:50],
+        'hemoglobin_invalid_image_ids': [r['image_id'] for r in hb_invalid][:50],
+        'patient_id_missing_count': len(unlabelled_patient),
+        'patient_id_missing_image_ids': unlabelled_patient[:50],
+        'patients': len(patient_counts),
+        'patients_with_multiple_images': sum(1 for n in patient_counts.values() if n > 1),
+        'exact_duplicate_groups': len(exact_groups),
+        'exact_duplicate_image_ids': [ids for ids in exact_groups.values()][:20],
+        'near_duplicate_groups': len(near_groups),
+        'near_duplicate_image_ids': list(near_groups.values())[:20],
+        'unmatched_label_count': len(unmatched_labels),
+        'unmatched_label_ids': unmatched_labels[:50],
+        'participants_with_conflicting_hemoglobin': conflicting_hb[:50],
+        'supervised_training_blockers': blockers,
+        'supervised_training_ready': not blockers,
+    }
+
 
 def sha(path):
     h = hashlib.sha256()
@@ -107,5 +212,12 @@ def main():
     for row in rows:
         if not row.get('usable', False):
             summary["qa_reject_reasons"][row.get('reason') or 'unknown'] = summary["qa_reject_reasons"].get(row.get('reason') or 'unknown', 0) + 1
+    # Dataset-level risks (missing Hb, missing participant ids, duplicates,
+    # participant leakage, label join drift). Reported, never repaired.
+    summary["risks"] = audit_rows(rows)
+    if a.labels and labels:
+        seen = {row['image_id'] for row in rows}
+        summary["risks"]["unmatched_label_count"] = len(set(labels) - seen)
+        summary["risks"]["unmatched_label_ids"] = sorted(set(labels) - seen)[:50]
     print(json.dumps(summary))
 if __name__ == '__main__': main()

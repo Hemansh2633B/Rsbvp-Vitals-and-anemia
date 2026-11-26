@@ -188,25 +188,74 @@ class TraceReport:
     fs_hz: float | None
     max_gap_s: float | None
     dropped_interval_fraction: float | None
+    #: Fraction of intervals at or below ~1 ms: the read loop outran the sensor,
+    #: so the same camera frame was sampled more than once.
+    duplicate_interval_fraction: float | None = None
+    #: Coefficient of variation of the (non-duplicate) intervals; 0 = regular.
+    interval_jitter_cv: float | None = None
+    #: A single interval far beyond the typical one (a stall, not a slow camera).
+    stalled: bool = False
+
+    @property
+    def has_duplicate_samples(self) -> bool:
+        return (self.duplicate_interval_fraction or 0.0) > 0.02
+
+    @property
+    def has_irregular_timing(self) -> bool:
+        return ((self.interval_jitter_cv or 0.0) > 0.25) or self.stalled
 
     @property
     def regular(self) -> bool:
         return (self.fs_hz is not None and self.fs_hz >= MIN_SAMPLING_RATE_HZ
-                and self.max_gap_s is not None and self.max_gap_s <= MAX_GAP_SECONDS)
+                and self.max_gap_s is not None and self.max_gap_s <= MAX_GAP_SECONDS
+                and not self.has_duplicate_samples
+                and not self.has_irregular_timing)
+
+
+DUPLICATE_EPSILON_S = 0.001   # ~1 ms: same sensor frame sampled twice
+STALL_INTERVAL_MULTIPLE = 2.5  # one interval this far beyond typical = a stall
 
 
 def trace_report(timestamps) -> TraceReport:
+    """Describe the timing of the delivered samples.
+
+    Mirrors ``gui/frontend/src/rppg/captureIntegrity.ts`` so the browser and the
+    Python pathway reach the same conclusion on the same timestamps. Duplicate
+    samples are excluded from the rate estimate: including them would drag the
+    median interval to zero and report the rate as unknown instead of reporting
+    the real frame rate alongside a duplicate warning.
+    """
     t = np.asarray(timestamps, dtype=float)
+    # Keep ascending, finite timestamps only. A clock that goes backwards is a
+    # defect to report, not something to smooth over.
+    keep = np.isfinite(t)
+    t = t[keep]
+    if t.size >= 2:
+        ascending = np.concatenate([[True], np.diff(t) >= 0])
+        t = t[ascending]
     n = int(t.size)
-    if n < 2 or not np.isfinite(t).all():
+    if n < 2:
         return TraceReport(n, 0.0, None, None, None)
+
     d = np.diff(t)
     if np.any(d <= 0):
         return TraceReport(n, float(t[-1] - t[0]), None, None, None)
-    median_interval = float(np.median(d))
+
+    distinct = d[d > DUPLICATE_EPSILON_S]
+    basis = distinct if distinct.size else d
+    median_interval = float(np.median(basis))
+    if median_interval <= 0:
+        return TraceReport(n, float(t[-1] - t[0]), None, None, None)
+
     fs = float(1.0 / median_interval)
     dropped = float(np.mean(d > 1.5 * median_interval))
-    return TraceReport(n, float(t[-1] - t[0]), fs, float(d.max()), dropped)
+    duplicates = float(np.mean(d <= DUPLICATE_EPSILON_S))
+    jitter_cv = float(np.std(basis) / median_interval) if basis.size else None
+    stalled = bool(np.any(distinct > STALL_INTERVAL_MULTIPLE * median_interval))
+    return TraceReport(n, float(t[-1] - t[0]), fs, float(d.max()), dropped,
+                       duplicate_interval_fraction=duplicates,
+                       interval_jitter_cv=jitter_cv,
+                       stalled=stalled)
 
 
 PASS, FAIL, NOT_EVALUATED = "pass", "fail", "not_evaluated"
@@ -276,7 +325,10 @@ def assess_window(*, trace: TraceReport | None = None,
     if trace is not None:
         scores.update({"fs_hz": trace.fs_hz, "max_gap_s": trace.max_gap_s,
                        "duration_s": trace.duration_s,
-                       "dropped_interval_fraction": trace.dropped_interval_fraction})
+                       "dropped_interval_fraction": trace.dropped_interval_fraction,
+                       "duplicate_interval_fraction": trace.duplicate_interval_fraction,
+                       "interval_jitter_cv": trace.interval_jitter_cv,
+                       "stalled": 1.0 if trace.stalled else 0.0})
         roi_state = NOT_EVALUATED if roi_coverage is None else (PASS if roi_coverage >= MIN_ROI_COVERAGE else FAIL)
         if trace.fs_hz is None or trace.fs_hz < MIN_SAMPLING_RATE_HZ:
             return QualityAssessment("insufficient_frames",
@@ -288,6 +340,23 @@ def assess_window(*, trace: TraceReport | None = None,
                                      f"Timestamp gap {trace.max_gap_s:.2f}s exceeds {MAX_GAP_SECONDS}s",
                                      ("irregular_timestamps",), scores,
                                      _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
+        if trace.has_duplicate_samples:
+            pct = (trace.duplicate_interval_fraction or 0.0) * 100
+            return QualityAssessment(
+                "irregular_timestamps",
+                f"{pct:.0f}% of samples repeated the same camera frame "
+                "(capture loop faster than the sensor)",
+                ("duplicate_samples",), scores,
+                _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
+        if trace.has_irregular_timing:
+            detail = ("a single stall far beyond the frame interval"
+                      if trace.stalled and (trace.interval_jitter_cv or 0.0) <= 0.25
+                      else f"interval jitter {100 * (trace.interval_jitter_cv or 0.0):.0f}%")
+            return QualityAssessment(
+                "irregular_timestamps",
+                f"Irregular frame timing ({detail})",
+                ("irregular_timing",), scores,
+                _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
         if trace.duration_s < min_window_s:
             remaining = min_window_s - trace.duration_s
             return QualityAssessment("warming_up", f"Acquire {remaining:.1f} more seconds",

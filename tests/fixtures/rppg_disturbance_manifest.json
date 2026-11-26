@@ -1,0 +1,47 @@
+{
+ "note": "Deterministic software fixtures for quality-gate regression tests. Synthetic RGB only: these are NOT physiological recordings and cannot support any accuracy claim.",
+ "generated_by": "tests/fixtures/generate_rppg_disturbance_fixtures.py",
+ "sampling_rate_hz": 30.0,
+ "seconds": 20.0,
+ "pulse_hz": 1.2,
+ "seed": 20261125,
+ "rois": [
+  "forehead",
+  "left_cheek",
+  "right_cheek"
+ ],
+ "fixtures": {
+  "clean_72bpm": {
+   "file": "rppg_disturbance_clean_72bpm.csv",
+   "description": "baseline single 1.2 Hz pulse in three ROIs; expected to pass gates"
+  },
+  "second_pulse_competing": {
+   "file": "rppg_disturbance_second_pulse_competing.csv",
+   "description": "equal competing component 0.4 Hz from the pulse; peak separation must fail"
+  },
+  "no_pulse_noise": {
+   "file": "rppg_disturbance_no_pulse_noise.csv",
+   "description": "broadband noise, no cardiac component; concentration must fail"
+  },
+  "clipped_channels": {
+   "file": "rppg_disturbance_clipped_channels.csv",
+   "description": "saturated red/green channels; clipping check must fail"
+  },
+  "flat_channel": {
+   "file": "rppg_disturbance_flat_channel.csv",
+   "description": "constant green channel; dynamic-range check must fail"
+  },
+  "illumination_step": {
+   "file": "rppg_disturbance_illumination_step.csv",
+   "description": "22-count brightness step mid-window; must not be reported as a clean measurement"
+  },
+  "motion_burst": {
+   "file": "rppg_disturbance_motion_burst.csv",
+   "description": "3 s 2.7 Hz excursion; motion/noise handling must reject or flag"
+  },
+  "missing_roi_samples": {
+   "file": "rppg_disturbance_missing_roi_samples.csv",
+   "description": "left cheek absent 5-12 s; per-ROI coverage must reflect it"
+  }
+ }
+}

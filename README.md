@@ -245,6 +245,28 @@ without hunting for data. The details that make this defensible:
 | Which participants? | 26 of the provider's 27 subjects. `Subject_4` is **excluded by the provider** (its three ROI videos are 0-byte placeholders); tooling passes `--exclude-subjects 4` and the exclusion, citation and evidence are recorded in every report |
 | What does the benchmark show? | ECG-referenced pulse-rate agreement on a small, single-site dataset (26 young Portuguese students, Fitzpatrick I-IV, natural indoor light, 64x64 crops, manual sync <= +/-500 ms). **Research evidence, not a medical result** |
 
+### Camera acquisition integrity
+
+The live view reports **what the camera actually delivered**, measured from the
+capture timestamps rather than the requested frame rate: effective sampling rate,
+largest frame gap, duplicate-frame percentage and timing regularity. If a window
+has a timing defect (duplicated frames, a stall, a dropped-frame gap, or a rate too
+low to analyse) the measurement is shown as **unavailable** with a reason — never
+as a plausible-looking BPM. A camera that drops out is reopened with exponential
+backoff (1 s → 30 s, 4 attempts) instead of freezing on a stale number.
+
+The browser and Python implementations are checked against a shared fixture, so the
+live pathway and the research pathway cannot disagree about whether a capture was
+regular. See [docs/RELIABILITY.md](docs/RELIABILITY.md) for the thresholds and
+[docs/SPRINT_12_EVIDENCE.md](docs/SPRINT_12_EVIDENCE.md) for exactly which claims
+have which kind of evidence.
+
+### External research software
+
+rPPG-Toolbox, pyVHR, ConjunctivaHb, ViT-Anemia-Detection and MediaPipe are pinned
+as **git submodules** under `tools/` (URL + commit only; no upstream code is
+vendored or licensed in here). See [docs/EXTERNAL_SUBMODULES.md](docs/EXTERNAL_SUBMODULES.md).
+
 See also [MMPD](docs/MMPD_VALIDATION.md) - smoke-tested only, still blocked on the
 provider's signed data-release agreement - and [rPPG-10 validation details](docs/RPPG10_VALIDATION.md).
 

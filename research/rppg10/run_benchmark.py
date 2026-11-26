@@ -56,6 +56,57 @@ LIMITATIONS = [
 ]
 
 
+def _environment_block() -> dict:
+    """Software provenance for this benchmark run.
+
+    Records the interpreter, the numerical stack, the git commit of the code that
+    produced the numbers and the estimator configuration actually used. Missing
+    information is reported as null/"unknown" - never guessed - so a reader can
+    tell whether a report is reproducible.
+    """
+    import os
+    import subprocess
+
+    import scipy
+
+    def _commit() -> str:
+        env = (os.environ.get("RSBVP_GIT_SHA") or "").strip()
+        if env:
+            return env
+        try:
+            root = Path(__file__).resolve().parents[2]
+            out = subprocess.run(["git", "rev-parse", "--short=12", "HEAD"], cwd=root,
+                                 capture_output=True, text=True, timeout=5, check=True)
+            return out.stdout.strip() or "unknown"
+        except Exception:
+            return "unknown"
+
+    try:
+        import cv2
+
+        opencv = cv2.__version__
+    except Exception:
+        opencv = None
+
+    return {
+        "python": platform.python_version(),
+        "implementation": platform.python_implementation(),
+        "platform": platform.platform(),
+        "numpy": np.__version__,
+        "scipy": scipy.__version__,
+        "opencv": opencv,
+        "git_commit": _commit(),
+        "estimators": {
+            # The three projections under test and the estimator that consumes them.
+            "green": "bandpassed green-channel spectral peak",
+            "pos": "POS projection, spectral peak",
+            "chrom": "CHROM projection, spectral peak",
+            "estimator": "Hann-windowed periodogram peak in the cardiac passband",
+        },
+        "frozen_protocol": protocol.PROTOCOL_VERSION,
+    }
+
+
 def _now() -> str:
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -223,7 +274,10 @@ def cmd_benchmark(args) -> int:
         "dataset": "rPPG-10",
         "citation": DATASET_CITATION,
         "license": "CC BY-NC-SA 4.0 (non-commercial, share-alike)",
-        "environment": {"python": platform.python_version(), "numpy": np.__version__},
+        # Reproducibility provenance: which software produced these numbers, on
+        # which platform, with which estimator configuration. A report without
+        # this cannot be reproduced or compared over time.
+        "environment": _environment_block(),
         "protocol": protocol.protocol_description(),
         "inventory_summary": {
             "subjects_found": inv["subjects_found"],
