@@ -80,6 +80,51 @@ Per record:
 | `quality_concepts` | six separated concepts, each `pass` / `fail` / `not_evaluated` |
 | `selected_display_algorithm` | the algorithm chosen in the UI dropdown at analysis time (`green`, `pos`, `chrom`) |
 
+## 4. Session exports (Sprint 13)
+
+Two additional local downloads sit alongside the trace and window exports. They are
+new schemas rather than changes to the existing ones, so consumers of
+`rsbvp.rgb-trace.v1` / `rsbvp.window-analysis.v1` are unaffected.
+
+### 4.1 `rsbvp_session_readings_<UTC-stamp>.csv`
+
+One row per reading, **accepted and rejected alike**, so an export can never be
+mistaken for a curated subset.
+
+| column | meaning |
+|---|---|
+| `reading_id` | monotonic within the session |
+| `metric`, `unit` | `heart_rate`/`BPM` or `respiratory_rate`/`br/min`; never mixed in one aggregate |
+| `value` | estimate; empty cell when the estimator produced nothing — never 0 |
+| `algorithm`, `roi` | `consensus` for the agreement-checked per-window estimate, or the estimator label; `all`/`face`/named ROI |
+| `accepted` | `true`/`false` |
+| `rejection_reason` | the existing verdict reason; empty iff accepted |
+| `quality_score`, `quality_verdict` | existing spectral concentration (0–1, not a probability) and composite verdict token |
+| `sampling_rate_hz`, `n_samples`, `window_start_s`, `window_end_s` | acquisition context; empty when unknown |
+| `session_elapsed_s`, `window_index` | ordering within the session |
+| `recorded_utc` | analysis wall-clock time |
+
+### 4.2 `rsbvp_session_summary_<UTC-stamp>.json` (`rsbvp.session-aggregate.v1`)
+
+| field | meaning |
+|---|---|
+| `schema` | `rsbvp.session-aggregate.v1` |
+| `capture_session_id` | same non-identifying `sess-…` id as the trace exports |
+| `primary_series` | `consensus` — the only series presented as the session result |
+| `metrics[]` | per metric: `verdict` (`available`/`insufficient`/`no_readings`), `reason`, accepted/rejected/total, `acceptance_pct`, mean, median, min, max, sd, range, `independent_windows`, `overlap_factor`, `standard_error`, `median_quality_score` |
+| `per_estimator[]` | the same block per GREEN/POS/CHROM series — diagnostics, never averaged together |
+| `windows_total`, `windows_accepted`, `windows_rejected` | counts of analysed windows (consensus series) |
+| `readings_total`, `readings_accepted` | counts including per-estimator series |
+| `acceptance_pct`, `acceptance_band` | observed acceptance rate and its Good/Fair/Poor band; `acceptance_band_note` states explicitly that this is **not** a confidence score |
+| `completion_state` | `idle`/`collecting`/`complete` |
+| `aggregation_config` | `min_accepted_readings`, `min_independent_windows`, `target_accepted_readings`, `stale_after_ms`, `plausible_bounds` |
+| `acquisition` | backend, algorithms, ROIs, passband, required seconds, camera label, sampling rate |
+| `statistics_notes` | the independence and accuracy caveats, so the file cannot be quoted without them |
+| `frames_images_included: false`, `frames_uploaded: false` | provenance |
+
+Missing values are `null` (JSON) or empty (CSV). Nothing is zero-filled, and
+`standard_error` is `null` when fewer than three independent windows exist.
+
 ## Schema versions and compatibility
 
 Schemas are versioned in the `schema` field (`rsbvp.rgb-trace.v1`,

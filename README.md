@@ -261,6 +261,31 @@ regular. See [docs/RELIABILITY.md](docs/RELIABILITY.md) for the thresholds and
 [docs/SPRINT_12_EVIDENCE.md](docs/SPRINT_12_EVIDENCE.md) for exactly which claims
 have which kind of evidence.
 
+### Session result, not the newest number
+
+A single window's estimate wobbles; a session result does not have to. Every
+analysed window is recorded as a reading with its quality verdict, algorithm, ROI,
+sampling context and rejection reason, and the interface presents **one session
+average of the readings that passed the existing quality checks** — with the number
+of accepted and rejected readings, the observed acceptance rate, the median and the
+range beside it.
+
+- Readings are append-only. A rejected reading is kept and shown with its reason.
+- Heart rate and respiratory rate are summarised separately and never pooled.
+- GREEN/POS/CHROM are kept as separate series; only the agreement-checked consensus
+  is presented as the result.
+- Overlapping windows are not independent observations, so statistical uncertainty
+  uses the non-overlapping subset — and is omitted rather than guessed when that
+  subset is too small.
+- Too few accepted readings produce an explicit **Insufficient data** state, never a
+  plausible-looking number.
+- HRV/RMSSD, SpO₂, blood pressure and anemia image features are not aggregated:
+  there is no validated estimator for them here.
+
+An average reduces random variation; it does not establish accuracy, and this is not
+a medical measurement. Details, including the exact acceptance rules and the export
+schemas: [docs/SESSION_AGGREGATION.md](docs/SESSION_AGGREGATION.md).
+
 ### External research software
 
 rPPG-Toolbox, pyVHR, ConjunctivaHb, ViT-Anemia-Detection and MediaPipe are pinned
