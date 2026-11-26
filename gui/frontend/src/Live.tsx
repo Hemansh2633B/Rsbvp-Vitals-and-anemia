@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { BrowserPulse } from './rppg/BrowserPulse'
+import { SessionResult } from './rppg/SessionResult'
+import { newSessionId } from './rppg/provenance'
+import {
+  CONSENSUS,
+  SessionCollector,
+  buildSessionAggregateExport,
+  buildSessionReadingsCsv,
+  summarizeSession,
+  type SessionSummary,
+} from './rppg/sessionAggregate'
 import {
   listDevices,
   type Devices,
@@ -51,6 +61,17 @@ export function Live() {
   const [segments, setSegments] = useState<MotionSegment[] | null>(null)
   const [evaluation, setEvaluation] = useState<LiveEvaluation | null>(null)
 
+  // Same collector class as the browser pathway: one implementation of the
+  // session statistics, two data sources. Readings are append-only.
+  const collector = useRef(new SessionCollector())
+  // Non-identifying id tying this session's exports together.
+  const sessionIdRef = useRef(newSessionId())
+  const sessionIdForExport = () => sessionIdRef.current
+  const [session, setSession] = useState<SessionSummary>(() => summarizeSession([]))
+  // Wall-clock arrival of each frame update, used for staleness: a frame that
+  // arrives long after it describes a moment already past is not a current
+  // observation.
+  const framesSeen = useRef(0)
   const wsRef = useRef<WebSocket | null>(null)
   const cameraRef = useRef<BrowserCameraHandles | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -83,6 +104,11 @@ export function Live() {
     setState(null)
     setSegments(null)
     setEvaluation(null)
+    // New run, new session: readings are never carried across sessions.
+    collector.current.reset()
+    framesSeen.current = 0
+    sessionIdRef.current = newSessionId()
+    setSession(summarizeSession([]))
     setStatus('opening camera…')
 
     // 1. Acquire the camera of THIS device. If the user denies it (or the page
@@ -154,6 +180,7 @@ export function Live() {
       } else if (msg.type === 'frame') {
         if (msg.frame) setFrame(msg.frame)
         setState(msg)
+        recordFrame(msg)
       } else if (msg.type === 'error') {
         setError(msg.detail ?? 'Unknown error')
         setStatus('error')
@@ -184,10 +211,98 @@ export function Live() {
     }
     cameraRef.current?.stop()
     cameraRef.current = null
+    // Reflect the stop immediately. Previously only the socket's onclose cleared
+    // `running`, so the UI kept showing a Stop button and a live-looking status
+    // until the server got round to closing - which on a slow phone link read as
+    // "Stop did nothing".
+    setRunning(false)
   }
 
   const warming = state?.warming_up ?? true
   const cmsConnected = state?.cms_connected ?? false
+
+  // One server frame update -> readings. `consensus_hr` is the agreement-checked
+  // estimate and is the only heart-rate value presented as a session result; the
+  // per-estimator values (green/pos, FFT/peak) are recorded as their own series so
+  // they are never averaged together as though interchangeable.
+  function recordFrame(msg: LiveState) {
+    framesSeen.current += 1
+    const nowMs = Date.now()
+    const shared = {
+      qualityScore: typeof msg.green_reliability === 'number' ? msg.green_reliability : null,
+      sampling: {
+        fsHz: typeof msg.sampling_rate === 'number' ? msg.sampling_rate : null,
+        nSamples: null,
+        windowStartS: typeof msg.elapsed === 'number' ? Math.max(0, msg.elapsed - (msg.buffer_seconds ?? 0)) : null,
+        windowEndS: typeof msg.elapsed === 'number' ? msg.elapsed : null,
+      },
+      analyzedAtMs: nowMs,
+      sessionElapsedS: typeof msg.elapsed === 'number' ? msg.elapsed : null,
+      windowIndex: framesSeen.current,
+    }
+    const verdict = msg.quality_status ?? 'unknown'
+    const reason = msg.quality_reason ?? verdict
+    // Heart rate: the consensus plus the individual estimator series.
+    const hrSeries: Array<[string, number | null]> = [
+      [CONSENSUS, msg.consensus_hr ?? null],
+      ['green_fft', msg.hr_green_fft ?? null],
+      ['pos_fft', msg.hr_pos_fft ?? null],
+      ['green_peak', msg.hr_green_peak ?? null],
+      ['pos_peak', msg.hr_pos_peak ?? null],
+    ]
+    for (const [algorithm, value] of hrSeries) {
+      collector.current.add({
+        metric: 'heart_rate', value, algorithm, roi: 'face',
+        // The window verdict gates every series: an estimator is not more
+        // trustworthy than the acquisition it came from.
+        qualityVerdict: verdict,
+        rejectionReason: verdict === 'valid' ? null : reason,
+        ...shared,
+      })
+    }
+    // Respiratory rate: only its own final estimate, and only when the window
+    // verdict passed. Its gating already runs inside the same verdict.
+    collector.current.add({
+      metric: 'respiratory_rate', value: msg.rr_final ?? null, algorithm: 'welch+hilbert',
+      roi: 'face', qualityVerdict: verdict,
+      rejectionReason: verdict === 'valid' ? null : reason, ...shared,
+    })
+    setSession(summarizeSession(collector.current.all()))
+  }
+
+  function download(content: BlobPart, type: string, name: string) {
+    const url = URL.createObjectURL(new Blob([content], { type }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = name
+    a.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  function exportSessionReadings() {
+    const stamp = new Date().toISOString().replaceAll(':', '-')
+    download(buildSessionReadingsCsv(collector.current.all()), 'text/csv', `rsbvp_session_readings_${stamp}.csv`)
+  }
+
+  function exportSessionAggregate() {
+    const stamp = new Date().toISOString().replaceAll(':', '-')
+    const out = buildSessionAggregateExport({
+      sessionId: sessionIdForExport(),
+      createdUtc: new Date().toISOString(),
+      readings: collector.current.all(),
+      summary: session,
+      capture: {
+        algorithms: ['Green', 'POS', 'CHROM (server pipeline)'],
+        rois: ['face (server ROI)'],
+        passbandHz: [0.7, 3.5],
+        requiredSeconds: mode === 'segment' ? 10 : 12,
+        backend: 'rsbvp-server-live',
+        cameraLabel: cameras.find((c) => c.deviceId === deviceId)?.label ?? null,
+        samplingRateHz: typeof state?.sampling_rate === 'number' ? state.sampling_rate : null,
+      },
+    })
+    download(JSON.stringify(out, null, 2), 'application/json', `rsbvp_session_summary_${stamp}.json`)
+  }
 
   return (
     <div className="live">
@@ -422,6 +537,18 @@ export function Live() {
           </p>
         </section>
       )}
+
+      <SessionResult
+        summary={session}
+        sessionId={sessionIdRef.current}
+        onExportReadings={exportSessionReadings}
+        onExportAggregate={exportSessionAggregate}
+        liveStatus={
+          running
+            ? `Live: ${state?.quality_status === 'valid' ? 'signal acceptable' : state?.quality_reason ?? 'waiting for a valid window'}`
+            : null
+        }
+      />
 
       {segments && segments.length > 0 && (
         <section className="panel">

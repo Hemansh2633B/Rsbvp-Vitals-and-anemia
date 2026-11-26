@@ -5,6 +5,15 @@ import { buildTraceCsv, buildTraceMetadata, buildWindowRecord, buildWindowsExpor
 import { newSessionId } from './provenance'
 import { polygonMean } from './roi'
 import { MIN_USABLE_FS_HZ, integrityReason, recoveryDelayMs, type CaptureIntegrity } from './captureIntegrity'
+import {
+  CONSENSUS,
+  SessionCollector,
+  buildSessionAggregateExport,
+  buildSessionReadingsCsv,
+  summarizeSession,
+  type SessionSummary,
+} from './sessionAggregate'
+import { SessionResult } from './SessionResult'
 import './browserPulse.css'
 
 const WASM = import.meta.env.VITE_MEDIAPIPE_WASM_URL || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/wasm'
@@ -48,6 +57,11 @@ export function BrowserPulse(){
   const windowLog=useRef<Array<Record<string,unknown>>>([]),pendingWindow=useRef<{start_s:number;end_s:number;n_samples:number}|null>(null),sessionRef=useRef(newSessionId())
   const recovery=useRef({attempt:0,timer:0 as number|ReturnType<typeof setTimeout>})
   const [recoveryNote,setRecoveryNote]=useState('')
+  // The single measurement collector for this session. Both the browser and the
+  // server pathway use this class, so the two UIs cannot compute a session
+  // average differently. Readings are append-only; the aggregate is derived.
+  const collector=useRef(new SessionCollector())
+  const [session,setSession]=useState<SessionSummary>(()=>summarizeSession([]))
   const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[deviceId,setDeviceId]=useState(''),[track,setTrack]=useState<Track>('idle'),[error,setError]=useState(''),[analysis,setAnalysis]=useState(initial),[duration,setDuration]=useState(0),[roiState,setRoiState]=useState('Waiting for face'),[algorithm,setAlgorithm]=useState('green'),[cameraFps,setCameraFps]=useState<number|null>(null)
   const algorithmRef=useRef(algorithm);algorithmRef.current=algorithm
   const windowsDropped=useRef(0)
@@ -70,7 +84,7 @@ export function BrowserPulse(){
   async function refreshDevices(){try{setDevices(await navigator.mediaDevices.enumerateDevices().then(d=>d.filter(x=>x.kind==='videoinput')))}catch{setDevices([])}}
   async function start(){
     const session=++sessionId.current
-    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);sessionRef.current=newSessionId();setTrack('loading')
+    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);sessionRef.current=newSessionId();collector.current.reset();setSession(summarizeSession([]));setTrack('loading')
     try{
       if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera API unavailable. Use HTTPS or localhost in a supported browser.')
       const videoConstraint:MediaTrackConstraints=deviceId?{deviceId:{exact:deviceId},width:{ideal:640},height:{ideal:480}}:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}}
@@ -96,6 +110,7 @@ export function BrowserPulse(){
           const result=event.data.result,win=pendingWindow.current
           windowLog.current.push(buildWindowRecord({windowIndex:windowLog.current.length + windowsDropped.current,analyzedUtc:new Date().toISOString(),pendingWindow:win,fs:result.fs,consensusBpm:result.bpm,estimates:result.estimates,qualityScore:result.quality,consistencyBpm:result.consistencyBpm,availabilityStatus:result.status,rejectionReason:result.status==='valid'?null:result.reason,scores:result.scores??null,concepts:result.concepts??null,selectedAlgorithm:algorithmRef.current}))
           if(windowLog.current.length>3600){windowLog.current.shift();windowsDropped.current++}
+          recordWindow(result,win)
           setAnalysis(result)
         }
       }
@@ -153,6 +168,33 @@ export function BrowserPulse(){
     }catch(e){if(session!==sessionId.current)return;stop();setTrack('error');setError(e instanceof Error?e.message:e instanceof DOMException?`${e.name}: ${e.message}`:String(e));setAnalysis({...initial,status:'low_signal_quality',reason:'Camera or face model unavailable'})}
   }
   const roiWave=Object.entries(analysis.waveforms).filter(([name])=>name.endsWith(`_${algorithm}`))
+  // One analysed window -> one reading. The consensus series is what the
+  // agreement gate already checked across ROIs and methods; the individual
+  // estimator series are recorded separately so they are never averaged as if
+  // they were interchangeable. Wall-clock arrival is used for staleness: a
+  // result that arrives long after it was computed describes a past moment.
+  function recordWindow(result:LiveAnalysis,win:{start_s:number;end_s:number;n_samples:number}|null){
+    const nowMs=Date.now()
+    const sampling={fsHz:result.fs,nSamples:win?.n_samples??null,windowStartS:win?.start_s??null,windowEndS:win?.end_s??null}
+    const elapsed=acquisitionStart.current===null?null:performance.now()/1000-acquisitionStart.current
+    const rejected=result.status!=='valid'
+    const shared={qualityScore:Number.isFinite(result.quality)?result.quality:null,qualityVerdict:result.status,sampling,rejectionReason:rejected?result.reason:null,analyzedAtMs:nowMs,sessionElapsedS:elapsed,windowIndex:windowLog.current.length+windowsDropped.current}
+    collector.current.add({metric:'heart_rate',value:result.bpm,algorithm:CONSENSUS,roi:'all',...shared})
+    for(const [key,bpm] of Object.entries(result.estimates)){
+      const [roi,method]=[key.split('_')[0],key.slice(key.indexOf('_')+1)]
+      if(!method)continue
+      collector.current.add({metric:'heart_rate',value:bpm,algorithm:method,roi,...shared})
+    }
+    setSession(summarizeSession(collector.current.all()))
+  }
+  function download(content:BlobPart,type:string,name:string){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000)}
+  function exportSessionReadings(){
+    download(buildSessionReadingsCsv(collector.current.all()),'text/csv',`rsbvp_session_readings_${new Date().toISOString().replaceAll(':','-')}.csv`)
+  }
+  function exportSessionAggregate(){
+    const out=buildSessionAggregateExport({sessionId:sessionRef.current,createdUtc:new Date().toISOString(),readings:collector.current.all(),summary:session,capture:{algorithms:['Green','POS','CHROM'],rois:['forehead','left_cheek','right_cheek'],passbandHz:[0.7,3.5],requiredSeconds:10,backend:'rsbvp-browser-liveDsp',cameraLabel:devices.find(d=>d.deviceId===deviceId)?.label??null,samplingRateHz:measuredFps}})
+    download(JSON.stringify(out,null,2),'application/json',`rsbvp_session_summary_${new Date().toISOString().replaceAll(':','-')}.json`)
+  }
   function exportTrace(){
     const stamp=new Date().toISOString().replaceAll(':','-'),base=`rsbvp_rgb_trace_${stamp}`
     const createdUtc=new Date().toISOString(),sessionId=sessionRef.current
@@ -199,11 +241,26 @@ export function BrowserPulse(){
       <span className={`phase-chip phase-${phase}`}>{PHASE_LABELS[phase]}</span>
       <span className="muted small">{PHASE_DETAIL[phase]}</span>
       {analysis.bpm===null&&<p className="muted small"><strong>Why unavailable:</strong> {unavailableBecause}</p>}
+      <div className="session-progress" role="progressbar" aria-label="Accepted readings collected"
+        aria-valuemin={0} aria-valuemax={session.config.targetAcceptedReadings}
+        aria-valuenow={Math.min(session.nAcceptedTotal,session.config.targetAcceptedReadings)}
+        aria-valuetext={`${session.nAcceptedTotal} of ${session.config.targetAcceptedReadings} accepted readings`}>
+        <div className="session-progress-fill" style={{width:`${Math.min(100,(session.nAcceptedTotal/session.config.targetAcceptedReadings)*100)}%`}}/>
+      </div>
+      <p className="muted small">
+        {session.completion==='complete'
+          ? 'Complete: enough accepted readings for a stable session average.'
+          : `Collecting: ${session.nAcceptedTotal} accepted of ${session.config.targetAcceptedReadings} readings. ${
+              analysis.status==='valid'
+                ? 'Signal acceptable - keep still.'
+                : 'Hold still in even, bright light until the signal is acceptable.'}`}
+      </p>
     </div>
+    <SessionResult summary={session} sessionId={sessionRef.current} onExportReadings={exportSessionReadings} onExportAggregate={exportSessionAggregate} liveStatus={session.completion==='collecting'?`Live: ${analysis.status==='valid'?'signal acceptable':analysis.reason}`:null}/>
     <div className="browser-camera"><video ref={video} muted playsInline aria-label="Local camera preview"/><canvas ref={overlay} aria-label="Forehead and cheek ROI overlay"/><canvas ref={canvas} hidden/></div>
     <h3>ROI tracking quality</h3><div className="subcards">{roiCoverage.map(({roi,pct})=><div className="subcard" key={roi}><strong>{roi.replace('_',' ')}</strong><p>{pct>=.8?'Tracking':pct>0?'Partial / unstable':'ROI lost'}</p><p className="muted small">{(pct*100).toFixed(0)}% valid skin samples</p></div>)}</div>
     <p className="muted small">Union coverage: {unionCoverage===null?'—':`${(unionCoverage*100).toFixed(0)}%`} of analyzed-window samples have at least one usable skin ROI (a window is only analysable at ≥ 50%).</p>
-    <div className="metric-grid"><div className="metric-card"><div className="metric-label">Pulse estimate</div><div className="metric-value">{analysis.bpm===null?'Unavailable':`${analysis.bpm.toFixed(0)} BPM`}</div><div className="metric-sub">Only shown when quality checks pass</div></div><div className="metric-card"><div className="metric-label">Acquisition</div><div className="metric-value">{duration.toFixed(1)} s</div><div className="metric-sub">{roiState} · camera {cameraFps?`${cameraFps.toFixed(1)} FPS`:'FPS —'} · sampled {measuredFps?`${measuredFps.toFixed(1)} Hz`:'rate —'} · dropped intervals {droppedFraction===null?'—':`${(droppedFraction*100).toFixed(1)}%`}</div></div><div className="metric-card"><div className="metric-label">Quality / agreement</div><div className="metric-value">{analysis.status.replaceAll('_',' ')}</div><div className="metric-sub">{analysis.reason} · spectral concentration {(analysis.quality*100).toFixed(0)}% · face motion {(faceMotion*100).toFixed(1)}%{analysis.consistencyBpm!==null?` · spread ${analysis.consistencyBpm.toFixed(1)} BPM`:''}</div></div></div>
+    <div className="metric-grid"><div className="metric-card live-estimate"><div className="metric-label">Live reading (this window)</div><div className="metric-value">{analysis.bpm===null?'Unavailable':`${analysis.bpm.toFixed(0)} BPM`}</div><div className="metric-sub">Changes during the session; the session average is computed separately below. Only shown when quality checks pass.</div></div><div className="metric-card"><div className="metric-label">Acquisition</div><div className="metric-value">{duration.toFixed(1)} s</div><div className="metric-sub">{roiState} · camera {cameraFps?`${cameraFps.toFixed(1)} FPS`:'FPS —'} · sampled {measuredFps?`${measuredFps.toFixed(1)} Hz`:'rate —'} · dropped intervals {droppedFraction===null?'—':`${(droppedFraction*100).toFixed(1)}%`}</div></div><div className="metric-card"><div className="metric-label">Quality / agreement</div><div className="metric-value">{analysis.status.replaceAll('_',' ')}</div><div className="metric-sub">{analysis.reason} · spectral concentration {(analysis.quality*100).toFixed(0)}% · face motion {(faceMotion*100).toFixed(1)}%{analysis.consistencyBpm!==null?` · spread ${analysis.consistencyBpm.toFixed(1)} BPM`:''}</div></div></div>
     {recoveryNote&&<p role="status" className="muted small">{recoveryNote}</p>}
     <h3>Camera acquisition integrity</h3>
     {acquisition===null
