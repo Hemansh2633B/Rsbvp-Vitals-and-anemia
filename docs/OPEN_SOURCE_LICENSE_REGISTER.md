@@ -137,3 +137,24 @@ All files below are part of the toolbox repository and are governed by the repos
 ## H. Register maintenance
 
 Validation (`tests/test_license_register.py`) enforces: presence of this file's required sections and column headers; the three critical identifiers (`RAIL-1.1`, `GPL-3.0`, `Apache-2.0`); full pinned commit SHAs; absence of RAIL-1.1/GPL license text inside `research/backends/*.py`; `.gitignore` blocking `*.pth`. Re-run it on every dependency change; re-verify registry metadata on every version bump.
+
+## Sprint 12 — external repositories are submodules, not vendored code
+
+The five external projects are declared in `.gitmodules` and pinned to exact
+commits under `tools/`. This is the mechanism that keeps restricted licences out
+of the MIT application:
+
+| Repository | Licence | How it is isolated |
+|---|---|---|
+| rPPG-Toolbox | RAIL-1.1 (non-commercial, behavioural restrictions) | gitlink only; executed through a subprocess boundary in a separate interpreter (`research/backends/rppg_toolbox.py`); no source, weights or dependency tree in this repository |
+| pyVHR | GPL-3.0 | gitlink only; subprocess boundary with its own GPL-3.0 environment (`research/backends/pyvhr.py`); never linked or imported here |
+| ConjunctivaHb | inspected | gitlink only; not integrated |
+| ViT-Anemia-Detection | inspected | gitlink only; not integrated; no weights committed |
+| MediaPipe | Apache-2.0 | reference only; the application uses the npm `@mediapipe/tasks-vision` package in the browser |
+
+`tests/test_submodules.py` asserts this offline: every submodule is a mode-160000
+gitlink with an HTTPS URL, no upstream file is tracked inside one, the
+rPPG-Toolbox pin equals the adapter's `PINNED_COMMIT`, and both adapters still
+cross a subprocess boundary. Fetching a checkout is a software verification step:
+**no external method has been run on any dataset in this project**, and no result
+from these repositories is claimed here.

@@ -2,6 +2,13 @@
 
 **Status:** No trained model and no inference claim. The repository contains no verified anemia dataset or permitted image records. No performance figures are available. Basic image quality/colour feature utilities, a standardized input-image contract and researcher-reviewed conjunctival-ROI annotation format (`docs/ANEMIA_IMAGE_CONTRACT.md`, validator in `research/anemia/contract.py`), a local metadata inventory script, grouped split helper and paired regression metric helper exist to support a future auditable workflow; these are not a complete training pipeline.
 
+**Update 2026-11-25 (Sprint 12):** the dataset audit now emits an explicit
+`supervised_training_ready` flag plus its blockers (missing/invalid Hb, missing
+participant ids, exact and near duplicates, conflicting Hb per participant,
+label-join drift). For every dataset this project could lawfully obtain, that flag
+is **false**. See `docs/ANEMIA_READINESS.md` §"Sprint 12". Nothing below has
+changed: there is still no model, no threshold, and no output.
+
 ## What exists today (engineering infrastructure only)
 
 - Image QA (`gui/anemia_core/image_features.py`): decode validity, minimum dimensions, expected colour image, non-finite rejection, mean-brightness illumination bounds, under/over-exposure fractions, clipped-channel fraction, Laplacian-variance sharpness, directional-blur anisotropy ratio with an explicit `possible_motion_blur` reason (documented heuristic, not a calibrated detector), aggregated `reasons` list and backwards-compatible `reason`.
