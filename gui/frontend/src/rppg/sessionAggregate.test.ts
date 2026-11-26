@@ -381,3 +381,23 @@ describe('analysis density',()=>{
    expect(hr.verdict).toBe('available')
  })
 })
+
+describe('aggregate reason hygiene', () => {
+  it('clears the placeholder reason once a metric is available', () => {
+    // The experimental block renders `reason` verbatim next to the value, so an
+    // available aggregate must not carry "No readings recorded for this metric".
+    const collector = collect([70, 72, 74, 76, 78])
+    const summary = summarizeSession(collector.all(), { lifecycle: 'running' })
+    const hr = summary.metrics.find(m => m.metric === 'heart_rate')!
+    expect(hr.verdict).toBe('available')
+    expect(hr.reason).toBe('')
+  })
+
+  it('keeps a placeholder reason for a metric with no readings', () => {
+    const collector = collect([72])
+    const summary = summarizeSession(collector.all(), { lifecycle: 'running' })
+    const rr = summary.metrics.find(m => m.metric === 'respiratory_rate')!
+    expect(rr.verdict).toBe('no_readings')
+    expect(rr.reason).toMatch(/No readings recorded/)
+  })
+})

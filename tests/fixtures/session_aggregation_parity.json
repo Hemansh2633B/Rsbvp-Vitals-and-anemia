@@ -17,7 +17,8 @@
         "sd": 1.43223,
         "acceptance_pct": 100.0,
         "density_ratio": 1.076923,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": ""
       }
     },
     "non_overlapping_available": {
@@ -34,7 +35,8 @@
         "sd": 3.162278,
         "acceptance_pct": 100.0,
         "density_ratio": 2.0,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": ""
       }
     },
     "non_overlapping_completed": {
@@ -51,7 +53,8 @@
         "sd": 3.162278,
         "acceptance_pct": 100.0,
         "density_ratio": 2.0,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": ""
       }
     },
     "mixed_verdicts": {
@@ -68,7 +71,8 @@
         "sd": 3.162278,
         "acceptance_pct": 71.428571,
         "density_ratio": 1.5,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": ""
       }
     },
     "all_rejected": {
@@ -85,7 +89,8 @@
         "sd": null,
         "acceptance_pct": 0.0,
         "density_ratio": null,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": "No accepted readings (3 rejected by the quality gates)"
       }
     },
     "interrupted_short": {
@@ -102,7 +107,8 @@
         "sd": 1.414214,
         "acceptance_pct": 100.0,
         "density_ratio": null,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": "Only 2 accepted readings; at least 5 are needed for a session average"
       }
     },
     "single_window_overlap": {
@@ -119,7 +125,8 @@
         "sd": 0.0,
         "acceptance_pct": 100.0,
         "density_ratio": null,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": "Only 1 independent (non-overlapping) window; at least 2 are needed"
       }
     },
     "single_window_overlap_running": {
@@ -136,7 +143,8 @@
         "sd": 0.0,
         "acceptance_pct": 100.0,
         "density_ratio": null,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": "Only 1 independent (non-overlapping) window; at least 2 are needed"
       }
     },
     "empty": {
@@ -153,7 +161,8 @@
         "sd": null,
         "acceptance_pct": null,
         "density_ratio": null,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": "No readings recorded for this metric in this session"
       }
     },
     "empty_running": {
@@ -170,7 +179,8 @@
         "sd": null,
         "acceptance_pct": null,
         "density_ratio": null,
-        "uneven_density": false
+        "uneven_density": false,
+        "reason": "No readings recorded for this metric in this session"
       }
     },
     "uneven_density": {
@@ -187,7 +197,8 @@
         "sd": 4.026936,
         "acceptance_pct": 100.0,
         "density_ratio": 7.25,
-        "uneven_density": true
+        "uneven_density": true,
+        "reason": ""
       }
     }
   }

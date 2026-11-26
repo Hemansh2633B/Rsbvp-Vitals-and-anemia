@@ -68,6 +68,10 @@ def _run_case(case: dict) -> dict:
         "acceptance_pct": None if summary["acceptance_pct"] is None else round(summary["acceptance_pct"], 6),
         "density_ratio": None if summary["density_ratio"] is None else round(summary["density_ratio"], 6),
         "uneven_density": summary["uneven_density"],
+        # The experimental block renders `reason` verbatim, so an available
+        # aggregate must not carry a shortfall placeholder. Caught by parity: the
+        # TypeScript side had the bug, Python did not.
+        "reason": hr.reason,
     }
 
 

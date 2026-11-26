@@ -25,6 +25,7 @@ Five files were inspected against each other: `sessionAggregate.ts`,
 | 4 | Medium | Respiratory rate appeared in the same `presentable` list as heart rate | An experimental estimate inferred from pulse-interval variability sat beside the pulse value as though the two had comparable standing |
 | 5 | Low | Completion text counted 8 target readings while the gate needed 5 | Confusing, and it masked defect #1 (the target looked like the requirement) |
 | 6 | Low | No detection of uneven analysis density | The all-window mean silently over-weights a densely analysed stretch; the condition was invisible |
+| 7 | Low | An `available` aggregate kept the placeholder reason `"No readings recorded for this metric in this session"` | The experimental block renders `reason` verbatim, so an available respiratory value would be captioned with text saying it had no readings. Python already cleared the reason; TypeScript did not — a genuine cross-implementation divergence found by adding `reason` to the parity fixture |
 
 Browser/Python consistency was **otherwise sound**: the acceptance rules, statistics,
 independence accounting and export field names already matched. New parity tests
@@ -260,7 +261,7 @@ variability a reader needs to see.
 | Suite | Result |
 |---|---|
 | `python -m pytest -q` | **483 passed** (41.6 s) |
-| `npm test` | **11 files, 144 passed** |
+| `npm test` | **11 files, 154 passed** |
 | `npm run build` | `tsc -b` clean, vite build ok |
 | `npm run lint` | **0 errors, 1 warning** (pre-existing `exhaustive-deps`) |
 

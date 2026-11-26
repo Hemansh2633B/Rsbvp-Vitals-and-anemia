@@ -504,6 +504,11 @@ export function summarize(
     return result
   }
   result.verdict = 'available'
+  // An available aggregate has no shortfall to explain. Leaving the placeholder
+  // reason from emptyAggregate in place produced "available" blocks carrying
+  // "No readings recorded for this metric", and the experimental block renders
+  // that text verbatim. Python already cleared it; this keeps the two identical.
+  result.reason = ''
   return result
 }
 

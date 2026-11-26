@@ -34,6 +34,7 @@ type CaseSpec = {
     acceptance_pct: number | null
     density_ratio: number | null
     uneven_density: boolean
+    reason: string
   }
 }
 
@@ -184,6 +185,7 @@ describe('session aggregation parity with the Python implementation', () => {
         acceptance_pct: round(summary.acceptancePct),
         density_ratio: round(summary.densityRatio),
         uneven_density: summary.unevenDensity,
+        reason: hr.reason,
       }).toEqual(spec.expected)
     })
   }
