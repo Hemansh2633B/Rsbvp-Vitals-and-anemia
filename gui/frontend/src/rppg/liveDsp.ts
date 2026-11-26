@@ -10,11 +10,12 @@ export type LiveAnalysis = {
   waveforms: Record<string, number[]>
   fs: number | null
   /** Per-window spectral diagnostics behind the verdict (uncalibrated research metrics). */
-  scores?: { fsHz: number | null; durationS: number | null; maxGapS: number | null; peakFraction: number | null; snrDb: number | null; separationRatio: number | null; roiCoverage: Record<string, number> | null; roiCoverageOverall: number | null }
+  scores?: { fsHz: number | null; durationS: number | null; maxGapS: number | null; peakFraction: number | null; snrDb: number | null; separationRatio: number | null; roiCoverage: Record<string, number> | null; roiCoverageOverall: number | null; acquisition?: CaptureIntegrity | null }
   /** Six explicitly separated quality concepts; each is pass | fail | not_evaluated. */
   concepts?: { face_tracking: QualityConcept; roi_extraction: QualityConcept; temporal_acquisition: QualityConcept; pulse_signal: QualityConcept; algorithm_agreement: QualityConcept; availability: QualityConcept }
 }
 export type QualityConcept = 'pass' | 'fail' | 'not_evaluated'
+import { captureIntegrity, integrityReason, type CaptureIntegrity } from './captureIntegrity'
 const ROI_NAMES = ['forehead', 'left_cheek', 'right_cheek'] as const
 const METHODS = ['green', 'pos', 'chrom'] as const
 const LOW = 0.7
@@ -144,7 +145,7 @@ function process(rgb:number[][],fs:number,method:typeof METHODS[number]) {
 }
 export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAnalysis {
   const end=samples.at(-1)?.t ?? 0, start=samples[0]?.t ?? 0, duration=end-start
-  if(duration<requiredSeconds) return {status:'warming_up',reason:`Acquire ${Math.ceil(requiredSeconds-duration)} more seconds`,bpm:null,estimates:{},consistencyBpm:null,quality:0,waveforms:{},fs:null}
+  if(duration<requiredSeconds) return {status:'warming_up',reason:`Acquire ${Math.ceil(requiredSeconds-duration)} more seconds`,bpm:null,estimates:{},consistencyBpm:null,quality:0,waveforms:{},fs:null,scores:{fsHz:null,durationS:duration,maxGapS:null,peakFraction:null,snrDb:null,separationRatio:null,roiCoverage:null,roiCoverageOverall:null,acquisition:captureIntegrity({times:samples.map(s=>s.t)})}}
   const estimates:Record<string,number|null>={}, waveforms:Record<string,number[]>={}, qualities:number[]=[]
   let worstSnr:number|null=null, worstSeparation:number|null=null
   let fs:number|null=null
@@ -182,6 +183,17 @@ export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAn
     durationS=durationS===null?diag.durationS:Math.max(durationS,diag.durationS)
     if(diag.maxGapS!==null){maxGapS=maxGapS===null?diag.maxGapS:Math.max(maxGapS,diag.maxGapS);if(diag.maxGapS>0.25)irregular=true}
   }
+  // Acquisition integrity from the raw (unresampled) timestamps. This is the
+  // independent check on *what the camera delivered*; resampling can hide
+  // duplicates and gaps, so the verdict is derived from the original samples.
+  const acquisition = captureIntegrity({ times: samples.map(s => s.t) })
+  const acquisitionProblem = integrityReason(acquisition)
+  // A window with a timing defect is reported as such even if the resampling
+  // happened to succeed: the numbers would describe a signal that was not
+  // recorded at the rate the estimator assumes.
+  const acquisitionIrregular = acquisition.hasLargeGap || acquisition.hasDuplicateSamples || acquisition.hasIrregularTiming
+  irregular = irregular || acquisitionIrregular
+  if (acquisition.maxGapS !== null) maxGapS = maxGapS === null ? acquisition.maxGapS : Math.max(maxGapS, acquisition.maxGapS)
   // Union coverage: fraction of samples with at least one usable skin ROI.
   // Per-ROI traces may be valid even at partial coverage, so the *window*
   // verdict requires the union, not individual ROI completeness.
@@ -197,17 +209,17 @@ export function analyzeSamples(samples:TraceSample[], requiredSeconds=10):LiveAn
   const insufficient=fs===null
   const spectralReason=concentrationPass?(snrPass?(sepPass?'':'peak separation too weak'):'pulse SNR below 3 dB'):'spectral concentration below 20%'
   const coverageReason=`ROI coverage ${(unionCoverage*100).toFixed(0)}% below ${MIN_ROI_COVERAGE*100}%`
-  const reason=valid?'Independent ROI/method estimates agree':irregular?'Timestamp gaps exceed 0.25 s (dropped frames or tab throttling)':noRoi?'All skin ROIs are lost or unavailable':insufficient?'Insufficient frames or irregular sampling':!roiCoveragePass?coverageReason:values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':spectralReason
+  const reason=valid?'Independent ROI/method estimates agree':irregular?(acquisitionProblem ?? 'Timestamp gaps exceed 0.25 s (dropped frames or tab throttling)'):noRoi?'All skin ROIs are lost or unavailable':insufficient?'Insufficient frames or irregular sampling':!roiCoveragePass?coverageReason:values.length<2?'Insufficient valid ROI traces':consistency>12?'Estimator disagreement exceeds 12 BPM':spectralReason
   const status=valid?'valid':irregular?'irregular_timestamps':noRoi?'roi_lost':insufficient?'insufficient_frames':'low_signal_quality'
   // Six explicitly separated quality concepts. Availability is the composite;
   // the other five are components, never a single blended score.
   const concepts:NonNullable<LiveAnalysis['concepts']>={
     face_tracking:'pass' as QualityConcept, // tracking failure short-circuits earlier (status face_not_detected)
     roi_extraction:roiCoveragePass?'pass':'fail',
-    temporal_acquisition:(fs!==null && !irregular)?'pass':'fail',
+    temporal_acquisition:(fs!==null && !irregular && !acquisition.insufficientSamplingRate)?'pass':'fail',
     pulse_signal:spectralPass?'pass':(qualities.length?'fail':'not_evaluated'),
     algorithm_agreement:agreementPass?'pass':(values.length>=2?'fail':'not_evaluated'),
     availability:valid?'pass':'fail',
   }
-  return {status,reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs,concepts,scores:{fsHz:fs,durationS,maxGapS,peakFraction:qualities.length?quality:null,snrDb:worstSnr,separationRatio:worstSeparation,roiCoverage,roiCoverageOverall:unionCoverage}}
+  return {status,reason,bpm:valid?bpm:null,estimates,consistencyBpm:Number.isFinite(consistency)?consistency:null,quality,waveforms,fs,concepts,scores:{fsHz:fs,durationS,maxGapS,peakFraction:qualities.length?quality:null,snrDb:worstSnr,separationRatio:worstSeparation,roiCoverage,roiCoverageOverall:unionCoverage,acquisition}}
 }

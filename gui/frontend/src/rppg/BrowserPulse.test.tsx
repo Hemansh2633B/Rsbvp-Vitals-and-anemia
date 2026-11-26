@@ -68,3 +68,43 @@ describe('browser camera failure and recovery paths',()=>{
    Object.defineProperty(document,'hidden',{configurable:true,get:()=>false})
  })
 })
+
+// Sprint 12: the UI must state which acquisition phase it is in and why no
+// estimate is shown. Simulated media only - software verification, never a
+// physiological or physical-camera validation.
+describe('acquisition phase reporting',()=>{
+ const stubMedia=()=>{
+   Object.defineProperties(HTMLVideoElement.prototype,{readyState:{configurable:true,get:()=>2},videoWidth:{configurable:true,get:()=>640},videoHeight:{configurable:true,get:()=>480}})
+   vi.spyOn(HTMLCanvasElement.prototype,'getContext').mockReturnValue({drawImage:vi.fn(),clearRect:vi.fn(),getImageData:vi.fn(()=>({data:new Uint8ClampedArray(640*480*4)})),strokeStyle:'',lineWidth:1,beginPath:vi.fn(),moveTo:vi.fn(),lineTo:vi.fn(),closePath:vi.fn(),stroke:vi.fn()} as unknown as CanvasRenderingContext2D)
+ }
+ it('starts in a not-started phase and explains why no estimate exists',()=>{
+   render(<BrowserPulse/>)
+   expect(screen.getByText('Not started')).toBeInTheDocument()
+   expect(screen.getByText(/Camera access begins only when you press Start/)).toBeInTheDocument()
+   expect(screen.getByText('Why unavailable:')).toBeInTheDocument()
+   expect(screen.getByText('Unavailable')).toBeInTheDocument()
+ })
+ it('names the initialising phase while the camera and model load',async()=>{
+   stubMedia()
+   vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream)
+   render(<BrowserPulse/>)
+   fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}))
+   await waitFor(()=>expect(screen.getByRole('button',{name:'Stop camera'})).toBeInTheDocument())
+   const chip=document.querySelector('.phase-chip')
+   // The camera is open and a window is being collected; it must no longer claim
+   // "not started", and it must not claim an estimate is available.
+   expect(chip?.textContent).toBe('Acquiring signal')
+   expect(screen.queryByText('Not started')).not.toBeInTheDocument()
+   expect(screen.getByText('Unavailable')).toBeInTheDocument()
+ })
+ it('moves to an interrupted phase after a stop and keeps no estimate',async()=>{
+   stubMedia()
+   vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream)
+   render(<BrowserPulse/>)
+   fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}))
+   await waitFor(()=>expect(screen.getByRole('button',{name:'Stop camera'})).toBeInTheDocument())
+   fireEvent.click(screen.getByRole('button',{name:'Stop camera'}))
+   expect(screen.getByText('Unavailable')).toBeInTheDocument()
+   expect(screen.getByText(/Why unavailable:/)).toBeInTheDocument()
+ })
+})

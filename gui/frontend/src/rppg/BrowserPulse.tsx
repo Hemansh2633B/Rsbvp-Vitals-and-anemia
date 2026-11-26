@@ -4,6 +4,7 @@ import { type LiveAnalysis, type TraceSample } from './liveDsp'
 import { buildTraceCsv, buildTraceMetadata, buildWindowRecord, buildWindowsExport } from './exports'
 import { newSessionId } from './provenance'
 import { polygonMean } from './roi'
+import { MIN_USABLE_FS_HZ, integrityReason, recoveryDelayMs, type CaptureIntegrity } from './captureIntegrity'
 import './browserPulse.css'
 
 const WASM = import.meta.env.VITE_MEDIAPIPE_WASM_URL || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/wasm'
@@ -16,6 +17,22 @@ const regions = {
 } as const
 const excludedFeatures = [[33,160,158,133,153,144],[362,385,387,263,373,380],[61,146,91,181,84,17,314,405,321,375,291,308],[70,63,105,66,107,55,65,52,53],[300,293,334,296,336,285,295,282,283]] as const
 
+type AcquisitionPhase = 'idle'|'initialising'|'face_search'|'acquiring'|'processing'|'degraded'|'interrupted'|'completed'
+const PHASE_LABELS: Record<AcquisitionPhase,string> = {
+  idle:'Not started', initialising:'Initialising camera and face model', face_search:'Camera open, searching for a face',
+  acquiring:'Acquiring signal', processing:'Processing window', degraded:'Acquisition degraded',
+  interrupted:'Interrupted', completed:'Session complete (camera released)',
+}
+const PHASE_DETAIL: Record<AcquisitionPhase,string> = {
+  idle:'Camera access begins only when you press Start.',
+  initialising:'Requesting camera permission and loading the face landmarker.',
+  face_search:'Frames are arriving; no valid forehead/cheek ROI yet.',
+  acquiring:'Collecting a window. Estimates appear only after the quality checks pass.',
+  processing:'A window is being analysed in the local worker.',
+  degraded:'Frames are arriving but the timing or quality is not usable for a pulse estimate.',
+  interrupted:'Capture stopped. No estimate is shown until a fresh window passes the checks.',
+  completed:'Camera tracks, worker and face model released. Downloaded traces remain valid.',
+}
 type Track = 'idle'|'loading'|'model_loading'|'tracking'|'face_not_detected'|'reacquiring'|'error'
 const initial: LiveAnalysis = {status:'warming_up',reason:'Start the camera to begin local analysis',bpm:null,estimates:{},consistencyBpm:null,quality:0,waveforms:{},fs:null}
 function Trace({values,label}:{values:number[];label:string}) {
@@ -29,11 +46,27 @@ export function BrowserPulse(){
   const video=useRef<HTMLVideoElement>(null), canvas=useRef<HTMLCanvasElement>(null), overlay=useRef<HTMLCanvasElement>(null)
   const sessionId=useRef(0),stream=useRef<MediaStream|null>(null), landmarker=useRef<FaceLandmarker|null>(null), worker=useRef<Worker|null>(null), pendingJob=useRef(false), jobId=useRef(0), raf=useRef(0), lastSample=useRef(0), lastAnalysis=useRef(0), lastUi=useRef(0),lastVideoTime=useRef(-1), lastPlaybackCount=useRef<number|null>(null), lastPlaybackTime=useRef(0), lostAt=useRef<number|null>(null), samples=useRef<TraceSample[]>([]),exportSamples=useRef<TraceSample[]>([]),exportDropped=useRef(0),acquisitionStart=useRef<number|null>(null), previousCenter=useRef<{x:number;y:number}|null>(null), centers=useRef<Array<{t:number;x:number;y:number}>>([]), smoothed=useRef<Array<{x:number;y:number;z:number}>>([])
   const windowLog=useRef<Array<Record<string,unknown>>>([]),pendingWindow=useRef<{start_s:number;end_s:number;n_samples:number}|null>(null),sessionRef=useRef(newSessionId())
+  const recovery=useRef({attempt:0,timer:0 as number|ReturnType<typeof setTimeout>})
+  const [recoveryNote,setRecoveryNote]=useState('')
   const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[deviceId,setDeviceId]=useState(''),[track,setTrack]=useState<Track>('idle'),[error,setError]=useState(''),[analysis,setAnalysis]=useState(initial),[duration,setDuration]=useState(0),[roiState,setRoiState]=useState('Waiting for face'),[algorithm,setAlgorithm]=useState('green'),[cameraFps,setCameraFps]=useState<number|null>(null)
   const algorithmRef=useRef(algorithm);algorithmRef.current=algorithm
   const windowsDropped=useRef(0)
   const stop=()=>{sessionId.current++;cancelAnimationFrame(raf.current);worker.current?.terminate();worker.current=null;pendingJob.current=false;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;landmarker.current?.close();landmarker.current=null;if(video.current)video.current.srcObject=null;setTrack('idle');setRoiState('Camera stopped');setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped; no live estimate is available'}))}
-  useEffect(()=>{void refreshDevices();const onVisibility=()=>{if(document.hidden&&stream.current){stop();setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped because the browser tab became hidden'}))}};document.addEventListener('visibilitychange',onVisibility);return()=>{document.removeEventListener('visibilitychange',onVisibility);stop()}},[])
+  useEffect(()=>{void refreshDevices();const onVisibility=()=>{if(document.hidden&&stream.current){stop();setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped because the browser tab became hidden'}))}};document.addEventListener('visibilitychange',onVisibility);return()=>{document.removeEventListener('visibilitychange',onVisibility);clearTimeout(recovery.current.timer as number);stop()}},[])
+
+  // A camera that drops out (USB, thermal shutdown, another app grabbing it) is
+  // reopened with exponential backoff instead of silently dying with a stale
+  // estimate on screen. After the attempt budget the user is told to press Start.
+  function scheduleRecovery(reason:string){
+    const attempt=recovery.current.attempt
+    const delay=recoveryDelayMs(attempt)
+    if(delay===null){setRecoveryNote(`${reason}. Automatic recovery stopped after ${attempt} attempts - press Start to try again.`);setTrack('error');return}
+    const seconds=Math.round(delay/1000)
+    setRecoveryNote(`${reason}. Reconnecting the camera in ${seconds} s (attempt ${attempt+1}).`)
+    recovery.current.attempt=attempt+1
+    clearTimeout(recovery.current.timer as number)
+    recovery.current.timer=setTimeout(()=>{void start()},delay)
+  }
   async function refreshDevices(){try{setDevices(await navigator.mediaDevices.enumerateDevices().then(d=>d.filter(x=>x.kind==='videoinput')))}catch{setDevices([])}}
   async function start(){
     const session=++sessionId.current
@@ -43,7 +76,7 @@ export function BrowserPulse(){
       const videoConstraint:MediaTrackConstraints=deviceId?{deviceId:{exact:deviceId},width:{ideal:640},height:{ideal:480}}:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}}
       const s=await navigator.mediaDevices.getUserMedia({audio:false,video:videoConstraint})
       if(session!==sessionId.current){s.getTracks().forEach(t=>t.stop());return}
-      stream.current=s;setTrack('model_loading');s.getVideoTracks().forEach(track=>{track.addEventListener('ended',()=>{stop();setError('Camera stream ended or was interrupted.');setAnalysis({...initial,status:'low_signal_quality',reason:'Camera stream ended'});setTrack('error')},{once:true});track.addEventListener('mute',()=>{jobId.current++;pendingJob.current=false;setAnalysis({...initial,status:'reacquiring',reason:'Camera temporarily interrupted; reacquiring signal'});setTrack('reacquiring')});track.addEventListener('unmute',()=>{samples.current=[];centers.current=[];acquisitionStart.current=null;setDuration(0);setAnalysis({...initial,status:'reacquiring',reason:'Camera resumed; collecting a fresh window'});setTrack('reacquiring')})});if(video.current){video.current.srcObject=s;await video.current.play()}
+      stream.current=s;recovery.current.attempt=0;setRecoveryNote('');setTrack('model_loading');s.getVideoTracks().forEach(track=>{track.addEventListener('ended',()=>{stop();setError('Camera stream ended or was interrupted.');setAnalysis({...initial,status:'low_signal_quality',bpm:null,reason:'Camera stream ended'});setTrack('error');scheduleRecovery('The camera stream ended')},{once:true});track.addEventListener('mute',()=>{jobId.current++;pendingJob.current=false;setAnalysis({...initial,status:'reacquiring',reason:'Camera temporarily interrupted; reacquiring signal'});setTrack('reacquiring')});track.addEventListener('unmute',()=>{samples.current=[];centers.current=[];acquisitionStart.current=null;setDuration(0);setAnalysis({...initial,status:'reacquiring',reason:'Camera resumed; collecting a fresh window'});setTrack('reacquiring')})});if(video.current){video.current.srcObject=s;await video.current.play()}
       if(session!==sessionId.current)return
       await refreshDevices()
       let vision:Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>
@@ -134,17 +167,55 @@ export function BrowserPulse(){
   const measuredFps=typicalInterval?1/typicalInterval:null,droppedFraction=typicalInterval?intervals.filter(d=>d>1.5*typicalInterval).length/Math.max(1,intervals.length):null
   const roiCoverage=(['forehead','left_cheek','right_cheek'] as const).map(roi=>({roi,pct:samples.current.length?samples.current.filter(s=>s.rois[roi]!==null&&s.rois[roi]!==undefined).length/samples.current.length:0}))
   const unionCoverage=analysis.scores?.roiCoverageOverall??null
+  const acquisition:CaptureIntegrity|null=analysis.scores?.acquisition??null
   const conceptEntries=analysis.concepts?Object.entries(analysis.concepts):[]
   const faceMotion=centers.current.length?Math.hypot(Math.max(...centers.current.map(p=>p.x))-Math.min(...centers.current.map(p=>p.x)),Math.max(...centers.current.map(p=>p.y))-Math.min(...centers.current.map(p=>p.y))):0
   const rgbWave=(['r','g','b'] as const).map((channel,index)=>({name:`Forehead ${channel.toUpperCase()}`,values:samples.current.map(s=>s.rois.forehead?.[index]??NaN).filter(Number.isFinite).slice(-240)}))
+  // Explicit, non-overlapping acquisition phases. The old single "tracking" label
+  // conflated "camera open" with "measuring"; the distinction matters because a
+  // camera can deliver frames while the window is still not analysable.
+  const phase: AcquisitionPhase = track==='idle' ? (duration>0 ? 'completed' : 'idle')
+    : track==='loading' || track==='model_loading' ? 'initialising'
+    : track==='error' ? 'interrupted'
+    : track==='face_not_detected' ? 'face_search'
+    : track==='reacquiring' ? 'acquiring'
+    : acquisition===null ? 'acquiring'
+    : acquisition.regular ? 'processing' : 'degraded'
+  const timingProblem = acquisition===null ? null : integrityReason(acquisition)
+  const reasons: string[] = []
+  if (track==='idle') reasons.push('Camera is not open')
+  if (track==='error' && error) reasons.push(error)
+  if (track==='face_not_detected') reasons.push('No face found; point the camera at a well-lit face')
+  if (track==='reacquiring') reasons.push('Camera resumed or face reacquired; a fresh window is needed')
+  if (timingProblem) reasons.push(timingProblem)
+  if (acquisition?.insufficientSamplingRate) reasons.push(`Needs at least ${MIN_USABLE_FS_HZ} fps`)
+  if (analysis.status!=='valid') reasons.push(analysis.reason)
+  const unavailableBecause = analysis.bpm===null ? [...new Set(reasons)].join(' · ') : ''
   return <section className="panel browser-pulse">
     <h2>Browser-local live pulse research</h2><p className="muted">Frames are analyzed in this browser; only numeric waveform summaries remain in memory. Camera access starts only after you press Start. This is experimental, not medical measurement.</p>
     <div className="live-controls"><label className="ctl">Camera<select value={deviceId} onChange={e=>setDeviceId(e.target.value)} disabled={track!=='idle'&&track!=='error'}><option value="">Default camera</option>{devices.map(d=><option value={d.deviceId} key={d.deviceId}>{d.label||'Camera'}</option>)}</select></label>{track!=='idle'&&track!=='error'?<button className="danger" onClick={stop}>Stop camera</button>:<button className="primary" onClick={start}>Start camera</button>}<span aria-live="polite" className="live-status">{track.replaceAll('_',' ')}</span></div>
     {error&&<div role="alert" className="status error">{error}</div>}
+    <div className="acquisition-status" role="status" aria-live="polite">
+      <span className={`phase-chip phase-${phase}`}>{PHASE_LABELS[phase]}</span>
+      <span className="muted small">{PHASE_DETAIL[phase]}</span>
+      {analysis.bpm===null&&<p className="muted small"><strong>Why unavailable:</strong> {unavailableBecause}</p>}
+    </div>
     <div className="browser-camera"><video ref={video} muted playsInline aria-label="Local camera preview"/><canvas ref={overlay} aria-label="Forehead and cheek ROI overlay"/><canvas ref={canvas} hidden/></div>
     <h3>ROI tracking quality</h3><div className="subcards">{roiCoverage.map(({roi,pct})=><div className="subcard" key={roi}><strong>{roi.replace('_',' ')}</strong><p>{pct>=.8?'Tracking':pct>0?'Partial / unstable':'ROI lost'}</p><p className="muted small">{(pct*100).toFixed(0)}% valid skin samples</p></div>)}</div>
     <p className="muted small">Union coverage: {unionCoverage===null?'—':`${(unionCoverage*100).toFixed(0)}%`} of analyzed-window samples have at least one usable skin ROI (a window is only analysable at ≥ 50%).</p>
     <div className="metric-grid"><div className="metric-card"><div className="metric-label">Pulse estimate</div><div className="metric-value">{analysis.bpm===null?'Unavailable':`${analysis.bpm.toFixed(0)} BPM`}</div><div className="metric-sub">Only shown when quality checks pass</div></div><div className="metric-card"><div className="metric-label">Acquisition</div><div className="metric-value">{duration.toFixed(1)} s</div><div className="metric-sub">{roiState} · camera {cameraFps?`${cameraFps.toFixed(1)} FPS`:'FPS —'} · sampled {measuredFps?`${measuredFps.toFixed(1)} Hz`:'rate —'} · dropped intervals {droppedFraction===null?'—':`${(droppedFraction*100).toFixed(1)}%`}</div></div><div className="metric-card"><div className="metric-label">Quality / agreement</div><div className="metric-value">{analysis.status.replaceAll('_',' ')}</div><div className="metric-sub">{analysis.reason} · spectral concentration {(analysis.quality*100).toFixed(0)}% · face motion {(faceMotion*100).toFixed(1)}%{analysis.consistencyBpm!==null?` · spread ${analysis.consistencyBpm.toFixed(1)} BPM`:''}</div></div></div>
+    {recoveryNote&&<p role="status" className="muted small">{recoveryNote}</p>}
+    <h3>Camera acquisition integrity</h3>
+    {acquisition===null
+      ? <p className="muted small">Timing diagnostics appear once a window has been analysed.</p>
+      : <><div className="subcards">
+          <div className="subcard"><strong>Effective rate</strong><p>{acquisition.medianFsHz===null?'—':`${acquisition.medianFsHz.toFixed(1)} fps`}</p><p className="muted small">mean {acquisition.meanFsHz===null?'—':`${acquisition.meanFsHz.toFixed(1)} fps`}</p></div>
+          <div className="subcard"><strong>Largest gap</strong><p>{acquisition.maxGapS===null?'—':`${acquisition.maxGapS.toFixed(2)} s`}</p><p className="muted small">{acquisition.droppedIntervalFraction===null?'—':`${(acquisition.droppedIntervalFraction*100).toFixed(0)}% intervals dropped`}</p></div>
+          <div className="subcard"><strong>Duplicate frames</strong><p>{acquisition.duplicateFrameFraction!==null?`${(acquisition.duplicateFrameFraction*100).toFixed(0)}%`:(acquisition.duplicateIntervalFraction!==null?`${(acquisition.duplicateIntervalFraction*100).toFixed(0)}%`:'—')}</p><p className="muted small">same sensor frame sampled twice</p></div>
+          <div className="subcard"><strong>Timing regularity</strong><p className={acquisition.regular?'concept-pass':'concept-fail'}>{acquisition.regular?'Regular':'Irregular'}</p><p className="muted small">{acquisition.intervalJitterCv===null?'—':`jitter ${(acquisition.intervalJitterCv*100).toFixed(0)}%`}</p></div>
+        </div>
+        <p className="muted small">Measured from the capture timestamps themselves, not from the requested frame rate. A window with a reported timing defect is never presented as an available measurement, because the estimators assume uniform sampling.</p></>
+    }
     <h3>Quality concepts</h3>
     <p className="muted small">Separated checks, not a blended score. Availability is the composite verdict; the other five are components. “Not evaluated” means the check never ran for this window.</p>
     <div className="subcards concept-grid">{conceptEntries.map(([name,state])=><div className="subcard" key={name}><strong>{name.replaceAll('_',' ')}</strong><p className={state==='pass'?'concept-pass':state==='fail'?'concept-fail':'concept-na'}>{state==='pass'?'Pass':state==='fail'?'Fail':'Not evaluated'}</p></div>)}{conceptEntries.length===0&&<p className="muted small">Concept checks appear once analysis begins.</p>}</div>
