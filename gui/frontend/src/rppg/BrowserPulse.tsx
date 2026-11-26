@@ -3,7 +3,30 @@ import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { type LiveAnalysis, type TraceSample } from './liveDsp'
 import { buildTraceCsv, buildTraceMetadata, buildWindowRecord, buildWindowsExport } from './exports'
 import { newSessionId } from './provenance'
-import { polygonMean } from './roi'
+import {
+  FEATURE_MASKS,
+  REGION_EXCLUSIONS,
+  buildPatch,
+  extractAllRois,
+  type RoiDiagnostics,
+  type RoiName,
+} from './roiGeometry'
+import { estimateKeyLabel, partitionEstimateKeys } from './estimateKeys'
+import {
+  drawRoiOverlay,
+  computeOverlayTransform,
+  backingStoreSize,
+  overlayState,
+  shouldMirror,
+  type OverlayRegion,
+} from './overlay'
+import {
+  describeTrackGeometry,
+  inspectBrowserEnvironment,
+  videoConstraintsFor,
+  type SecureContextReport,
+  type TrackGeometry,
+} from './cameraEnvironment'
 import { MIN_USABLE_FS_HZ, integrityReason, recoveryDelayMs, type CaptureIntegrity } from './captureIntegrity'
 import {
   CONSENSUS,
@@ -19,13 +42,8 @@ import './browserPulse.css'
 
 const WASM = import.meta.env.VITE_MEDIAPIPE_WASM_URL || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/wasm'
 const MODEL = import.meta.env.VITE_FACE_LANDMARKER_MODEL_URL || 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
-const regions = {
-  // Ordered facial surface contours. Lower edges avoid the orbital and mouth zones.
-  forehead: [10,338,297,332,284,251,389,356,9,127,162,21,54,103,67,109],
-  left_cheek: [50,101,118,119,100,126,209,206,203,142,123,116],
-  right_cheek: [280,330,347,348,329,355,429,426,423,371,352,345],
-} as const
-const excludedFeatures = [[33,160,158,133,153,144],[362,385,387,263,373,380],[61,146,91,181,84,17,314,405,321,375,291,308],[70,63,105,66,107,55,65,52,53],[300,293,334,296,336,285,295,282,283]] as const
+// The ROI geometry lives in ./roiGeometry, where every landmark index is
+// verified against the MediaPipe canonical face model and pinned by tests.
 
 type AcquisitionPhase = 'idle'|'initialising'|'face_search'|'acquiring'|'processing'|'degraded'|'interrupted'|'completed'
 const PHASE_LABELS: Record<AcquisitionPhase,string> = {
@@ -66,7 +84,14 @@ export function BrowserPulse(){
   const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[deviceId,setDeviceId]=useState(''),[track,setTrack]=useState<Track>('idle'),[error,setError]=useState(''),[analysis,setAnalysis]=useState(initial),[duration,setDuration]=useState(0),[roiState,setRoiState]=useState('Waiting for face'),[algorithm,setAlgorithm]=useState('green'),[cameraFps,setCameraFps]=useState<number|null>(null)
   const algorithmRef=useRef(algorithm);algorithmRef.current=algorithm
   const windowsDropped=useRef(0)
-  const stop=()=>{sessionId.current++;cancelAnimationFrame(raf.current);worker.current?.terminate();worker.current=null;pendingJob.current=false;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;landmarker.current?.close();landmarker.current=null;if(video.current)video.current.srcObject=null;setTrack('idle');setRoiState('Camera stopped');setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped; no live estimate is available'}))}
+  const roiDiagRef=useRef<RoiDiagnostics[]>([])
+  const lastDiagUi=useRef(0)
+  const [roiDiagnostics,setRoiDiagnostics]=useState<RoiDiagnostics[]>([])
+  const [showRoiDetails,setShowRoiDetails]=useState(false)
+  const [unparsableKeys,setUnparsableKeys]=useState<string[]>([])
+  const [environment,setEnvironment]=useState<SecureContextReport|null>(null)
+  const [geometry,setGeometry]=useState<TrackGeometry|null>(null)
+  const stop=()=>{sessionId.current++;cancelAnimationFrame(raf.current);worker.current?.terminate();worker.current=null;pendingJob.current=false;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;landmarker.current?.close();landmarker.current=null;if(video.current)video.current.srcObject=null;setTrack('idle');setRoiState('Camera stopped');setRoiDiagnostics([]);roiDiagRef.current=[];setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped; no live estimate is available'}))}
   // Re-derive the session state whenever the capture lifecycle changes: the same
   // readings mean different things while running, stopped, or interrupted.
   useEffect(()=>{if(collector.current.size>0)resummarize()},[track])
@@ -90,9 +115,14 @@ export function BrowserPulse(){
     const session=++sessionId.current
     setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);sessionRef.current=newSessionId();collector.current.reset();setSession(summarizeSession([],{lifecycle:'running'}));setTrack('loading')
     try{
-      if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera API unavailable. Use HTTPS or localhost in a supported browser.')
-      const videoConstraint:MediaTrackConstraints=deviceId?{deviceId:{exact:deviceId},width:{ideal:640},height:{ideal:480}}:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}}
-      const s=await navigator.mediaDevices.getUserMedia({audio:false,video:videoConstraint})
+      // Check the browsing context explicitly and report *which* condition failed.
+      // An arbitrary private-network HTTP address is not a secure context, so the
+      // camera API is simply absent there; saying so is more useful than a generic
+      // "camera unavailable".
+      const env=inspectBrowserEnvironment()
+      setEnvironment(env)
+      if(!env.canCapture)throw new Error(env.message)
+      const s=await navigator.mediaDevices.getUserMedia({audio:false,video:videoConstraintsFor(deviceId)})
       if(session!==sessionId.current){s.getTracks().forEach(t=>t.stop());return}
       stream.current=s;recovery.current.attempt=0;setRecoveryNote('');setTrack('model_loading');s.getVideoTracks().forEach(track=>{track.addEventListener('ended',()=>{stop();setError('Camera stream ended or was interrupted.');setAnalysis({...initial,status:'low_signal_quality',bpm:null,reason:'Camera stream ended'});setTrack('error');scheduleRecovery('The camera stream ended')},{once:true});track.addEventListener('mute',()=>{jobId.current++;pendingJob.current=false;setAnalysis({...initial,status:'reacquiring',reason:'Camera temporarily interrupted; reacquiring signal'});setTrack('reacquiring')});track.addEventListener('unmute',()=>{samples.current=[];centers.current=[];acquisitionStart.current=null;setDuration(0);setAnalysis({...initial,status:'reacquiring',reason:'Camera resumed; collecting a fresh window'});setTrack('reacquiring')})});if(video.current){video.current.srcObject=s;await video.current.play()}
       if(session!==sessionId.current)return
@@ -129,8 +159,18 @@ export function BrowserPulse(){
           const totalFrames=v.getVideoPlaybackQuality?.().totalVideoFrames
           if(Number.isFinite(totalFrames)&&(lastPlaybackCount.current===null||now-lastPlaybackTime.current>=500)){if(lastPlaybackCount.current!==null&&now>lastPlaybackTime.current)setCameraFps((totalFrames!-lastPlaybackCount.current)/((now-lastPlaybackTime.current)/1000));lastPlaybackCount.current=totalFrames!;lastPlaybackTime.current=now}
           const w=v.videoWidth,h=v.videoHeight;if(!w||!h){raf.current=requestAnimationFrame(frame);return}
-          c.width=w;c.height=h;o.width=w;o.height=h
+          // Size the sampling canvas to the decoded frame exactly, and the overlay
+          // backing store to the *displayed* box in device pixels. Getting these
+          // two different sizes confused was the reason the overlay drifted off the
+          // face on phone aspect ratios: the old code copied frame pixels into a
+          // canvas then stretched it with CSS.
+          c.width=w;c.height=h
+          const box=o.getBoundingClientRect()
+          const dpr=typeof window==='undefined'?1:(window.devicePixelRatio||1)
+          const device=backingStoreSize(box.width||w,box.height||h,dpr)
+          if(o.width!==device.width||o.height!==device.height){o.width=device.width;o.height=device.height}
           const ctx=c.getContext('2d',{willReadFrequently:true})!,ox=o.getContext('2d')!
+          const overlayTransform=computeOverlayTransform(w,h,box.width||w,box.height||h,{mirrored:shouldMirror(stream.current?.getVideoTracks()[0]?.getSettings?.().facingMode),dpr})
           ctx.drawImage(v,0,0,w,h)
           let result:ReturnType<FaceLandmarker['detectForVideo']>
           try{result=lm.detectForVideo(v,now)}catch(e){setError(e instanceof Error?e.message:'Face tracker failed');stop();setTrack('error');return}
@@ -141,6 +181,8 @@ export function BrowserPulse(){
           if(!face){
             if(lostAt.current===null){lostAt.current=now;jobId.current++;pendingJob.current=false;setAnalysis(prev=>({...prev,status:'face_not_detected',bpm:null,reason:'Face not detected'}))}
             setTrack(now-lostAt.current>1800?'reacquiring':'face_not_detected');setRoiState('Face not detected')
+            if(overlayTransform)drawRoiOverlay(ox,overlayTransform,[],{lost:true})
+            setRoiDiagnostics([])
             if(now-lostAt.current>4000&&acquisitionStart.current!==null){samples.current=[];centers.current=[];acquisitionStart.current=null;setDuration(0);setAnalysis({...initial,status:'low_signal_quality',reason:'Face lost; acquisition buffer reset'});previousCenter.current=null}
           }else{
             const wasLost=lostAt.current!==null;lostAt.current=null;setTrack('tracking')
@@ -149,17 +191,31 @@ export function BrowserPulse(){
             const center=face[1]??face[4]
             previousCenter.current={x:center.x,y:center.y}
             centers.current.push({t:now/1000,x:center.x,y:center.y});centers.current=centers.current.filter(p=>now/1000-p.t<=2)
-            const roiSamples:TraceSample['rois']={forehead:null,left_cheek:null,right_cheek:null}
+            // One pass over the frame: extract every ROI, keep its diagnostics, and
+            // draw the same polygons back onto the overlay so what is shown is
+            // exactly what was sampled.
             const pixels=ctx.getImageData(0,0,w,h).data
-            for(const [name,indices] of Object.entries(regions) as Array<[keyof typeof regions,readonly number[]]>) {
-              const pts=indices.map(i=>face[i]).filter(Boolean)
-              if(pts.length<6)continue
-              const exclusions=excludedFeatures.map(indices=>indices.map(i=>face[i]).filter(Boolean));const mean=polygonMean(pixels,w,h,pts,40,exclusions);roiSamples[name]=mean
-              const ctxPath=ox;ctxPath.beginPath();ctxPath.moveTo(pts[0].x*w,pts[0].y*h);for(const p of pts.slice(1))ctxPath.lineTo(p.x*w,p.y*h);ctxPath.closePath();ctxPath.strokeStyle=mean?'#58dfba':'#ffb547';ctxPath.lineWidth=Math.max(2,w/320);ctxPath.stroke()
+            const extracted=extractAllRois(pixels,w,h,face)
+            const roiSamples:TraceSample['rois']=extracted.samples as TraceSample['rois']
+            roiDiagRef.current=extracted.diagnostics
+            if(now-lastDiagUi.current>=250){
+              lastDiagUi.current=now
+              setRoiDiagnostics(extracted.diagnostics)
+              setGeometry(describeTrackGeometry({videoWidth:w,videoHeight:h,settings:stream.current?.getVideoTracks()[0]?.getSettings?.()??null,deviceLabel:devices.find(d=>d.deviceId===deviceId)?.label??null,canvasWidth:c.width,canvasHeight:c.height}))
             }
-            const sample={t:now/1000,rois:roiSamples};samples.current.push(sample);if(samples.current.length>300)samples.current.shift();exportSamples.current.push(sample);if(exportSamples.current.length>18000){exportSamples.current.shift();exportDropped.current++}
+            if(overlayTransform){
+              const overlayRegions:OverlayRegion[]=extracted.diagnostics.map(d=>({
+                roi:d.region,
+                polygon:buildPatchPolygon(d.region,face),
+                masks:maskPolygons(d.region,face),
+                sampled:d.meanRgb!==null,
+              }))
+              drawRoiOverlay(ox,overlayTransform,overlayRegions)
+            }
+            const sample={t:now/1000,rois:roiSamples,diagnostics:extracted.diagnostics};samples.current.push(sample);if(samples.current.length>300)samples.current.shift();exportSamples.current.push(sample);if(exportSamples.current.length>18000){exportSamples.current.shift();exportDropped.current++}
             const healthy=Object.values(roiSamples).filter(Boolean).length
-            setRoiState(`${healthy}/3 skin ROIs available`)
+            const state=overlayState(healthy,true)
+            setRoiState(state==='all'?'3/3 skin ROIs available':state==='partial'?`${healthy}/3 skin ROIs available (some regions unusable)`:'Face found, but no ROI produced a usable sample this frame')
             const elapsed=acquisitionStart.current===null?0:now/1000-acquisitionStart.current;if(now-lastUi.current>=250){lastUi.current=now;setDuration(elapsed)}
             const spread=centers.current.length?Math.hypot(Math.max(...centers.current.map(p=>p.x))-Math.min(...centers.current.map(p=>p.x)),Math.max(...centers.current.map(p=>p.y))-Math.min(...centers.current.map(p=>p.y))):0
             if(spread>.08){jobId.current++;pendingJob.current=false;samples.current=[];acquisitionStart.current=null;setDuration(0);if(now-lastUi.current>=250){lastUi.current=now;setAnalysis({...initial,status:'excessive_motion',reason:'Excessive face displacement; hold still. Analysis buffer reset.'})}}
@@ -195,12 +251,32 @@ export function BrowserPulse(){
     const rejected=result.status!=='valid'
     const shared={qualityScore:Number.isFinite(result.quality)?result.quality:null,qualityVerdict:result.status,sampling,rejectionReason:rejected?result.reason:null,analyzedAtMs:nowMs,sessionElapsedS:elapsed,windowIndex:windowLog.current.length+windowsDropped.current}
     collector.current.add({metric:'heart_rate',value:result.bpm,algorithm:CONSENSUS,roi:'all',...shared})
-    for(const [key,bpm] of Object.entries(result.estimates)){
-      const [roi,method]=[key.split('_')[0],key.slice(key.indexOf('_')+1)]
-      if(!method)continue
-      collector.current.add({metric:'heart_rate',value:bpm,algorithm:method,roi,...shared})
+    // Parse "<roi>_<method>" against the known suffixes. Splitting on the first
+    // underscore turned "left_cheek_green" into roi "left" + algorithm
+    // "cheek_green", which silently detached every cheek estimate from its region
+    // and from the known algorithm set. Unknown keys are counted, not guessed.
+    const {parsed,unparsable}=partitionEstimateKeys(result.estimates)
+    if(unparsable.length)setUnparsableKeys(unparsable)
+    for(const {roi,method} of parsed){
+      collector.current.add({metric:'heart_rate',value:result.estimates[`${roi}_${method}`]??null,algorithm:method,roi,...shared})
     }
     resummarize()
+  }
+  // Polygon helpers used by both extraction and the overlay, so the drawn shape
+  // and the sampled shape cannot drift apart.
+  function buildPatchPolygon(region:RoiName,face:Array<{x:number;y:number}>){
+    const built=buildPatch(region,face)
+    return built.ok?built.polygon:[]
+  }
+  function maskPolygons(region:RoiName,face:Array<{x:number;y:number}>){
+    const out:Array<Array<{x:number;y:number}>>=[]
+    for(const name of REGION_EXCLUSIONS[region]){
+      const indices=FEATURE_MASKS[name]
+      if(!indices)continue
+      const pts=indices.map(i=>face[i]).filter(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y))
+      if(pts.length>=3)out.push(pts)
+    }
+    return out
   }
   function download(content:BlobPart,type:string,name:string){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000)}
   function exportSessionReadings(){
@@ -275,6 +351,71 @@ export function BrowserPulse(){
     <div className="browser-camera"><video ref={video} muted playsInline aria-label="Local camera preview"/><canvas ref={overlay} aria-label="Forehead and cheek ROI overlay"/><canvas ref={canvas} hidden/></div>
     <h3>ROI tracking quality</h3><div className="subcards">{roiCoverage.map(({roi,pct})=><div className="subcard" key={roi}><strong>{roi.replace('_',' ')}</strong><p>{pct>=.8?'Tracking':pct>0?'Partial / unstable':'ROI lost'}</p><p className="muted small">{(pct*100).toFixed(0)}% valid skin samples</p></div>)}</div>
     <p className="muted small">Union coverage: {unionCoverage===null?'—':`${(unionCoverage*100).toFixed(0)}%`} of analyzed-window samples have at least one usable skin ROI (a window is only analysable at ≥ 50%).</p>
+    {roiDiagnostics.length>0 && <>
+      <h3>ROI extraction diagnostics</h3>
+      <p className="muted small">
+        Per-region pixel accounting for the most recent frame. Every candidate pixel inside a region is
+        either used, removed by a facial-feature mask, or rejected for a named reason - the counts add up
+        exactly. Geometry and signal failures are reported separately: a region can be perfectly placed
+        and still yield nothing usable.
+      </p>
+      <div className="subcards roi-diagnostics">
+        {roiDiagnostics.map(d=><div className={`subcard roi-diag ${d.meanRgb?'diag-ok':'diag-fail'}`} key={d.region}>
+          <strong>{d.region.replace('_',' ')}</strong>
+          <p className={d.meanRgb?'concept-pass':'concept-fail'}>{d.meanRgb?'Sampling':'No sample'}</p>
+          <p className="muted small">{d.summary}</p>
+          {d.invalidReason&&<p className="muted small diag-reason"><code>{d.invalidReason}</code></p>}
+        </div>)}
+      </div>
+      <button className="secondary small" aria-expanded={showRoiDetails} onClick={()=>setShowRoiDetails(v=>!v)}>
+        {showRoiDetails?'Hide':'Show'} full pixel accounting
+      </button>
+      {showRoiDetails && <table className="roi-diag-table">
+        <caption className="muted small">Counts for the most recent frame</caption>
+        <thead><tr><th scope="col">Region</th><th scope="col">Polygon px²</th><th scope="col">Candidates</th><th scope="col">Masked</th><th scope="col">Rejected</th><th scope="col">Used</th><th scope="col">Used %</th><th scope="col">Mean RGB</th><th scope="col">Median RGB</th><th scope="col">Geometrically valid</th></tr></thead>
+        <tbody>{roiDiagnostics.map(d=><tr key={d.region}>
+          <th scope="row">{d.region.replace('_',' ')}</th>
+          <td>{d.polygonAreaPx.toFixed(0)}</td>
+          <td>{d.candidatePixels}</td>
+          <td>{d.excludedByMask}</td>
+          <td>{Object.values(d.rejected).reduce((a,b)=>a+b,0)}</td>
+          <td>{d.acceptedPixels}</td>
+          <td>{(d.acceptedFraction*100).toFixed(1)}%</td>
+          <td>{d.meanRgb?d.meanRgb.map(v=>v.toFixed(0)).join(' / '):'—'}</td>
+          <td>{d.medianRgb?d.medianRgb.map(v=>v.toFixed(0)).join(' / '):'—'}</td>
+          <td className={d.valid?'concept-pass':'concept-fail'}>{d.valid?'yes':'no'}</td>
+        </tr>)}</tbody>
+      </table>}
+      {showRoiDetails && <table className="roi-diag-table">
+        <caption className="muted small">Why candidate pixels were not used</caption>
+        <thead><tr><th scope="col">Region</th><th scope="col">Outside boundary</th><th scope="col">In feature mask</th><th scope="col">Too dark</th><th scope="col">Too bright</th><th scope="col">Channel order</th><th scope="col">Low chroma</th></tr></thead>
+        <tbody>{roiDiagnostics.map(d=><tr key={d.region}>
+          <th scope="row">{d.region.replace('_',' ')}</th>
+          <td>{d.excludedByMask}</td>
+          <td>{d.excludedByMask}</td>
+          <td>{d.rejected.too_dark}</td>
+          <td>{d.rejected.too_bright}</td>
+          <td>{d.rejected.channel_order}</td>
+          <td>{d.rejected.low_chroma}</td>
+        </tr>)}</tbody>
+      </table>}
+      <p className="muted small">
+        “Low chroma” means the patch was nearly grey - a signal-capability check, not a skin-tone
+        judgement: POS and CHROM both need colour variation. Nothing here is a universal skin
+        classifier and no per-person calibration is applied.
+      </p>
+    </>}
+    {environment && <section className="camera-environment">
+      <h3>Camera environment</h3>
+      <p className="muted small">{environment.message}</p>
+      <div className="subcards">
+        <div className="subcard"><strong>Secure context</strong><p className={environment.secure?'concept-pass':'concept-fail'}>{environment.secure?'yes':'no'}</p><p className="muted small">{environment.origin??'unknown origin'}</p></div>
+        <div className="subcard"><strong>Camera API</strong><p className={environment.canCapture?'concept-pass':'concept-fail'}>{environment.canCapture?'available':'unavailable'}</p><p className="muted small">mediaDevices {environment.mediaDevices?'present':'missing'}</p></div>
+        {geometry&&<div className="subcard"><strong>Frame</strong><p>{geometry.videoWidth?`${geometry.videoWidth}x${geometry.videoHeight}`:'—'}</p><p className="muted small">{geometry.orientation}{geometry.aspectRatio?` · ${geometry.aspectRatio.toFixed(2)}:1`:''}{geometry.facingMode?` · facing ${geometry.facingMode}`:''}</p></div>}
+        {geometry&&<div className="subcard"><strong>Sampling canvas</strong><p className={geometry.canvasMatchesVideo?'concept-pass':'concept-fail'}>{geometry.canvasMatchesVideo?'matches frame':'does not match'}</p><p className="muted small">{geometry.canvasWidth}x{geometry.canvasHeight}</p></div>}
+      </div>
+      {geometry&&<p className="muted small">{geometry.message}</p>}
+    </section>}
     <div className="metric-grid"><div className="metric-card live-estimate"><div className="metric-label">Live reading (this window)</div><div className="metric-value">{analysis.bpm===null?'Unavailable':`${analysis.bpm.toFixed(0)} BPM`}</div><div className="metric-sub">Changes during the session; the session average is computed separately below. Only shown when quality checks pass.</div></div><div className="metric-card"><div className="metric-label">Acquisition</div><div className="metric-value">{duration.toFixed(1)} s</div><div className="metric-sub">{roiState} · camera {cameraFps?`${cameraFps.toFixed(1)} FPS`:'FPS —'} · sampled {measuredFps?`${measuredFps.toFixed(1)} Hz`:'rate —'} · dropped intervals {droppedFraction===null?'—':`${(droppedFraction*100).toFixed(1)}%`}</div></div><div className="metric-card"><div className="metric-label">Quality / agreement</div><div className="metric-value">{analysis.status.replaceAll('_',' ')}</div><div className="metric-sub">{analysis.reason} · spectral concentration {(analysis.quality*100).toFixed(0)}% · face motion {(faceMotion*100).toFixed(1)}%{analysis.consistencyBpm!==null?` · spread ${analysis.consistencyBpm.toFixed(1)} BPM`:''}</div></div></div>
     {recoveryNote&&<p role="status" className="muted small">{recoveryNote}</p>}
     <h3>Camera acquisition integrity</h3>
@@ -292,7 +433,11 @@ export function BrowserPulse(){
     <p className="muted small">Separated checks, not a blended score. Availability is the composite verdict; the other five are components. “Not evaluated” means the check never ran for this window.</p>
     <div className="subcards concept-grid">{conceptEntries.map(([name,state])=><div className="subcard" key={name}><strong>{name.replaceAll('_',' ')}</strong><p className={state==='pass'?'concept-pass':state==='fail'?'concept-fail':'concept-na'}>{state==='pass'?'Pass':state==='fail'?'Fail':'Not evaluated'}</p></div>)}{conceptEntries.length===0&&<p className="muted small">Concept checks appear once analysis begins.</p>}</div>
     <p><strong>Measurement reason:</strong> {analysis.reason} · sampling {analysis.fs?`${analysis.fs.toFixed(1)} Hz`:'—'}</p>
-    <div className="subcards">{Object.entries(analysis.estimates).map(([name,bpm])=><div className="subcard" key={name}><strong>{name.replace('_',' · ')}</strong><p>{bpm===null?'Unavailable':`${bpm.toFixed(1)} BPM`}</p></div>)}</div>
+    <p className="muted small">Per-region, per-algorithm estimates. Region and algorithm are kept separate; they are never averaged together. None of these is a session result on its own.</p>
+    <div className="subcards">{Object.entries(analysis.estimates).map(([name,bpm])=><div className="subcard" key={name}><strong>{estimateKeyLabel(name)}</strong><p>{bpm===null?'Unavailable':`${bpm.toFixed(1)} BPM`}</p></div>)}</div>
+    {unparsableKeys.length>0&&<div role="alert" className="status error">
+      Unrecognised estimate key{unparsableKeys.length===1?'':'s'} {unparsableKeys.map(k=>`"${k}"`).join(', ')}. These values are <strong>not</strong> attributed to any region or algorithm and are excluded from the session readings rather than being guessed.
+    </div>}
     <button className="secondary" disabled={!exportSamples.current.length} onClick={exportTrace}>Export traces + window analysis (CSV & JSON)</button>
     <p className="muted small">Exports are local downloads; nothing is sent anywhere. Each window record carries its provenance (bounds, sampling rate, selected algorithm, per-estimator estimates, concepts, ROI coverage, rejection reason) — see <code>docs/EXPORT_SCHEMA.md</code>.</p>
     <label className="ctl">Displayed pulse algorithm<select value={algorithm} onChange={e=>setAlgorithm(e.target.value)}><option value="green">Green</option><option value="pos">POS</option><option value="chrom">CHROM</option></select></label>

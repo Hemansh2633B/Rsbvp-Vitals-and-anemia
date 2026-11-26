@@ -1,5 +1,15 @@
 export type RGB = [number, number, number]
-export type TraceSample = { t: number; rois: Partial<Record<'forehead' | 'left_cheek' | 'right_cheek', RGB | null>> }
+import type { RoiDiagnostics } from './roiGeometry'
+/**
+ * One sampled frame. `diagnostics` is optional so existing fixtures and exports
+ * stay valid: it carries the per-ROI pixel accounting for that frame, which is
+ * how a rejection can be explained later without storing any pixels.
+ */
+export type TraceSample = {
+  t: number
+  rois: Partial<Record<'forehead' | 'left_cheek' | 'right_cheek', RGB | null>>
+  diagnostics?: RoiDiagnostics[]
+}
 export type LiveAnalysis = {
   status: 'warming_up' | 'valid' | 'low_signal_quality' | 'excessive_motion' | 'face_not_detected' | 'roi_lost' | 'insufficient_frames' | 'irregular_timestamps' | 'reacquiring' | 'processing_error'
   reason: string
