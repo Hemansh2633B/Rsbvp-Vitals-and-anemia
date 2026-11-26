@@ -232,27 +232,91 @@ class TestHistoryAndReset:
 
 
 class TestCompletion:
-    def test_completion_requires_the_target_and_not_before(self):
-        assert S.summarize_session(collect([72] * 4).readings)["completion"] == "collecting"
-        done = S.summarize_session(collect([72] * S.DEFAULT_CONFIG.target_accepted_readings).readings)
-        assert done["completion"] == "complete"
-        assert "stop the camera" in done["completion_reason"]
+    def test_completion_requires_an_available_aggregate_not_a_reading_count(self):
+        short_running = S.summarize_session(collect([72] * 4).readings, lifecycle="running")
+        assert short_running["completion"] == "collecting"
+        assert short_running["result_available"] is False
+        short_stopped = S.summarize_session(collect([72] * 4).readings, lifecycle="stopped")
+        assert short_stopped["completion"] == "insufficient"
+        assert "stop the camera" not in short_stopped["completion_reason"]
+        done_running = S.summarize_session(collect([72] * 5).readings, lifecycle="running")
+        assert done_running["completion"] == "available"
+        assert done_running["result_available"] is True
+        done_stopped = S.summarize_session(collect([72] * 5).readings, lifecycle="stopped")
+        assert done_stopped["completion"] == "completed"
+        assert "stop the camera" not in done_stopped["completion_reason"]
+
+    def test_regression_never_invites_a_stop_while_the_aggregate_is_insufficient(self):
+        # Sprint 13 bug: 8 accepted readings over ONE window hit the target count
+        # and produced "you can stop the camera" while the aggregate was
+        # insufficient (1 independent window < 2 required).
+        c = S.SessionCollector()
+        for i in range(8):
+            r = S.Reading(metric="heart_rate", value=72.0, algorithm=S.CONSENSUS, roi="all",
+                          quality_score=0.6, quality_verdict="valid", fs_hz=30.0, n_samples=300,
+                          window_start_s=100.0, window_end_s=110.0, rejection_reason=None,
+                          analyzed_at_ms=NOW + i * 10_000.0, session_elapsed_s=100.0)
+            c.add(r, now_ms=r.analyzed_at_ms)
+        summary = S.summarize_session(c.readings, lifecycle="running")
+        hr = next(a for a in summary["metrics"] if a.metric == "heart_rate")
+        assert summary["windows_accepted"] == 8 == S.DEFAULT_CONFIG.target_accepted_readings
+        assert hr.verdict == "insufficient"
+        assert summary["result_available"] is False
+        assert summary["completion"] == "collecting"
+        assert "stop the camera" not in summary["completion_reason"]
+        assert "overlap" in summary["completion_reason"]
+
+    def test_all_states_are_reachable_and_distinct(self):
+        assert S.summarize_session([], lifecycle="stopped")["completion"] == "idle"
+        assert S.summarize_session([], lifecycle="running")["completion"] == "initialising"
+        assert S.summarize_session(collect([72]).readings, lifecycle="running")["completion"] == "collecting"
+        assert S.summarize_session(collect([72] * 2).readings, lifecycle="stopped")["completion"] == "insufficient"
+        assert S.summarize_session(collect([72] * 5).readings, lifecycle="running")["completion"] == "available"
+        assert S.summarize_session(collect([72] * 2).readings, lifecycle="interrupted")["completion"] == "interrupted"
+        assert S.summarize_session(collect([72] * 5).readings, lifecycle="stopped")["completion"] == "completed"
+
+    def test_unknown_lifecycle_is_rejected(self):
+        with pytest.raises(ValueError):
+            S.summarize_session([], lifecycle="paused")
 
     def test_progress_message_counts_accepted_readings_below_the_average_threshold(self):
         # Regression: with 1-4 accepted readings the summary used to claim
         # "Waiting for readings that pass the quality checks", which was false -
         # readings had passed, there were just not enough of them yet.
-        summary = S.summarize_session(collect([72, 73]).readings)
+        summary = S.summarize_session(collect([72, 73]).readings, lifecycle="running")
         assert summary["completion"] == "collecting"
-        assert "2 of 8 accepted readings collected" in summary["completion_reason"]
+        assert summary["completion_reason"] == "Collecting: 2 of 5 accepted readings"
 
     def test_progress_message_is_honest_when_everything_was_rejected(self):
         c = S.SessionCollector()
         for i in range(3):
             c.add(reading(None, verdict="roi_lost", reason="All skin ROIs are lost", start=i * 10.0),
                   now_ms=NOW)
+        running = S.summarize_session(c.readings, lifecycle="running")
+        assert running["completion"] == "collecting"
+        assert (running["windows_accepted"], running["windows_rejected"]) == (0, 3)
+        stopped = S.summarize_session(c.readings, lifecycle="stopped")
+        assert stopped["completion"] == "insufficient"
+        assert "No accepted readings" in stopped["completion_reason"]
+
+    def test_density_ratio_is_reported_and_never_corrects_the_mean(self):
+        c = S.SessionCollector()
+        for k in range(60):            # dense stretch: every 0.5 s
+            r = reading(70, start=k * 0.5)
+            c.add(r, now_ms=r.analyzed_at_ms)
+        for k in range(15):            # sparse stretch: every 4 s
+            r = reading(80, start=30 + k * 4)
+            c.add(r, now_ms=r.analyzed_at_ms)
         summary = S.summarize_session(c.readings)
-        assert "No readings accepted yet (3 rejected" in summary["completion_reason"]
+        assert summary["density_ratio"] > S.DEFAULT_CONFIG.density_ratio_warning
+        assert summary["uneven_density"] is True
+        hr = next(a for a in summary["metrics"] if a.metric == "heart_rate")
+        # The headline statistic is still the arithmetic mean of every accepted
+        # reading; density is reported, never silently corrected for.
+        assert hr.mean == pytest.approx((70 * 60 + 80 * 15) / 75)
+
+    def test_density_ratio_is_none_without_enough_span(self):
+        assert S.summarize_session(collect([72]).readings)["density_ratio"] is None
 
     def test_acceptance_band_reflects_observed_acceptance_only(self):
         c = S.SessionCollector()

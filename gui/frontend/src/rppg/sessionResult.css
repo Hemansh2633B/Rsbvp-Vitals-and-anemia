@@ -162,3 +162,68 @@
   border-top: 1px solid rgba(128, 128, 128, 0.3);
   padding-top: 0.5rem;
 }
+
+/* Sprint 14: state chip, experimental block, density warning, mobile layout. */
+.state-chip {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid currentColor;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.state-idle { color: #5b6470; }
+.state-initialising,
+.state-collecting { color: #8a5a00; }
+.state-available,
+.state-completed { color: #1f6b3a; }
+.state-insufficient,
+.state-interrupted { color: #a3271f; }
+
+.session-experimental {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px dashed rgba(128, 128, 128, 0.5);
+  border-radius: 8px;
+}
+.session-experimental h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+.session-experimental ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+.density-warning {
+  border-left: 3px solid #8a5a00;
+  padding-left: 0.6rem;
+  margin: 0.75rem 0;
+}
+
+/* Mobile first: on a narrow screen the single result must be readable without
+   scrolling past diagnostics, so the headline shrinks and the grids stack. */
+@media (max-width: 480px) {
+  .session-value {
+    font-size: 2.4rem;
+  }
+  .session-metrics,
+  .session-quality {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .session-secondary {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .readings-table th:nth-child(5),
+  .readings-table td:nth-child(5) {
+    display: none; /* elapsed seconds: useful, not essential on a phone */
+  }
+  .session-actions button {
+    width: 100%;
+  }
+}

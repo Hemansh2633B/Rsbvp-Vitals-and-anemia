@@ -1,0 +1,139 @@
+{
+  "schema": "rsbvp.aggregation-analysis.v1",
+  "note": "Synthetic scenarios with a known truth. They describe what the estimators do to a given input and say nothing about real cameras, skin or physiology. The bootstrap interval is over windows, not a formal confidence interval.",
+  "seed": 20261126,
+  "window_s": 10.0,
+  "cadence_s": 0.5,
+  "scenarios": [
+    {
+      "scenario": "steady_60s",
+      "spec": {
+        "duration_s": 60.0,
+        "truth": 72.0,
+        "reading_sd": 2.0
+      },
+      "n_readings": 101,
+      "n_non_overlapping": 6,
+      "all_window_mean": 72.01341614539847,
+      "non_overlapping_mean": 71.65838887488503,
+      "difference_bpm": 0.35502727051343186,
+      "all_window_abs_error": 0.013416145398466028,
+      "non_overlapping_abs_error": 0.34161112511496583,
+      "lag1_autocorrelation_of_readings": -0.00297987663158988,
+      "lag1_autocorrelation_of_non_overlapping": -0.3380523964485068,
+      "divergence_metric": 0.4834835131825399
+    },
+    {
+      "scenario": "drift_120s",
+      "spec": {
+        "duration_s": 120.0,
+        "truth": 72.0,
+        "drift_bpm_per_s": 0.25,
+        "reading_sd": 2.0
+      },
+      "n_readings": 221,
+      "n_non_overlapping": 12,
+      "all_window_mean": 87.23951396934574,
+      "non_overlapping_mean": 86.47131764038157,
+      "difference_bpm": 0.7681963289641658,
+      "all_window_abs_error": 0.23951396934573665,
+      "non_overlapping_abs_error": 0.5286823596184291,
+      "lag1_autocorrelation_of_readings": 0.9283263854789433,
+      "lag1_autocorrelation_of_non_overlapping": 0.6908715495892085,
+      "divergence_metric": 0.8208190773653601
+    },
+    {
+      "scenario": "rejected_gap",
+      "spec": {
+        "duration_s": 90.0,
+        "truth": 68.0,
+        "reading_sd": 2.0,
+        "gap": [
+          30.0,
+          50.0
+        ]
+      },
+      "n_readings": 121,
+      "n_non_overlapping": 7,
+      "all_window_mean": 68.05005195056205,
+      "non_overlapping_mean": 67.35040292764948,
+      "difference_bpm": 0.6996490229125669,
+      "all_window_abs_error": 0.05005195056205025,
+      "non_overlapping_abs_error": 0.6495970723505167,
+      "lag1_autocorrelation_of_readings": 0.036284273912917185,
+      "lag1_autocorrelation_of_non_overlapping": -0.17660290074551827,
+      "divergence_metric": 0.9213919406652397
+    },
+    {
+      "scenario": "uneven_density",
+      "spec": {
+        "duration_s": 90.0,
+        "truth": 68.0,
+        "reading_sd": 2.0,
+        "slow_after_s": 40.0
+      },
+      "n_readings": 101,
+      "n_non_overlapping": 9,
+      "all_window_mean": 68.01341614539847,
+      "non_overlapping_mean": 67.5265421496229,
+      "difference_bpm": 0.4868739957755679,
+      "all_window_abs_error": 0.013416145398466028,
+      "non_overlapping_abs_error": 0.47345785037710186,
+      "lag1_autocorrelation_of_readings": -0.0029798766315898245,
+      "lag1_autocorrelation_of_non_overlapping": -0.48662763243021867,
+      "divergence_metric": 0.6698392777988746
+    },
+    {
+      "scenario": "uneven_density_with_drift",
+      "spec": {
+        "duration_s": 120.0,
+        "truth": 70.0,
+        "drift_bpm_per_s": 0.25,
+        "reading_sd": 2.0,
+        "slow_after_s": 50.0
+      },
+      "n_readings": 131,
+      "n_non_overlapping": 12,
+      "all_window_mean": 80.75202481836548,
+      "non_overlapping_mean": 85.03887762678069,
+      "difference_bpm": -4.286852808415205,
+      "all_window_abs_error": 4.146165226883383,
+      "non_overlapping_abs_error": 0.1406875815318216,
+      "lag1_autocorrelation_of_readings": 0.8933383140843103,
+      "lag1_autocorrelation_of_non_overlapping": 0.7048277143790893,
+      "divergence_metric": 5.866937716426553
+    },
+    {
+      "scenario": "single_outlier",
+      "spec": {
+        "duration_s": 60.0,
+        "truth": 75.0,
+        "reading_sd": 1.5
+      },
+      "n_readings": 101,
+      "n_non_overlapping": 6,
+      "all_window_mean": 75.01006210904885,
+      "non_overlapping_mean": 74.74379165616378,
+      "difference_bpm": 0.2662704528850668,
+      "all_window_abs_error": 0.010062109048845969,
+      "non_overlapping_abs_error": 0.2562083438362208,
+      "lag1_autocorrelation_of_readings": -0.002979876631589787,
+      "lag1_autocorrelation_of_non_overlapping": -0.3380523964485015,
+      "divergence_metric": 0.3626126348868997
+    }
+  ],
+  "outlier": {
+    "scenario": "single_outlier_injected",
+    "spec": {
+      "added_offset_bpm": 60.0,
+      "readings": 101
+    },
+    "n_readings": 101,
+    "n_non_overlapping": 6,
+    "all_window_mean": 75.60412151498944,
+    "non_overlapping_mean": 74.74379165616378,
+    "difference_bpm": 0.8603298588256649,
+    "median_all": 74.89543718011825,
+    "median_non_overlapping": 74.65408839757237
+  }
+}

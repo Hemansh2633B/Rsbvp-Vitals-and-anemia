@@ -8,6 +8,7 @@ import { MIN_USABLE_FS_HZ, integrityReason, recoveryDelayMs, type CaptureIntegri
 import {
   CONSENSUS,
   SessionCollector,
+  type SessionLifecycle,
   buildSessionAggregateExport,
   buildSessionReadingsCsv,
   summarizeSession,
@@ -61,11 +62,14 @@ export function BrowserPulse(){
   // server pathway use this class, so the two UIs cannot compute a session
   // average differently. Readings are append-only; the aggregate is derived.
   const collector=useRef(new SessionCollector())
-  const [session,setSession]=useState<SessionSummary>(()=>summarizeSession([]))
+  const [session,setSession]=useState<SessionSummary>(()=>summarizeSession([],{lifecycle:'stopped'}))
   const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[deviceId,setDeviceId]=useState(''),[track,setTrack]=useState<Track>('idle'),[error,setError]=useState(''),[analysis,setAnalysis]=useState(initial),[duration,setDuration]=useState(0),[roiState,setRoiState]=useState('Waiting for face'),[algorithm,setAlgorithm]=useState('green'),[cameraFps,setCameraFps]=useState<number|null>(null)
   const algorithmRef=useRef(algorithm);algorithmRef.current=algorithm
   const windowsDropped=useRef(0)
   const stop=()=>{sessionId.current++;cancelAnimationFrame(raf.current);worker.current?.terminate();worker.current=null;pendingJob.current=false;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;landmarker.current?.close();landmarker.current=null;if(video.current)video.current.srcObject=null;setTrack('idle');setRoiState('Camera stopped');setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped; no live estimate is available'}))}
+  // Re-derive the session state whenever the capture lifecycle changes: the same
+  // readings mean different things while running, stopped, or interrupted.
+  useEffect(()=>{if(collector.current.size>0)resummarize()},[track])
   useEffect(()=>{void refreshDevices();const onVisibility=()=>{if(document.hidden&&stream.current){stop();setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped because the browser tab became hidden'}))}};document.addEventListener('visibilitychange',onVisibility);return()=>{document.removeEventListener('visibilitychange',onVisibility);clearTimeout(recovery.current.timer as number);stop()}},[])
 
   // A camera that drops out (USB, thermal shutdown, another app grabbing it) is
@@ -84,7 +88,7 @@ export function BrowserPulse(){
   async function refreshDevices(){try{setDevices(await navigator.mediaDevices.enumerateDevices().then(d=>d.filter(x=>x.kind==='videoinput')))}catch{setDevices([])}}
   async function start(){
     const session=++sessionId.current
-    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);sessionRef.current=newSessionId();collector.current.reset();setSession(summarizeSession([]));setTrack('loading')
+    setError('');setAnalysis(initial);samples.current=[];exportSamples.current=[];exportDropped.current=0;windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0;acquisitionStart.current=null;centers.current=[];previousCenter.current=null;setDuration(0);lastVideoTime.current=-1;lastPlaybackCount.current=null;lastPlaybackTime.current=0;setCameraFps(null);sessionRef.current=newSessionId();collector.current.reset();setSession(summarizeSession([],{lifecycle:'running'}));setTrack('loading')
     try{
       if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera API unavailable. Use HTTPS or localhost in a supported browser.')
       const videoConstraint:MediaTrackConstraints=deviceId?{deviceId:{exact:deviceId},width:{ideal:640},height:{ideal:480}}:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}}
@@ -173,6 +177,17 @@ export function BrowserPulse(){
   // estimator series are recorded separately so they are never averaged as if
   // they were interchangeable. Wall-clock arrival is used for staleness: a
   // result that arrives long after it was computed describes a past moment.
+  // Lifecycle is derived from the tracked state at the moment of summarising, so
+  // "insufficient" (a final verdict) can never be shown while the camera is still
+  // collecting, and "collecting" can never be shown after an interruption.
+  function lifecycleNow():SessionLifecycle{
+    if(track==='error')return 'interrupted'
+    if(track==='idle')return 'stopped'
+    return 'running'
+  }
+  function resummarize(lifecycle:SessionLifecycle=lifecycleNow()){
+    setSession(summarizeSession(collector.current.all(),{lifecycle}))
+  }
   function recordWindow(result:LiveAnalysis,win:{start_s:number;end_s:number;n_samples:number}|null){
     const nowMs=Date.now()
     const sampling={fsHz:result.fs,nSamples:win?.n_samples??null,windowStartS:win?.start_s??null,windowEndS:win?.end_s??null}
@@ -185,7 +200,7 @@ export function BrowserPulse(){
       if(!method)continue
       collector.current.add({metric:'heart_rate',value:bpm,algorithm:method,roi,...shared})
     }
-    setSession(summarizeSession(collector.current.all()))
+    resummarize()
   }
   function download(content:BlobPart,type:string,name:string){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000)}
   function exportSessionReadings(){
@@ -248,15 +263,15 @@ export function BrowserPulse(){
         <div className="session-progress-fill" style={{width:`${Math.min(100,(session.nAcceptedTotal/session.config.targetAcceptedReadings)*100)}%`}}/>
       </div>
       <p className="muted small">
-        {session.completion==='complete'
-          ? 'Complete: enough accepted readings for a stable session average.'
-          : `Collecting: ${session.nAcceptedTotal} accepted of ${session.config.targetAcceptedReadings} readings. ${
+        {session.resultAvailable
+          ? `Session average available from ${session.nAcceptedTotal} accepted readings - you can stop the camera.`
+          : `${session.nAcceptedTotal} accepted of ${session.config.targetAcceptedReadings} target readings (${session.config.minIndependentWindows} independent windows needed). ${
               analysis.status==='valid'
                 ? 'Signal acceptable - keep still.'
                 : 'Hold still in even, bright light until the signal is acceptable.'}`}
       </p>
     </div>
-    <SessionResult summary={session} sessionId={sessionRef.current} onExportReadings={exportSessionReadings} onExportAggregate={exportSessionAggregate} liveStatus={session.completion==='collecting'?`Live: ${analysis.status==='valid'?'signal acceptable':analysis.reason}`:null}/>
+    <SessionResult summary={session} sessionId={sessionRef.current} onExportReadings={exportSessionReadings} onExportAggregate={exportSessionAggregate} liveStatus={session.completion==='collecting'||session.completion==='available'?`Live: ${analysis.status==='valid'?'signal acceptable':analysis.reason}`:null}/>
     <div className="browser-camera"><video ref={video} muted playsInline aria-label="Local camera preview"/><canvas ref={overlay} aria-label="Forehead and cheek ROI overlay"/><canvas ref={canvas} hidden/></div>
     <h3>ROI tracking quality</h3><div className="subcards">{roiCoverage.map(({roi,pct})=><div className="subcard" key={roi}><strong>{roi.replace('_',' ')}</strong><p>{pct>=.8?'Tracking':pct>0?'Partial / unstable':'ROI lost'}</p><p className="muted small">{(pct*100).toFixed(0)}% valid skin samples</p></div>)}</div>
     <p className="muted small">Union coverage: {unionCoverage===null?'—':`${(unionCoverage*100).toFixed(0)}%`} of analyzed-window samples have at least one usable skin ROI (a window is only analysable at ≥ 50%).</p>

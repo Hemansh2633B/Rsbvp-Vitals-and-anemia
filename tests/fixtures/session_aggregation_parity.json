@@ -1,0 +1,194 @@
+{
+  "schema": "rsbvp.session-parity.v1",
+  "note": "Synthetic readings with no dataset and no hardware. Expected values are produced by gui/rppg_core/session.py and asserted by both test suites; they verify agreement between the two implementations, not physiological accuracy.",
+  "generated_by": "tests/fixtures/generate_session_parity.py",
+  "cases": {
+    "sliding_window_overlap": {
+      "lifecycle": "running",
+      "expected": {
+        "completion": "available",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 40,
+        "n_rejected": 0,
+        "n_independent": 2,
+        "mean": 72.0,
+        "median": 72.0,
+        "sd": 1.43223,
+        "acceptance_pct": 100.0,
+        "density_ratio": 1.076923,
+        "uneven_density": false
+      }
+    },
+    "non_overlapping_available": {
+      "lifecycle": "running",
+      "expected": {
+        "completion": "available",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 5,
+        "n_rejected": 0,
+        "n_independent": 5,
+        "mean": 74.0,
+        "median": 74,
+        "sd": 3.162278,
+        "acceptance_pct": 100.0,
+        "density_ratio": 2.0,
+        "uneven_density": false
+      }
+    },
+    "non_overlapping_completed": {
+      "lifecycle": "stopped",
+      "expected": {
+        "completion": "completed",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 5,
+        "n_rejected": 0,
+        "n_independent": 5,
+        "mean": 74.0,
+        "median": 74,
+        "sd": 3.162278,
+        "acceptance_pct": 100.0,
+        "density_ratio": 2.0,
+        "uneven_density": false
+      }
+    },
+    "mixed_verdicts": {
+      "lifecycle": "running",
+      "expected": {
+        "completion": "available",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 5,
+        "n_rejected": 2,
+        "n_independent": 5,
+        "mean": 74.0,
+        "median": 74,
+        "sd": 3.162278,
+        "acceptance_pct": 71.428571,
+        "density_ratio": 1.5,
+        "uneven_density": false
+      }
+    },
+    "all_rejected": {
+      "lifecycle": "running",
+      "expected": {
+        "completion": "collecting",
+        "result_available": false,
+        "verdict": "insufficient",
+        "n_accepted": 0,
+        "n_rejected": 3,
+        "n_independent": null,
+        "mean": null,
+        "median": null,
+        "sd": null,
+        "acceptance_pct": 0.0,
+        "density_ratio": null,
+        "uneven_density": false
+      }
+    },
+    "interrupted_short": {
+      "lifecycle": "interrupted",
+      "expected": {
+        "completion": "interrupted",
+        "result_available": false,
+        "verdict": "insufficient",
+        "n_accepted": 2,
+        "n_rejected": 0,
+        "n_independent": 2,
+        "mean": 71.0,
+        "median": 71.0,
+        "sd": 1.414214,
+        "acceptance_pct": 100.0,
+        "density_ratio": null,
+        "uneven_density": false
+      }
+    },
+    "single_window_overlap": {
+      "lifecycle": "stopped",
+      "expected": {
+        "completion": "insufficient",
+        "result_available": false,
+        "verdict": "insufficient",
+        "n_accepted": 8,
+        "n_rejected": 0,
+        "n_independent": 1,
+        "mean": 72.0,
+        "median": 72.0,
+        "sd": 0.0,
+        "acceptance_pct": 100.0,
+        "density_ratio": null,
+        "uneven_density": false
+      }
+    },
+    "single_window_overlap_running": {
+      "lifecycle": "running",
+      "expected": {
+        "completion": "collecting",
+        "result_available": false,
+        "verdict": "insufficient",
+        "n_accepted": 8,
+        "n_rejected": 0,
+        "n_independent": 1,
+        "mean": 72.0,
+        "median": 72.0,
+        "sd": 0.0,
+        "acceptance_pct": 100.0,
+        "density_ratio": null,
+        "uneven_density": false
+      }
+    },
+    "empty": {
+      "lifecycle": "stopped",
+      "expected": {
+        "completion": "idle",
+        "result_available": false,
+        "verdict": "no_readings",
+        "n_accepted": 0,
+        "n_rejected": 0,
+        "n_independent": null,
+        "mean": null,
+        "median": null,
+        "sd": null,
+        "acceptance_pct": null,
+        "density_ratio": null,
+        "uneven_density": false
+      }
+    },
+    "empty_running": {
+      "lifecycle": "running",
+      "expected": {
+        "completion": "initialising",
+        "result_available": false,
+        "verdict": "no_readings",
+        "n_accepted": 0,
+        "n_rejected": 0,
+        "n_independent": null,
+        "mean": null,
+        "median": null,
+        "sd": null,
+        "acceptance_pct": null,
+        "density_ratio": null,
+        "uneven_density": false
+      }
+    },
+    "uneven_density": {
+      "lifecycle": "running",
+      "expected": {
+        "completion": "available",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 75,
+        "n_rejected": 0,
+        "n_independent": 8,
+        "mean": 72.0,
+        "median": 70,
+        "sd": 4.026936,
+        "acceptance_pct": 100.0,
+        "density_ratio": 7.25,
+        "uneven_density": true
+      }
+    }
+  }
+}

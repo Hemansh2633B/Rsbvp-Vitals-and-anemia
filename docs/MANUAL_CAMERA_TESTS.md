@@ -1,8 +1,12 @@
 # Manual browser camera verification procedure
 
 These checks require a local camera and a supported browser. **No physical-camera
-session has been performed for this repository** (Sprint 3, 11 or 12); this
-document is a procedure, not a result. Automated browser tests with simulated
+session has been performed for this repository** (Sprint 3, 11, 12 or 14); this
+document is a procedure, not a result. Sprint 14 added the session-completion and
+density fields below and provided
+`research/camera/sprint14_test_record_TEMPLATE.json`, whose
+`execution_status` is `"NOT EXECUTED"` and which deliberately fails validation
+until a real, consenting session fills it in. Automated browser tests with simulated
 media streams are *software* tests and are recorded separately — see the table at
 the end, which must never be read as physical validation. Do not record or retain another person's face without qualified oversight, consent, and privacy safeguards.
 
@@ -21,6 +25,14 @@ the end, which must never be read as physical validation. Do not record or retai
    - **Recovery:** with capture running, unplug a USB camera (or cover/disable it with the OS). Expect the interruption to be reported, the camera to be reopened with backoff, and after 4 failed attempts the message "Automatic recovery stopped after 4 attempts - press Start to try again". Never a silent freeze with a stale number.
    - **Reacquisition:** turn the face away for > 4 s and back; the buffer must reset and no estimate from the previous position may survive.
 10. Record the measured numbers (effective fps, largest gap, duplicate %, recovery attempts) in the test record. These are measured acquisition properties, not accuracy figures.
+11. **Session completion (Sprint 14).** Capture for at least 60 s without stopping. Confirm the state chip passes through `Initialising` → `Collecting` and reaches `Available`, and that the phrase inviting you to stop appears **only** with `Available`. Then stop and confirm the state becomes `Completed` with an accepted-reading count.
+12. **Completion must never be count-driven.** Deliberately provoke a session where many readings are accepted over a short span (hold perfectly still with a very steady, bright face for ~10 s). The readings accumulate but the independent-window count stays at 1. Expect the copy to say the readings overlap and to keep asking you to capture — **not** to invite a stop. If a stop is ever invited while the headline reads `Insufficient data`, that is a defect: record it.
+13. **Insufficient final state.** Start, capture briefly (under the acceptance minimum), stop. Confirm the state is `Insufficient data` with a specific reason and no number in the headline position, and that nothing later suggests a result exists.
+14. **Interruption.** With capture running, lock the screen or revoke camera permission. Confirm the state becomes `Interrupted` with the accepted count, no stop invitation, and that pressing Start begins a genuinely fresh session (no readings carried over).
+15. **Reset.** After a completed session press Reset. Confirm the state returns to the idle copy, the headline, chart, reading list and diagnostics are all empty, and the export no longer offers the previous session.
+16. **Experimental block.** Confirm respiratory rate, if present at all, is in the dashed "Experimental (not part of the session result)" block, is never the headline number, and is never included in the session average. Record whether the browser pathway reported it at all (it commonly will not).
+17. **Density warning.** Capture with a long pause in the middle (e.g. read for 10 s, pause 20 s by covering the camera, then return) so that some stretches are analysed far more often than others. If the density ratio exceeds 3x the warning should appear; record the ratio and whether the mean moved in a way you can explain. Do not adjust anything to make the warning disappear — record it.
+18. **Android Chrome specifics.** Record: device model, Android version, Chrome version, whether the origin was HTTPS (required for `getUserMedia`), which camera was selected by default and how front-camera selection behaved, screen-lock behaviour, and whether the page kept capturing when the tab was backgrounded. Fill these into `research/camera/sprint14_test_record_TEMPLATE.json`.
 
 ## Software tests with simulated media (NOT physical validation)
 

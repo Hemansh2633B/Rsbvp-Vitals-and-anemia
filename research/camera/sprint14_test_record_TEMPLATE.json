@@ -1,0 +1,107 @@
+{
+  "schema": "rsbvp.camera-test-record.v1",
+  "execution_status": "NOT EXECUTED",
+  "session": {
+    "operator_initials": "TEMPLATE",
+    "consent_confirmed": false,
+    "date_utc": "1970-01-01",
+    "site": "TEMPLATE - no session has been performed; replace every placeholder"
+  },
+  "environment": {
+    "browser": "TEMPLATE e.g. Chrome",
+    "browser_version": "TEMPLATE e.g. 141.0.7390.122",
+    "os": "TEMPLATE e.g. Android 14",
+    "device_model": "TEMPLATE e.g. Pixel 7",
+    "camera_model": "TEMPLATE e.g. front camera (built-in)",
+    "camera_facing": "front",
+    "camera_resolution": "TEMPLATE e.g. 1280x720",
+    "approx_fps": 30,
+    "https_origin": true,
+    "lighting": "indoor-normal",
+    "distance_cm_approx": 100
+  },
+  "capture": {
+    "duration_s": 60,
+    "permission_flow": {
+      "denied_then_granted": null,
+      "explicit_error_on_denial": null,
+      "preview_starts_only_after_start": null
+    },
+    "observed_sampling_rate_hz": null,
+    "duplicate_frame_fraction": null,
+    "largest_gap_ms": null,
+    "roi_availability": {
+      "forehead": "full",
+      "left_cheek": "full",
+      "right_cheek": "full"
+    },
+    "dropped_interval_fraction": 0.0,
+    "camera_interrupted": false,
+    "interruption_recovered": null,
+    "recovery_time_s": null,
+    "tab_hidden": false,
+    "device_switched": false
+  },
+  "session_completion": {
+    "completion_state_reached": "TEMPLATE one of idle/initialising/collecting/insufficient/available/interrupted/completed",
+    "stop_invited_only_with_available_result": null,
+    "reset_cleared_all_values": null,
+    "accepted_readings": null,
+    "rejected_readings": null,
+    "acceptance_pct": null,
+    "independent_windows": null,
+    "density_ratio": null,
+    "uneven_density": null
+  },
+  "scenarios": [
+    {
+      "id": "stable",
+      "description": "steady lighting, still face",
+      "executed": false,
+      "outcome": null
+    },
+    {
+      "id": "mild_head_movement",
+      "description": "slow rotation / small nod during capture",
+      "executed": false,
+      "outcome": null
+    },
+    {
+      "id": "lighting_change",
+      "description": "lamp switched on or off mid-session",
+      "executed": false,
+      "outcome": null
+    },
+    {
+      "id": "face_lost_and_reacquired",
+      "description": "leave frame for several seconds, return",
+      "executed": false,
+      "outcome": null
+    },
+    {
+      "id": "interruption",
+      "description": "lock screen or revoke camera permission mid-session",
+      "executed": false,
+      "outcome": null
+    },
+    {
+      "id": "reset",
+      "description": "press reset after a completed session",
+      "executed": false,
+      "outcome": null
+    }
+  ],
+  "quality_gate": {
+    "status": "TEMPLATE e.g. valid / low_signal_quality / roi_lost",
+    "rejection_reasons": [],
+    "estimate_available": null,
+    "processing_latency_ms": null
+  },
+  "reference": {
+    "equipment": "none",
+    "synchronized_capture": false,
+    "note": "An accuracy comparison requires a synchronized reference device; none was used."
+  },
+  "result": "partial",
+  "notes": "TEMPLATE ONLY. No physical-camera session has been performed. Every TEMPLATE value and every null must be replaced with a real measurement before this file means anything. Do not record identifiable face images, participant names, or personal medical information."
+}

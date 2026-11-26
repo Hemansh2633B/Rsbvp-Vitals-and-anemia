@@ -25,13 +25,17 @@ const reading = (value: number | null, over: Partial<ReadingInput> = {}): Readin
   }
 }
 
-function sessionWith(values: Array<number | null>, over: Partial<ReadingInput> = {}) {
+function sessionWith(
+  values: Array<number | null>,
+  over: Partial<ReadingInput> = {},
+  lifecycle: 'running' | 'stopped' | 'interrupted' = 'running',
+) {
   const collector = new SessionCollector()
   for (const v of values) {
     const r = reading(v, over)
     collector.add(r, r.analyzedAtMs)
   }
-  return summarizeSession(collector.all())
+  return summarizeSession(collector.all(), { lifecycle })
 }
 
 const noop = () => {}
@@ -70,7 +74,8 @@ describe('session result: main result', () => {
     render(<SessionResult summary={summarizeSession(collector.all())} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
     expect(screen.queryByText(/199/)).not.toBeInTheDocument()
-    expect(screen.getByText('Insufficient data')).toBeInTheDocument()
+    expect(screen.queryByTestId('session-value-heart_rate')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Insufficient data').length).toBeGreaterThan(0)
   })
 })
 
@@ -84,10 +89,10 @@ describe('session result: insufficient data', () => {
   })
 
   it('explains an empty session and does not invent readings', () => {
-    render(<SessionResult summary={summarizeSession([])} sessionId="s"
+    render(<SessionResult summary={summarizeSession([], { lifecycle:'running' })} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
     expect(screen.getByText(/No readings yet/i)).toBeInTheDocument()
-    expect(screen.getByText(/Start a session to collect readings/i)).toBeInTheDocument()
+    expect(screen.getByText(/Waiting for the first analysable window/i)).toBeInTheDocument()
   })
 
   it('says why every reading failed when that is the whole session', () => {
@@ -98,7 +103,7 @@ describe('session result: insufficient data', () => {
     }
     render(<SessionResult summary={summarizeSession(collector.all())} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
-    expect(screen.getByText(/3 of 3 readings did not pass the quality checks/i)).toBeInTheDocument()
+    expect(screen.getByText(/0 of 3 readings passed the quality checks/i)).toBeInTheDocument()
   })
 })
 
@@ -222,10 +227,35 @@ describe('session result: advanced details', () => {
 
 describe('session result: completion', () => {
   it('says when enough data has been collected', () => {
-    render(<SessionResult summary={sessionWith([72, 72, 72, 72, 72, 72, 72, 72])} sessionId="s"
+    render(<SessionResult summary={sessionWith([72, 72, 72, 72, 72])} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
-    expect(screen.getByText(/Complete — /)).toBeInTheDocument()
+    expect(screen.getByText('Result available')).toBeInTheDocument()
     expect(screen.getByText(/you can stop the camera/i)).toBeInTheDocument()
+  })
+  it('shows Completed only once the capture has actually stopped', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78], {}, 'stopped')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText('Completed')).toBeInTheDocument()
+    expect(screen.getByText(/Session complete: 5 accepted readings/i)).toBeInTheDocument()
+  })
+  it('never renders a stop invitation when the aggregate is insufficient', () => {
+    // The Sprint 13 bug, at the UI level: 8 accepted readings from one window.
+    const collector = new SessionCollector()
+    for (let i = 0; i < 8; i++) {
+      const r = reading(72, { sampling: { fsHz: 30, nSamples: 300, windowStartS: 100, windowEndS: 110 } })
+      collector.add(r, r.analyzedAtMs)
+    }
+    render(<SessionResult summary={summarizeSession(collector.all(), { lifecycle: 'running' })}
+      sessionId="s" onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.queryByText(/you can stop the camera/i)).not.toBeInTheDocument()
+    expect(screen.getByText('Collecting')).toBeInTheDocument()
+    expect(screen.getAllByText('Insufficient data').length).toBeGreaterThan(0)
+  })
+  it('labels an interruption as an interruption', () => {
+    render(<SessionResult summary={sessionWith([70, 72], {}, 'interrupted')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText('Interrupted')).toBeInTheDocument()
+    expect(screen.getByText(/Capture interrupted/i)).toBeInTheDocument()
   })
 
   it('separates the live status from the session average', () => {
@@ -233,6 +263,6 @@ describe('session result: completion', () => {
       onExportReadings={noop} onExportAggregate={noop} />)
     expect(screen.getByText('Live: signal acceptable')).toBeInTheDocument()
     // The session header describes collection, not the live signal.
-    expect(screen.getByText(/1 of 8 accepted readings collected/i)).toBeInTheDocument()
+    expect(screen.getByText(/Collecting: 1 of 5 accepted readings/i)).toBeInTheDocument()
   })
 })
