@@ -1,0 +1,15 @@
+[submodule "tools/ConjunctivaHb"]
+	path = tools/ConjunctivaHb
+	url = https://github.com/stzifkas/ConjunctivaHb
+[submodule "tools/ViT-Anemia-Detection"]
+	path = tools/ViT-Anemia-Detection
+	url = https://github.com/Oscar-RamosS/ViT-Anemia-Detection
+[submodule "tools/mediapipe"]
+	path = tools/mediapipe
+	url = https://github.com/google-ai-edge/mediapipe
+[submodule "tools/pyVHR"]
+	path = tools/pyVHR
+	url = https://github.com/phuselab/pyVHR
+[submodule "tools/rPPG-Toolbox"]
+	path = tools/rPPG-Toolbox
+	url = https://github.com/ubicomplab/rPPG-Toolbox
