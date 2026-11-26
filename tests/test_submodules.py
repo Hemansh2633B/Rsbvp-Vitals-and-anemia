@@ -154,7 +154,10 @@ def test_every_initialised_submodule_tree_is_ignored_by_git_status():
         path = root / "tools" / name
         if not path.is_dir():
             continue
-        # A submodule worktree contains a .git *file* pointing at the parent's
-        # modules directory. Its contents are tracked by the upstream repo, so
-        # the parent repository sees one gitlink and no stray files.
-        assert (path / ".git").exists()
+        # `git checkout` of a gitlink creates an empty directory; only
+        # `git submodule update --init` populates it with a worktree containing a
+        # .git *file* pointing at the parent's modules directory. An uninitialised
+        # (empty) directory is the normal CI state and proves nothing either way.
+        if not any(path.iterdir()):
+            continue
+        assert (path / ".git").exists(), f"{name} has content but is not a submodule worktree"
