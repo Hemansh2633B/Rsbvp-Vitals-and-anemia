@@ -35,6 +35,14 @@ export interface MetricSpec {
   plausibleMax: number
   /** Shown next to the result so the number is never mistaken for a diagnosis. */
   note: string
+  /**
+   * True when this metric may occupy the headline position. A metric must be
+   * independently validated before it does; respiratory rate here is inferred
+   * from beat-to-beat interval variability, so it stays in advanced details.
+   */
+  primary: boolean
+  /** True when the estimator is experimental and must be labelled as such. */
+  experimental: boolean
 }
 
 export const METRICS: Record<MetricId, MetricSpec> = {
@@ -47,6 +55,8 @@ export const METRICS: Record<MetricId, MetricSpec> = {
     plausibleMin: 30,
     plausibleMax: 220,
     note: 'Estimate from accepted camera readings, not a medical measurement.',
+    primary: true,
+    experimental: false,
   },
   respiratory_rate: {
     id: 'respiratory_rate',
@@ -56,11 +66,22 @@ export const METRICS: Record<MetricId, MetricSpec> = {
     decimals: 1,
     plausibleMin: 4,
     plausibleMax: 60,
-    note: 'Derived from beat-to-beat interval variability (experimental); not a direct breathing measurement.',
+    // Not a direct breathing measurement: this is inferred from pulse-to-pulse
+    // interval variability (respiratory sinus arrhythmia), has no independent
+    // reference validation in this project, and is heavily confounded by motion
+    // and by the pulse estimate itself. It is therefore never a headline result.
+    note:
+      'Experimental. Inferred from beat-to-beat pulse-interval variability, not from a ' +
+      'breathing measurement; unvalidated against a respiratory reference.',
+    primary: false,
+    experimental: true,
   },
 }
 
 export const METRIC_IDS = Object.keys(METRICS) as MetricId[]
+
+/** Metrics eligible for the headline position (independently substantiated only). */
+export const PRIMARY_METRIC_IDS = METRIC_IDS.filter(id => METRICS[id].primary)
 
 /**
  * Metrics that are deliberately NOT aggregatable here. Keeping the list explicit
@@ -123,6 +144,12 @@ export interface AggregationConfig {
   targetAcceptedReadings: number
   /** A result older than this is stale and never counted as current. */
   staleAfterMs: number
+  /**
+   * Above this ratio of densest to sparsest analysis density the session result
+   * is flagged as potentially density-biased. Not a quality gate: the gates are
+   * unchanged, this only reports a property of the accepted readings.
+   */
+  densityRatioWarning: number
   plausible: Record<MetricId, { min: number; max: number }>
 }
 
@@ -137,6 +164,7 @@ export const DEFAULT_CONFIG: AggregationConfig = {
   minIndependentWindows: 2,
   targetAcceptedReadings: 8,
   staleAfterMs: 5000,
+  densityRatioWarning: 3,
   plausible: {
     heart_rate: { min: METRICS.heart_rate.plausibleMin, max: METRICS.heart_rate.plausibleMax },
     respiratory_rate: { min: METRICS.respiratory_rate.plausibleMin, max: METRICS.respiratory_rate.plausibleMax },
@@ -476,10 +504,39 @@ export function summarize(
     return result
   }
   result.verdict = 'available'
+  // An available aggregate has no shortfall to explain. Leaving the placeholder
+  // reason from emptyAggregate in place produced "available" blocks carrying
+  // "No readings recorded for this metric", and the experimental block renders
+  // that text verbatim. Python already cleared it; this keeps the two identical.
+  result.reason = ''
   return result
 }
 
-export type CompletionState = 'idle' | 'collecting' | 'complete'
+/**
+ * What the *capture* is doing, supplied by the caller.
+ *
+ * Completion is not derivable from the readings alone: the same set of accepted
+ * readings means "keep going" while the camera runs and "this is all there is"
+ * once it stops. Conflating the two is what let the previous implementation tell
+ * a user to stop a session whose aggregate was still insufficient.
+ */
+export type SessionLifecycle = 'running' | 'stopped' | 'interrupted'
+
+/**
+ * Distinct, non-overlapping session states.
+ *
+ * `completed` and `available` both require a genuinely available aggregate;
+ * there is no state that invites the user to stop while the result is
+ * insufficient.
+ */
+export type CompletionState =
+  | 'idle'
+  | 'initialising'
+  | 'collecting'
+  | 'insufficient'
+  | 'available'
+  | 'interrupted'
+  | 'completed'
 
 export interface SessionSummary {
   metrics: MetricAggregate[]
@@ -501,12 +558,80 @@ export interface SessionSummary {
   acceptanceBand: 'good' | 'fair' | 'poor' | null
   completion: CompletionState
   completionReason: string
+  /** True when the aggregate is available (the only condition for a headline number). */
+  resultAvailable: boolean
+  /**
+   * Readings per unit time in the densest part of the session divided by the
+   * sparsest. Around 1 means the session was analysed evenly. Large values mean
+   * some stretch contributed many more readings than another, which is the
+   * condition under which the all-window mean can be biased (see
+   * docs/SESSION_AGGREGATION.md and research/session/aggregation_analysis.py).
+   */
+  densityRatio: number | null
+  /** True when densityRatio exceeds the configured warning threshold. */
+  unevenDensity: boolean
   /** True when at least one metric has a presentable average. */
   hasResult: boolean
   config: AggregationConfig
 }
 
-export function summarizeSession(readings: Measurement[], config: AggregationConfig = DEFAULT_CONFIG): SessionSummary {
+/**
+ * Ratio of the densest to the sparsest analysis density across the session.
+ *
+ * Density is measured in readings per second over the span the readings cover.
+ * It is split into thirds and the busiest third compared with the quietest, so a
+ * single short burst does not dominate. `null` when there is too little span to
+ * judge, rather than guessing 1.
+ */
+export function densityRatio(readings: Measurement[]): number | null {
+  const times = readings
+    .map(r => r.sessionElapsedS)
+    .filter((t): t is number => t !== null && Number.isFinite(t))
+  if (times.length < 4) return null
+  const ordered = [...times].sort((a, b) => a - b)
+  const span = ordered[ordered.length - 1] - ordered[0]
+  if (!(span > 0)) return null
+  const third = span / 3
+  if (third <= 0) return null
+  const start = ordered[0]
+  const counts = [0, 0, 0]
+  for (const t of ordered) {
+    const bucket = Math.min(2, Math.floor((t - start) / third))
+    counts[bucket] += 1
+  }
+  const nonZero = counts.filter(c => c > 0)
+  if (!nonZero.length) return null
+  const densest = Math.max(...nonZero)
+  const sparsest = Math.min(...nonZero)
+  if (sparsest === 0) return null
+  return densest / sparsest
+}
+
+export interface SummarizeSessionOptions {
+  config?: AggregationConfig
+  /** What the capture is doing. Defaults to `stopped`: a summary nobody is feeding. */
+  lifecycle?: SessionLifecycle
+}
+
+/**
+ * Session summary: per-metric aggregates, completion state, and whether a
+ * headline result may be shown.
+ *
+ * The single rule this function exists to enforce: `completed` (an invitation to
+ * stop) and `available` (a headline number) both require the aggregate verdict to
+ * actually be `available`. A count of accepted readings is progress, never
+ * permission to stop.
+ */
+export function summarizeSession(
+  readings: Measurement[],
+  configOrOptions: AggregationConfig | SummarizeSessionOptions = DEFAULT_CONFIG,
+): SessionSummary {
+  const options: SummarizeSessionOptions =
+    'minAcceptedReadings' in (configOrOptions as AggregationConfig)
+      ? { config: configOrOptions as AggregationConfig }
+      : (configOrOptions as SummarizeSessionOptions)
+  const config = options.config ?? DEFAULT_CONFIG
+  const lifecycle: SessionLifecycle = options.lifecycle ?? 'stopped'
   const metrics = METRIC_IDS.map(m => summarize(readings, m, { config }))
   const perAlgorithm: MetricAggregate[] = []
   for (const metric of METRIC_IDS) {
@@ -530,23 +655,62 @@ export function summarizeSession(readings: Measurement[], config: AggregationCon
           : 'poor'
 
   const presentable = metrics.filter(m => m.verdict === 'available')
-  // Progress is tracked on the primary metric's accepted count, NOT on whether an
-  // average is presentable yet: otherwise a session with some accepted readings
-  // but not enough for an average would claim nothing had passed the checks.
-  const progressMetric = metrics.find(m => m.metric === 'heart_rate') ?? metrics[0]
-  const acceptedSoFar = progressMetric?.nAccepted ?? 0
-  let completion: CompletionState = 'idle'
-  let completionReason = 'Start a session to collect readings'
-  if (primaryReadings.length) {
-    completion = 'collecting'
-    completionReason =
-      acceptedSoFar > 0
-        ? `${acceptedSoFar} of ${config.targetAcceptedReadings} accepted readings collected`
-        : `No readings accepted yet (${nRejectedTotal} rejected by the quality checks)`
-    if (acceptedSoFar >= config.targetAcceptedReadings) {
-      completion = 'complete'
-      completionReason = 'Enough accepted readings for a session average; you can stop the camera'
+  // Completion follows the metric the interface headlines: heart rate. A session
+  // is not "available" because a secondary metric has enough readings.
+  const primaryAggregate = metrics.find(m => m.metric === 'heart_rate') ?? metrics[0]
+  const resultAvailable = primaryAggregate?.verdict === 'available'
+  const needed = config.minAcceptedReadings
+  const progressMetric = primaryAggregate
+
+  // Density flag uses the consensus series only: the per-estimator readings are
+  // recorded at the same moments, so including them would divide out.
+  const density = densityRatio(primaryReadings)
+  const unevenDensity = density !== null && density > config.densityRatioWarning
+
+  let completion: CompletionState
+  let completionReason: string
+  if (!primaryReadings.length) {
+    if (lifecycle === 'interrupted') {
+      completion = 'interrupted'
+      completionReason = 'Capture was interrupted before any window was analysed'
+    } else if (lifecycle === 'stopped') {
+      // No session exists yet. Calling an idle page "initialising" would imply
+      // work is happening when none is.
+      completion = 'idle'
+      completionReason = 'No session yet: press Start to begin collecting readings'
+    } else {
+      completion = 'initialising'
+      completionReason = 'Waiting for the first analysable window'
     }
+  } else if (resultAvailable) {
+    completion = lifecycle === 'running' ? 'available' : 'completed'
+    completionReason =
+      lifecycle === 'running'
+        ? `Session average available from ${progressMetric.nAccepted} accepted readings; you can stop the camera`
+        : `Session complete: ${progressMetric.nAccepted} accepted readings`
+  } else if (lifecycle === 'interrupted') {
+    // Same evidence, different meaning: capture stopped by an interruption, so
+    // the shortfall is not something the user can fix by holding still.
+    completion = 'interrupted'
+    completionReason = `Capture interrupted with ${progressMetric?.nAccepted ?? 0} accepted readings - not enough for a session average`
+  } else if (lifecycle === 'running') {
+    // Still capturing: the shortfall is provisional and the user can act on it.
+    // Name whichever condition is actually blocking, so "collecting" is never a
+    // vague reassurance when the real problem is overlap rather than a low count.
+    completion = 'collecting'
+    const accepted = progressMetric?.nAccepted ?? 0
+    const independent = progressMetric?.nIndependentAccepted ?? null
+    completionReason =
+      accepted < needed
+        ? `Collecting: ${accepted} of ${needed} accepted readings`
+        : independent !== null && independent < config.minIndependentWindows
+          ? `Collecting: ${accepted} accepted readings, but they overlap (${independent} independent window${independent === 1 ? '' : 's'}); keep capturing`
+          : `Collecting: ${accepted} accepted readings; waiting for the aggregate to become available`
+  } else {
+    // Capture finished (or never started) without enough evidence. This is a
+    // final state, not a progress report, and it never says "you can stop".
+    completion = 'insufficient'
+    completionReason = progressMetric?.reason ?? 'Not enough accepted readings for a session average'
   }
 
   return {
@@ -560,12 +724,14 @@ export function summarizeSession(readings: Measurement[], config: AggregationCon
     acceptanceBand,
     completion,
     completionReason,
+    resultAvailable,
+    densityRatio: density,
+    unevenDensity,
     hasResult: presentable.length > 0,
     config,
   }
 }
 
-/** Format a metric value with its unit, or an em dash when absent. */
 export function formatValue(value: number | null, metric: MetricId): string {
   if (value === null || !Number.isFinite(value)) return '—'
   const spec = METRICS[metric]
@@ -602,6 +768,8 @@ export function buildSessionAggregateExport(input: SessionExportInput) {
     algorithm: a.algorithm,
     verdict: a.verdict,
     reason: a.reason,
+    experimental: METRICS[a.metric]?.experimental ?? true,
+    primary: METRICS[a.metric]?.primary ?? false,
     accepted_readings: a.nAccepted,
     rejected_readings: a.nRejected,
     total_readings: a.nTotal,
@@ -637,6 +805,9 @@ export function buildSessionAggregateExport(input: SessionExportInput) {
     acceptance_band_note:
       'Band derived from the observed acceptance rate only. It is not a confidence score and says nothing about accuracy.',
     completion_state: summary.completion,
+    result_available: summary.resultAvailable,
+    density_ratio: summary.densityRatio,
+    uneven_density: summary.unevenDensity,
     aggregation_config: {
       min_accepted_readings: summary.config.minAcceptedReadings,
       min_independent_windows: summary.config.minIndependentWindows,

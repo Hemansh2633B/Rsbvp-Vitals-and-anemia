@@ -4,7 +4,7 @@ RSBVP is an academic research prototype investigating two **independent** questi
 
 ## Current status
 
-- **Pulse research:** Existing Green and POS extraction, motion classification/corrections, FFT/peak estimation, experimental tachogram respiratory analysis, local webcam capture and optional CMS50D evaluation remain available. Defaults now use a 0.7–3.5 Hz (42–210 BPM) search passband. CHROM processing, per-ROI RGB retention with a conservative skin-color mask, timestamp-derived sampling-rate helper, and frame-gap accounting are included. The ROI mask is a heuristic, not MediaPipe landmark segmentation. An algorithm comparison CLI scores Green/POS/CHROM and ROI/multi-ROI variants from a supplied synchronized RGB-trace CSV; it does not create reference data. Python↔browser DSP parity now covers all 3 ROIs × 3 estimators (9 combos) on a shared synthetic fixture, and cross-ROI agreement gating plus candidate_bpm validation hardening are in place.
+- **Pulse research:** Existing Green and POS extraction, motion classification/corrections, FFT/peak estimation, experimental tachogram respiratory analysis, local webcam capture and optional CMS50D evaluation remain available. Defaults now use a 0.7–3.5 Hz (42–210 BPM) search passband. CHROM processing, per-ROI RGB retention with a conservative skin-color mask, timestamp-derived sampling-rate helper, and frame-gap accounting are included. The two footage pathways use **different ROI methods**: the browser path uses MediaPipe Face Landmarker landmark polygons (forehead + bilateral cheeks, with eye/lip/brow exclusion), while the Python path uses an OpenCV Haar-cascade face box and a fixed central 60 % x 55 % crop of it — a heuristic, not landmark segmentation. Neither is a skin segmentation model. An algorithm comparison CLI scores Green/POS/CHROM and ROI/multi-ROI variants from a supplied synchronized RGB-trace CSV; it does not create reference data. Python↔browser DSP parity now covers all 3 ROIs × 3 estimators (9 combos) on a shared synthetic fixture, and cross-ROI agreement gating plus candidate_bpm validation hardening are in place.
 - **Anemia research:** No verified dataset or trained model is included. The image quality and RGB/HSV/Lab feature helpers, a standardized input-image contract and a researcher-reviewed conjunctival-ROI annotation format (`docs/ANEMIA_IMAGE_CONTRACT.md`, `research/anemia/contract.py`) are research foundations only; they do not locate conjunctiva or produce hemoglobin/anemia predictions. A composite image-QA aggregation layer (contract + image QA + mask) is implemented and software-tested, emitting machine-readable rejection reasons; it performs no Hb estimation or diagnosis. Status: **NOT AVAILABLE — NO VERIFIED LABELED DATASET**.
 - **Validation:** No new reference recordings, clinical results, dataset performance, or hardware tests are claimed by this update. UBFC-rPPG and COHFACE remain absent; CI never requires datasets, GPU, webcams or CMS50D. CI runs the full Python suite (280 tests at this commit) plus 34 frontend tests and remains dataset/GPU/webcam-free.
 
@@ -278,7 +278,17 @@ range beside it.
   uses the non-overlapping subset — and is omitted rather than guessed when that
   subset is too small.
 - Too few accepted readings produce an explicit **Insufficient data** state, never a
-  plausible-looking number.
+  plausible-looking number. Session completion is derived from the aggregate's own
+  availability, not from a count of accepted readings, so the UI never invites you to
+  stop while no result exists. States: idle, initialising, collecting, insufficient,
+  available, interrupted, completed.
+- Respiratory rate is **experimental** and shown separately, never in the session
+  result: it is inferred from beat-to-beat interval variability, not measured from
+  breathing.
+- Uneven analysis density (one stretch analysed far more often than another) is
+  detected and disclosed, because the all-window mean weights every accepted reading
+  equally. The evidence for that, and for keeping the all-window mean as the headline
+  statistic, is in [the aggregation analysis](docs/AGGREGATION_ANALYSIS.md).
 - HRV/RMSSD, SpO₂, blood pressure and anemia image features are not aggregated:
   there is no validated estimator for them here.
 

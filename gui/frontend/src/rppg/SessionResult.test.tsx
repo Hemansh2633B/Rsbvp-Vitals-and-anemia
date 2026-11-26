@@ -25,13 +25,17 @@ const reading = (value: number | null, over: Partial<ReadingInput> = {}): Readin
   }
 }
 
-function sessionWith(values: Array<number | null>, over: Partial<ReadingInput> = {}) {
+function sessionWith(
+  values: Array<number | null>,
+  over: Partial<ReadingInput> = {},
+  lifecycle: 'running' | 'stopped' | 'interrupted' = 'running',
+) {
   const collector = new SessionCollector()
   for (const v of values) {
     const r = reading(v, over)
     collector.add(r, r.analyzedAtMs)
   }
-  return summarizeSession(collector.all())
+  return summarizeSession(collector.all(), { lifecycle })
 }
 
 const noop = () => {}
@@ -70,7 +74,8 @@ describe('session result: main result', () => {
     render(<SessionResult summary={summarizeSession(collector.all())} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
     expect(screen.queryByText(/199/)).not.toBeInTheDocument()
-    expect(screen.getByText('Insufficient data')).toBeInTheDocument()
+    expect(screen.queryByTestId('session-value-heart_rate')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Insufficient data').length).toBeGreaterThan(0)
   })
 })
 
@@ -84,10 +89,10 @@ describe('session result: insufficient data', () => {
   })
 
   it('explains an empty session and does not invent readings', () => {
-    render(<SessionResult summary={summarizeSession([])} sessionId="s"
+    render(<SessionResult summary={summarizeSession([], { lifecycle:'running' })} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
     expect(screen.getByText(/No readings yet/i)).toBeInTheDocument()
-    expect(screen.getByText(/Start a session to collect readings/i)).toBeInTheDocument()
+    expect(screen.getByText(/Waiting for the first analysable window/i)).toBeInTheDocument()
   })
 
   it('says why every reading failed when that is the whole session', () => {
@@ -98,7 +103,7 @@ describe('session result: insufficient data', () => {
     }
     render(<SessionResult summary={summarizeSession(collector.all())} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
-    expect(screen.getByText(/3 of 3 readings did not pass the quality checks/i)).toBeInTheDocument()
+    expect(screen.getByText(/0 of 3 readings passed the quality checks/i)).toBeInTheDocument()
   })
 })
 
@@ -222,10 +227,35 @@ describe('session result: advanced details', () => {
 
 describe('session result: completion', () => {
   it('says when enough data has been collected', () => {
-    render(<SessionResult summary={sessionWith([72, 72, 72, 72, 72, 72, 72, 72])} sessionId="s"
+    render(<SessionResult summary={sessionWith([72, 72, 72, 72, 72])} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
-    expect(screen.getByText(/Complete — /)).toBeInTheDocument()
+    expect(screen.getByText('Result available')).toBeInTheDocument()
     expect(screen.getByText(/you can stop the camera/i)).toBeInTheDocument()
+  })
+  it('shows Completed only once the capture has actually stopped', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78], {}, 'stopped')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText('Completed')).toBeInTheDocument()
+    expect(screen.getByText(/Session complete: 5 accepted readings/i)).toBeInTheDocument()
+  })
+  it('never renders a stop invitation when the aggregate is insufficient', () => {
+    // The Sprint 13 bug, at the UI level: 8 accepted readings from one window.
+    const collector = new SessionCollector()
+    for (let i = 0; i < 8; i++) {
+      const r = reading(72, { sampling: { fsHz: 30, nSamples: 300, windowStartS: 100, windowEndS: 110 } })
+      collector.add(r, r.analyzedAtMs)
+    }
+    render(<SessionResult summary={summarizeSession(collector.all(), { lifecycle: 'running' })}
+      sessionId="s" onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.queryByText(/you can stop the camera/i)).not.toBeInTheDocument()
+    expect(screen.getByText('Collecting')).toBeInTheDocument()
+    expect(screen.getAllByText('Insufficient data').length).toBeGreaterThan(0)
+  })
+  it('labels an interruption as an interruption', () => {
+    render(<SessionResult summary={sessionWith([70, 72], {}, 'interrupted')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText('Interrupted')).toBeInTheDocument()
+    expect(screen.getByText(/Capture interrupted/i)).toBeInTheDocument()
   })
 
   it('separates the live status from the session average', () => {
@@ -233,6 +263,103 @@ describe('session result: completion', () => {
       onExportReadings={noop} onExportAggregate={noop} />)
     expect(screen.getByText('Live: signal acceptable')).toBeInTheDocument()
     // The session header describes collection, not the live signal.
-    expect(screen.getByText(/1 of 8 accepted readings collected/i)).toBeInTheDocument()
+    expect(screen.getByText(/Collecting: 1 of 5 accepted readings/i)).toBeInTheDocument()
+  })
+})
+
+describe('completion state label', () => {
+  // The chip is the one place the UI says where the session is. Every state must
+  // render a human label, and the two "you may stop" states must be the only ones
+  // whose copy invites a stop.
+  const collect = (values: Array<number | null>, lifecycle: 'running'|'stopped'|'interrupted') =>
+    sessionWith(values, {}, lifecycle)
+
+  it('labels an available running session in words', () => {
+    render(<SessionResult summary={collect([70, 72, 74, 76, 78], 'running')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    const chip = screen.getByText('Result available')
+    expect(chip).toHaveClass('state-chip')
+    expect(chip).toHaveClass('state-available')
+  })
+
+  it('labels a stopped session with a result as complete', () => {
+    render(<SessionResult summary={collect([70, 72, 74, 76, 78], 'stopped')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText('Completed')).toHaveClass('state-completed')
+  })
+
+  it('labels a stopped session without a result as insufficient data', () => {
+    render(<SessionResult summary={collect([70, 72], 'stopped')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getAllByText('Insufficient data').length).toBeGreaterThan(0)
+  })
+
+  it('labels an interrupted session distinctly from a finished one', () => {
+    render(<SessionResult summary={collect([70, 72], 'interrupted')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    const chip = screen.getByText('Interrupted')
+    expect(chip).toHaveClass('state-interrupted')
+    expect(screen.queryByText(/you can stop/i)).toBeNull()
+  })
+
+  it('never invites a stop while the result is not available', () => {
+    // Sweep the states that can occur with the camera still running but no result.
+    for (const values of [[], [70], [70, 72], [70, 70, 70, 70, 70, 70, 70, 70]]) {
+      const { container, unmount } = render(
+        <SessionResult summary={collect(values, 'running')} sessionId="s"
+          onExportReadings={noop} onExportAggregate={noop} />)
+      const summary = collect(values, 'running')
+      if (!summary.resultAvailable) {
+        expect(container.textContent).not.toMatch(/you can stop the camera/i)
+      }
+      unmount()
+    }
+  })
+})
+
+describe('analysis-density disclosure', () => {
+  it('warns that the average weights every reading equally when density is uneven', () => {
+    // 60 readings early, 15 much later: ratio well over 3x, plus drift.
+    const collector = new SessionCollector()
+    let t = 0
+    for (let i = 0; i < 60; i += 1) { const r = reading(70, { sessionElapsedS: t }); collector.add(r, r.analyzedAtMs); t += 0.5 }
+    t = 200
+    for (let i = 0; i < 15; i += 1) { const r = reading(82, { sessionElapsedS: t }); collector.add(r, r.analyzedAtMs); t += 4 }
+    const summary = summarizeSession(collector.all(), { lifecycle: 'running' })
+    expect(summary.unevenDensity).toBe(true)
+    render(<SessionResult summary={summary} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText(/gives every accepted reading equal weight/i)).toBeInTheDocument()
+    // And the mean is exactly the plain all-window mean: disclosure, not correction.
+    const hr = summary.metrics.find(m => m.metric === 'heart_rate')!
+    expect(hr.mean).toBeCloseTo((70 * 60 + 82 * 15) / 75, 10)
+  })
+
+  it('stays silent when density is even', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78])} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.queryByText(/gives every accepted reading equal weight/i)).toBeNull()
+  })
+})
+
+describe('experimental metrics', () => {
+  it('separates respiratory rate from the session result and says why', () => {
+    const collector = new SessionCollector()
+    for (let i = 0; i < 5; i += 1) {
+      const hr = reading(70 + i * 2)
+      collector.add(hr, hr.analyzedAtMs)
+      const rr = reading(15, { metric: 'respiratory_rate' })
+      collector.add(rr, rr.analyzedAtMs + 1)
+    }
+    const summary = summarizeSession(collector.all(), { lifecycle: 'running' })
+    const { container } = render(<SessionResult summary={summary} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText(/Experimental \(not part of the session result\)/i)).toBeInTheDocument()
+    // The sentence wraps a <strong>, so assert on textContent rather than node text.
+    expect(container.textContent).toMatch(/not included in the session\s+average above/i)
+    expect(screen.getAllByText(/pulse-interval variability/i).length).toBeGreaterThan(0)
+    // The heart-rate headline must not have become an RR number.
+    expect(screen.getByTestId('session-value-heart_rate')).toHaveTextContent(/BPM/)
+    expect(screen.queryByTestId('session-value-respiratory_rate')).toBeNull()
   })
 })

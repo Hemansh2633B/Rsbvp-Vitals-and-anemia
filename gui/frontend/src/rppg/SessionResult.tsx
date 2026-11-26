@@ -10,6 +10,7 @@ import {
   METRICS,
   type Measurement,
   type MetricAggregate,
+  type CompletionState,
   type SessionSummary,
 } from './sessionAggregate'
 import './sessionResult.css'
@@ -18,6 +19,18 @@ const BAND_LABEL: Record<'good' | 'fair' | 'poor', string> = {
   good: 'Good',
   fair: 'Fair',
   poor: 'Poor',
+}
+
+// One short, plain-language line per state. None of these invites a user to stop
+// unless a session average actually exists.
+const STATE_LABEL: Record<CompletionState, string> = {
+  idle: 'Not started',
+  initialising: 'Initialising',
+  collecting: 'Collecting',
+  insufficient: 'Insufficient data',
+  available: 'Result available',
+  interrupted: 'Interrupted',
+  completed: 'Completed',
 }
 
 function fmt(value: number | null, decimals: number): string {
@@ -111,7 +124,13 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
   const [showAdvanced, setShowAdvanced] = useState(false)
   const readingsId = useId()
   const advancedId = useId()
-  const presentable = summary.metrics.filter(m => m.verdict === 'available')
+  // Headline: primary metrics only. Respiratory rate is experimental and is
+  // shown in a clearly labelled secondary block, never beside the pulse value as
+  // though the two had comparable standing.
+  const presentable = summary.metrics.filter(
+    m => m.verdict === 'available' && METRICS[m.metric].primary,
+  )
+  const secondary = summary.metrics.filter(m => !METRICS[m.metric].primary)
   const band = summary.acceptanceBand
 
   return (
@@ -124,7 +143,7 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
       </p>
 
       <p className={`completion ${summary.completion}`} role="status">
-        {summary.completion === 'complete' ? 'Complete — ' : ''}
+        <span className={`state-chip state-${summary.completion}`}>{STATE_LABEL[summary.completion]}</span>
         {summary.completionReason}
       </p>
       {liveStatus && <p className="muted small">{liveStatus}</p>}
@@ -135,13 +154,14 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
           <p className="session-note">
             {summary.primaryReadings.length === 0
               ? 'No readings yet. Start the camera and hold still in even light.'
-              : `${summary.nRejectedTotal} of ${summary.primaryReadings.length} readings did not pass the quality checks. ${
+              : `${summary.nAcceptedTotal} of ${summary.primaryReadings.length} readings passed the quality checks. ${
                   summary.metrics.find(m => m.metric === 'heart_rate')?.reason ?? ''
                 }`}
           </p>
           <p className="muted small">
             A session average is not shown until there is enough independent evidence, because a
-            number from one or two windows would suggest a precision that does not exist.
+            number from one or two windows would suggest a precision that does not exist. Counting
+            accepted readings is not the same as having a result.
           </p>
         </div>
       ) : (
@@ -180,11 +200,44 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
         nothing about accuracy.
       </p>
 
+      {secondary.some(m => m.nTotal > 0) && (
+        <div className="session-experimental">
+          <h3>Experimental (not part of the session result)</h3>
+          <p className="muted small">
+            These are reported for transparency and are <strong>not</strong> included in the session
+            average above. They rest on weaker evidence and must not be read as measurements.
+          </p>
+          <ul>
+            {secondary.map(m => {
+              const spec = METRICS[m.metric]
+              return (
+                <li key={m.metric}>
+                  <strong>{spec.label}</strong>{' '}
+                  {m.verdict === 'available'
+                    ? `${fmt(m.mean, spec.decimals)} ${spec.unit} from ${m.nAccepted} accepted readings`
+                    : `not reported: ${m.reason}`}
+                  <span className="muted small"> — {spec.note}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {summary.unevenDensity && (
+        <p className="muted small density-warning">
+          Analysis density varied across this session (busiest stretch about{' '}
+          {summary.densityRatio === null ? '—' : summary.densityRatio.toFixed(1)}× the quietest). The
+          average gives every accepted reading equal weight, so a densely analysed stretch counts
+          more. Treat the session average as approximate.
+        </p>
+      )}
+
       <div className="session-secondary">
         <div>
           <span className="quality-label">Median</span>
           <span className="session-secondary-value">
-            {presentable.length === 1
+            {presentable[0]
               ? `${fmt(presentable[0].median, METRICS[presentable[0].metric].decimals)} ${presentable[0].unit}`
               : '—'}
           </span>
@@ -193,7 +246,7 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
         <div>
           <span className="quality-label">Range</span>
           <span className="session-secondary-value">
-            {presentable.length === 1 && presentable[0].min !== null && presentable[0].max !== null
+            {presentable[0] && presentable[0].min !== null && presentable[0].max !== null
               ? `${fmt(presentable[0].min, METRICS[presentable[0].metric].decimals)} – ${fmt(
                   presentable[0].max,
                   METRICS[presentable[0].metric].decimals,

@@ -111,19 +111,23 @@ mistaken for a curated subset.
 | `schema` | `rsbvp.session-aggregate.v1` |
 | `capture_session_id` | same non-identifying `sess-…` id as the trace exports |
 | `primary_series` | `consensus` — the only series presented as the session result |
-| `metrics[]` | per metric: `verdict` (`available`/`insufficient`/`no_readings`), `reason`, accepted/rejected/total, `acceptance_pct`, mean, median, min, max, sd, range, `independent_windows`, `overlap_factor`, `standard_error`, `median_quality_score` |
+| `metrics[]` | per metric: `verdict` (`available`/`insufficient`/`no_readings`), `reason`, accepted/rejected/total, `acceptance_pct`, mean, median, min, max, sd, range, `independent_windows`, `overlap_factor`, `standard_error`, `median_quality_score`, plus `primary` and `experimental` (respiratory rate is experimental and is not part of the session result) |
 | `per_estimator[]` | the same block per GREEN/POS/CHROM series — diagnostics, never averaged together |
 | `windows_total`, `windows_accepted`, `windows_rejected` | counts of analysed windows (consensus series) |
 | `readings_total`, `readings_accepted` | counts including per-estimator series |
 | `acceptance_pct`, `acceptance_band` | observed acceptance rate and its Good/Fair/Poor band; `acceptance_band_note` states explicitly that this is **not** a confidence score |
-| `completion_state` | `idle`/`collecting`/`complete` |
-| `aggregation_config` | `min_accepted_readings`, `min_independent_windows`, `target_accepted_readings`, `stale_after_ms`, `plausible_bounds` |
+| `completion_state` | `idle`/`initialising`/`collecting`/`insufficient`/`available`/`interrupted`/`completed` — derived from aggregate availability plus capture lifecycle | 
+| `result_available` | `true` iff the heart-rate aggregate verdict is `available`; the only condition under which the UI invites a stop |
+| `density_ratio`, `uneven_density` | densest-third / sparsest-third reading count, and whether it exceeds the warning threshold; **reported only, never applied to the mean** |
+| `aggregation_config` | `min_accepted_readings`, `min_independent_windows`, `target_accepted_readings`, `stale_after_ms`, `density_ratio_warning`, `plausible_bounds` |
 | `acquisition` | backend, algorithms, ROIs, passband, required seconds, camera label, sampling rate |
 | `statistics_notes` | the independence and accuracy caveats, so the file cannot be quoted without them |
 | `frames_images_included: false`, `frames_uploaded: false` | provenance |
 
 Missing values are `null` (JSON) or empty (CSV). Nothing is zero-filled, and
-`standard_error` is `null` when fewer than three independent windows exist.
+`standard_error` is `null` when fewer than three independent windows exist. The
+Sprint 14 additions above are additive, so a reader written against the original
+v1 field set keeps working unchanged.
 
 ## Schema versions and compatibility
 

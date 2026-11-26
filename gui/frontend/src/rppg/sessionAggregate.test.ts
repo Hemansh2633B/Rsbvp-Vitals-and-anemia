@@ -118,27 +118,43 @@ describe('insufficient data and completion',()=>{
    expect(a.verdict).toBe('insufficient')
    expect(a.reason).toContain('independent')
  })
- it('marks a session complete once the target is reached, and not before',()=>{
-   const short = summarizeSession(collect([72,72,72,72]).all())
+ it('marks a session available once the aggregate is, and not merely when a count is reached',()=>{
+   // Running with too few readings: provisional, not a final verdict.
+   const short = summarizeSession(collect([72,72,72,72]).all(), { lifecycle:'running' })
    expect(short.completion).toBe('collecting')
-   const long = summarizeSession(collect(Array.from({length:DEFAULT_CONFIG.targetAcceptedReadings},()=>72)).all())
-   expect(long.completion).toBe('complete')
+   expect(short.resultAvailable).toBe(false)
+   // Stopped with too few readings: a final state, and it never says "stop".
+   const stopped = summarizeSession(collect([72,72,72,72]).all(), { lifecycle:'stopped' })
+   expect(stopped.completion).toBe('insufficient')
+   expect(stopped.completionReason).not.toMatch(/you can stop/i)
+   const long = summarizeSession(collect([72,72,72,72,72]).all(), { lifecycle:'running' })
+   expect(long.completion).toBe('available')
+   expect(long.resultAvailable).toBe(true)
+   const done = summarizeSession(collect([72,72,72,72,72]).all(), { lifecycle:'stopped' })
+   expect(done.completion).toBe('completed')
  })
  it('counts accepted readings below the average threshold instead of denying they passed',()=>{
    // Regression: 2 accepted readings used to report "Waiting for readings that
    // pass the quality checks", which was untrue - they had passed.
-   const s = summarizeSession(collect([72,73]).all())
+   const s = summarizeSession(collect([72,73]).all(), { lifecycle:'running' })
    expect(s.completion).toBe('collecting')
-   expect(s.completionReason).toBe('2 of 8 accepted readings collected')
+   expect(s.completionReason).toBe('Collecting: 2 of 5 accepted readings')
  })
- it('is honest when every reading was rejected',()=>{
+ it('reports the aggregate reason, never a reassuring count, when everything was rejected',()=>{
    const c = new SessionCollector()
    for(let i=0;i<3;i++){ const r = base({value:null,qualityVerdict:'roi_lost',rejectionReason:'All skin ROIs are lost'}); c.add(r,r.analyzedAtMs) }
-   expect(summarizeSession(c.all()).completionReason).toContain('No readings accepted yet (3 rejected')
+   const running = summarizeSession(c.all(), { lifecycle:'running' })
+   expect(running.completion).toBe('collecting')
+   expect(running.nAcceptedTotal).toBe(0)
+   expect(running.nRejectedTotal).toBe(3)
+   const stopped = summarizeSession(c.all(), { lifecycle:'stopped' })
+   expect(stopped.completion).toBe('insufficient')
+   expect(stopped.completionReason).toMatch(/No accepted readings/)
  })
- it('starts from an empty reported state before any reading exists',()=>{
-   const s = summarizeSession([])
-   expect(s.completion).toBe('idle'); expect(s.hasResult).toBe(false)
+ it('starts from an initialising state before any reading exists',()=>{
+   const s = summarizeSession([], { lifecycle:'running' })
+   expect(s.completion).toBe('initialising'); expect(s.hasResult).toBe(false)
+   expect(s.resultAvailable).toBe(false)
    expect(s.metrics.every(m=>m.verdict==='no_readings')).toBe(true)
  })
 })
@@ -260,4 +276,128 @@ describe('exports',()=>{
    expect(out.frames_images_included).toBe(false)
    expect(out.aggregation_config.min_accepted_readings).toBe(5)
  })
+})
+
+// Sprint 14: the invariant that the previous implementation violated.
+describe('session completion correctness',()=>{
+ const overlapping = (n:number) => {
+   const c = new SessionCollector()
+   for(let i=0;i<n;i++){
+     // Eight readings, one window: perfectly plausible sliding-window output.
+     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:100,windowEndS:110}})
+     c.add(r,r.analyzedAtMs)
+   }
+   return c
+ }
+ it('never invites a stop while the aggregate is still insufficient',()=>{
+   // Regression: 8 accepted readings over ONE window reached the target count and
+   // produced "you can stop the camera" while the aggregate was insufficient
+   // (1 independent window < 2 required).
+   const s = summarizeSession(overlapping(8).all(), { lifecycle:'running' })
+   expect(s.nAcceptedTotal).toBe(8)
+   expect(s.config.targetAcceptedReadings).toBe(8)   // the old trigger fired here
+   expect(s.resultAvailable).toBe(false)
+   expect(s.completion).toBe('collecting')
+   expect(s.completionReason).not.toMatch(/you can stop/i)
+   expect(s.completionReason).toMatch(/overlap/i)
+ })
+ it('names overlap, not a low count, when the count is already sufficient',()=>{
+   const s = summarizeSession(overlapping(8).all(), { lifecycle:'running' })
+   expect(s.completionReason).toContain('1 independent window')
+ })
+ it('uses all six distinct states for their intended situations',()=>{
+   const empty = summarizeSession([], { lifecycle:'running' })
+   expect(empty.completion).toBe('initialising')
+   const first = summarizeSession(overlapping(1).all(), { lifecycle:'running' })
+   expect(first.completion).toBe('collecting')
+   const stoppedShort = summarizeSession(overlapping(2).all(), { lifecycle:'stopped' })
+   expect(stoppedShort.completion).toBe('insufficient')
+   const running = summarizeSession(collect([70,72,74,76,78]).all(), { lifecycle:'running' })
+   expect(running.completion).toBe('available')
+   const interrupted = summarizeSession(collect([70,72]).all(), { lifecycle:'interrupted' })
+   expect(interrupted.completion).toBe('interrupted')
+   const done = summarizeSession(collect([70,72,74,76,78]).all(), { lifecycle:'stopped' })
+   expect(done.completion).toBe('completed')
+ })
+ it('reports an interruption as such rather than as insufficient progress',()=>{
+   const s = summarizeSession(collect([70,72]).all(), { lifecycle:'interrupted' })
+   expect(s.completionReason).toMatch(/interrupted/i)
+   expect(s.completionReason).not.toMatch(/you can stop/i)
+ })
+ it('only statuses with an available aggregate ever say the camera can stop',()=>{
+   const cases: Array<['running'|'stopped'|'interrupted', number[]]> = [
+     ['running',[]], ['running',[70]], ['running',[70,72]], ['running',[70,72,74]],
+     ['running',[70,72,74,76]], ['running',[70,72,74,76,78]],
+     ['stopped',[70,72]], ['stopped',[70,72,74,76,78]],
+     ['interrupted',[70,72]], ['interrupted',[70,72,74,76,78]],
+   ]
+   for(const [lifecycle, values] of cases){
+     const s = summarizeSession(collect(values).all(), { lifecycle })
+     if(/you can stop/i.test(s.completionReason)) expect(s.resultAvailable).toBe(true)
+     if(s.resultAvailable) expect(s.metrics.find(m=>m.metric==='heart_rate')!.verdict).toBe('available')
+   }
+ })
+})
+
+describe('analysis density',()=>{
+ it('is near 1 for an evenly analysed session',()=>{
+   const c = new SessionCollector()
+   for(let k=0;k<30;k++){
+     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:100+k*0.5,windowEndS:110+k*0.5}, sessionElapsedS:100+k*0.5})
+     c.add(r,r.analyzedAtMs)
+   }
+   const ratio = summarizeSession(c.all()).densityRatio
+   expect(ratio).not.toBeNull()
+   expect(ratio as number).toBeLessThan(1.5)
+   expect(summarizeSession(c.all()).unevenDensity).toBe(false)
+ })
+ it('flags a session where one stretch was analysed far more often',()=>{
+   const c = new SessionCollector()
+   // Dense 0-30 s, then sparse 30-90 s: the condition under which an equal-weight
+   // mean over-weights the dense part (see research/session/aggregation_analysis.py).
+   for(let k=0;k<60;k++){
+     const r = base({value:70,sampling:{fsHz:30,nSamples:300,windowStartS:k*0.5,windowEndS:k*0.5+10}, sessionElapsedS:k*0.5})
+     c.add(r,r.analyzedAtMs)
+   }
+   for(let k=0;k<15;k++){
+     const t = 30+k*4
+     const r = base({value:80,sampling:{fsHz:30,nSamples:300,windowStartS:t,windowEndS:t+10}, sessionElapsedS:t})
+     c.add(r,r.analyzedAtMs)
+   }
+   const s = summarizeSession(c.all())
+   expect(s.densityRatio as number).toBeGreaterThan(DEFAULT_CONFIG.densityRatioWarning)
+   expect(s.unevenDensity).toBe(true)
+ })
+ it('returns null rather than a fake 1 when there is too little span to judge',()=>{
+   expect(summarizeSession(collect([70]).all()).densityRatio).toBeNull()
+ })
+ it('does not change the mean: density is reported, never silently corrected',()=>{
+   // The primary estimator stays the all-window mean. This test exists so a future
+   // change that "fixes" density by silently switching estimator fails loudly.
+   const c = collect([70,70,80,80,80])
+   const s = summarizeSession(c.all())
+   const hr = s.metrics.find(m=>m.metric==='heart_rate')!
+   expect(hr.mean).toBe(76)   // arithmetic mean of all accepted readings
+   expect(hr.verdict).toBe('available')
+ })
+})
+
+describe('aggregate reason hygiene', () => {
+  it('clears the placeholder reason once a metric is available', () => {
+    // The experimental block renders `reason` verbatim next to the value, so an
+    // available aggregate must not carry "No readings recorded for this metric".
+    const collector = collect([70, 72, 74, 76, 78])
+    const summary = summarizeSession(collector.all(), { lifecycle: 'running' })
+    const hr = summary.metrics.find(m => m.metric === 'heart_rate')!
+    expect(hr.verdict).toBe('available')
+    expect(hr.reason).toBe('')
+  })
+
+  it('keeps a placeholder reason for a metric with no readings', () => {
+    const collector = collect([72])
+    const summary = summarizeSession(collector.all(), { lifecycle: 'running' })
+    const rr = summary.metrics.find(m => m.metric === 'respiratory_rate')!
+    expect(rr.verdict).toBe('no_readings')
+    expect(rr.reason).toMatch(/No readings recorded/)
+  })
 })

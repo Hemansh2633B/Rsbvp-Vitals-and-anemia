@@ -73,3 +73,49 @@ def test_cli_exit_codes(tmp_path, capsys):
     bad = tmp_path / "bad.json"
     bad.write_text('{"schema": "nope"}')
     assert v.main([str(bad)]) == 1
+
+
+TEMPLATE = Path(__file__).resolve().parents[1] / "research" / "camera" / "sprint14_test_record_TEMPLATE.json"
+
+
+def test_sprint14_template_is_labelled_unexecuted():
+    record = json.loads(TEMPLATE.read_text())
+    assert record["schema"] == v.SCHEMA
+    assert record["execution_status"] == "NOT EXECUTED"
+    assert record["session"]["consent_confirmed"] is False
+    assert record["session"]["date_utc"] == "1970-01-01"
+    assert "TEMPLATE" in record["notes"]
+    # Every scenario must be marked not-run; a filled-in template would be a
+    # fabricated result.
+    assert all(scenario["executed"] is False for scenario in record["scenarios"])
+    assert all(scenario["outcome"] is None for scenario in record["scenarios"])
+
+
+def test_sprint14_template_cannot_pass_validation():
+    # The template must be structurally incapable of being mistaken for a real
+    # session: no consent has been given, so the validator refuses it. This is the
+    # guard that keeps a placeholder from drifting into the evidence base.
+    record = json.loads(TEMPLATE.read_text())
+    problems = v.validate_record(record)
+    assert any(p.startswith("missing_field:session.consent_confirmed") for p in problems)
+
+
+def test_sprint14_template_records_the_sprint14_fields():
+    record = json.loads(TEMPLATE.read_text())
+    completion = record["session_completion"]
+    for field in ("completion_state_reached", "stop_invited_only_with_available_result",
+                  "reset_cleared_all_values", "accepted_readings", "rejected_readings",
+                  "acceptance_pct", "independent_windows", "density_ratio", "uneven_density"):
+        assert field in completion
+    for field in ("observed_sampling_rate_hz", "duplicate_frame_fraction", "largest_gap_ms",
+                  "interruption_recovered", "recovery_time_s"):
+        assert field in record["capture"]
+    assert record["capture"]["permission_flow"]["denied_then_granted"] is None
+
+
+def test_template_carries_no_participant_payload():
+    # Reuse the validator's forbidden-key scan directly.
+    record = json.loads(TEMPLATE.read_text())
+    problems = []
+    v._scan_forbidden(record, problems)
+    assert problems == []

@@ -1,8 +1,25 @@
 # Implementation status — authoritative capability matrix
 
-**Last updated:** 2026-11-26 (Sprint 13 — session aggregation). Baseline: `main` @ `aa929d6`. Evidence
-tiers are never upgraded because tests pass; a green CI run is
-software verification, not physiological or clinical validation. Status
+**Last updated:** 2026-11-26 (Sprint 14 — validation, aggregation correctness, reliability).
+Baseline: `main` @ `d50c617`.
+
+### Evidence tiers (never conflated)
+
+| Tier | Meaning | How it is obtained |
+|---|---|---|
+| **IMPLEMENTED** | Code exists and does what the description says, as read and unit-tested | inspection + unit tests |
+| **SOFTWARE-TESTED** | Exercised by automated tests with mocks, stubs or hand-built inputs — no camera, no dataset | `pytest`, `vitest`, `tsc` |
+| **SYNTHETIC-TESTED** | Exercised on generated signals with a *known* ground truth (e.g. a synthetic pulse at a chosen rate) | deterministic fixtures with fixed seeds |
+| **HARDWARE-TESTED** | Exercised on a physical camera/device, with the device, browser and configuration recorded | the manual protocol in `docs/MANUAL_CAMERA_TESTS.md` |
+| **PHYSIOLOGICALLY VALIDATED** | Compared against an independent physiological reference on human participants, with a pre-registered protocol | a reference device + ethics approval |
+
+**Current standing: the project has no HARDWARE-TESTED or PHYSIOLOGICALLY VALIDATED
+claims.** Sprint 14 performed no physical-camera session — no device was available —
+so every camera-facing row below is software- or synthetic-tested only. A passing
+test suite is never evidence of physiological accuracy: a synthetic pulse proves that
+the pipeline can recover a rate it was handed, not that it can recover a pulse from
+real skin under real light. Accuracy numbers quoted elsewhere come from offline
+datasets (Sprint 11b) and are labelled as such at their source. Status
 vocabulary: `DONE` (implemented + software-tested for its stated scope) ·
 `PARTIAL` (implemented with documented gaps) · `NOT IMPLEMENTED` ·
 `NOT RUN` (implemented, but the required data/hardware/protocol has not been
@@ -14,7 +31,14 @@ executed) · `BLOCKED` (cannot proceed without external input).
 | Session aggregation statistics | DONE (software) | same | yes | Mean, median, min, max, sample SD, accepted/rejected counts, acceptance %, independent-window count and overlap factor per metric per algorithm. Mean and median are reported together so outlier sensitivity is visible | SYNTHETIC-TESTED (synthetic readings) | Real-session statistics (needs physical-camera data) |
 | Independence accounting | DONE (software) | `countIndependentWindows` / `count_independent_windows` | yes | Sliding-window analysis means many readings describe the same moment. Greedy non-overlap counting gives the number of genuinely independent observations; the standard error uses only that, and is `null` when it cannot be established | SYNTHETIC-TESTED | — |
 | Insufficient-data state | DONE (software) | `summarize` / `summarize_session` | yes | Below 5 accepted readings or 2 independent windows the result is "Insufficient data" with a specific reason, never a number in the headline position. Thresholds are configurable | SOFTWARE-TESTED | — |
-| Session result interface | DONE (software) | `gui/frontend/src/rppg/SessionResult.tsx` | yes (`SessionResult.test.tsx`, `Live.test.tsx`) | One large average with unit, accepted/rejected counts, acceptance band, median, range, chart, expandable reading history, and collapsed advanced details. The live value is labelled "this window" and kept separate | SOFTWARE-TESTED | Usability review with real users |
+| Session-completion state machine | DONE (software) | `summarizeSession` / `summarize_session`, `BrowserPulse.tsx`, `Live.tsx` | yes (`sessionAggregate.test.ts`, `test_session_aggregation.py`, parity fixture) | Seven states (`idle`, `initialising`, `collecting`, `insufficient`, `available`, `interrupted`, `completed`) derived from **aggregate availability plus capture lifecycle**, never from a count of accepted readings. Sprint 13 invited a stop while the aggregate was insufficient; the invariant "a stop invitation implies an available result" is now enforced by test. No threshold was lowered | SOFTWARE-TESTED | Physical-session confirmation of the state transitions (NOT RUN) |
+| Analysis-density disclosure | DONE (software) | `densityRatio` / `density_ratio` | yes (both languages) | Densest-third / sparsest-third reading count; warns above 3x that the mean weights every reading equally. Reported only: a test asserts the mean is unchanged. Threshold not calibrated on real sessions | SYNTHETIC-TESTED | Recalibrate against real session exports (blocked on data) |
+| Aggregation estimator comparison | DONE (software) | `research/session/aggregation_analysis.py`, `docs/AGGREGATION_ANALYSIS.md` | yes (`test_aggregation_analysis.py`, 14 cases) | All-window vs non-overlapping mean over 6 synthetic scenarios with a time-weighted truth target. All-window mean is unbiased except under uneven density *with* drift (~4.3 BPM); the primary estimator was deliberately **not** changed. No confidence interval claimed; non-overlapping is not treated as independent (lag-1 autocorrelation 0.89-0.93) | SYNTHETIC-TESTED | Repeat on real exports |
+| Browser/Python aggregation parity | DONE (software) | `sessionParity.test.ts`, `tests/test_session_parity.py`, `tests/fixtures/session_aggregation_parity.json` | yes (11 shared cases) | Both languages assert identical expected values from one committed fixture, covering all seven states plus overlap, rejections, mixed verdicts and uneven density. A rule change in either language fails a test | SOFTWARE-TESTED | — |
+| Experimental-metric segregation | DONE | `METRICS[...].experimental`, `SessionResult.tsx` | yes | Respiratory rate is `primary: false, experimental: true`, excluded from the session result, rendered in a separate dashed block with the reason it is unvalidated, and flagged in the export. It is inferred from pulse-interval variability, never described as a breathing measurement | SOFTWARE-TESTED | Reference-device validation (BLOCKED) |
+| Physical-camera validation matrix | **NOT RUN** | `docs/MANUAL_CAMERA_TESTS.md`, `research/camera/` | validator tests only | The protocol and record schema exist and are tested; **no physical session has been executed**. Permission, front-camera selection, HTTPS, real sampling rate, dropped frames, ROI/face tracking under real light, motion, interruption recovery, completion and reset are all unmeasured on hardware | — (none) | A consenting operator with an Android device on HTTPS |
+
+| Session result interface | DONE (software) | `gui/frontend/src/rppg/SessionResult.tsx`
 | Metric separation | DONE | `METRICS` / `NOT_AGGREGATED` | yes | Heart rate and respiratory rate are separate series with their own plausibility bands; HRV/RMSSD, SpO₂, blood pressure and anemia image features have no aggregation path at all | SOFTWARE-TESTED | — |
 | Session exports | DONE | `buildSessionReadingsCsv`, `buildSessionAggregateExport` (+ Python mirrors) | yes | Readings CSV (accepted + rejected, with reasons) and aggregate JSON that carries its own independence and accuracy caveats. Existing trace/window exports unchanged | SOFTWARE-TESTED | — |
 | Camera acquisition integrity (browser + Python) | DONE (software) | `gui/frontend/src/rppg/captureIntegrity.ts`, `gui/rppg_core/quality.py` (`TraceReport`) | yes (`captureIntegrity.test.ts`, `captureIntegrityParity.test.ts`, `test_capture_integrity.py`) | Measures what the camera delivered from the timestamps themselves: effective rate, duplicate samples, dropped-frame gaps, stalls, jitter. A window with a timing defect is never reported as available. Thresholds are documented heuristics, not calibrated cut-offs | SYNTHETIC-TESTED (browser/Python parity on shared fixtures) | Physical-camera timing matrix (NOT RUN) |

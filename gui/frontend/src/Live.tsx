@@ -67,7 +67,7 @@ export function Live() {
   // Non-identifying id tying this session's exports together.
   const sessionIdRef = useRef(newSessionId())
   const sessionIdForExport = () => sessionIdRef.current
-  const [session, setSession] = useState<SessionSummary>(() => summarizeSession([]))
+  const [session, setSession] = useState<SessionSummary>(() => summarizeSession([], { lifecycle: 'stopped' }))
   // Wall-clock arrival of each frame update, used for staleness: a frame that
   // arrives long after it describes a moment already past is not a current
   // observation.
@@ -108,7 +108,7 @@ export function Live() {
     collector.current.reset()
     framesSeen.current = 0
     sessionIdRef.current = newSessionId()
-    setSession(summarizeSession([]))
+    setSession(summarizeSession([], { lifecycle: 'running' }))
     setStatus('opening camera…')
 
     // 1. Acquire the camera of THIS device. If the user denies it (or the page
@@ -201,6 +201,7 @@ export function Live() {
       cameraRef.current?.stop()
       cameraRef.current = null
       setRunning(false)
+      setSession(summarizeSession(collector.current.all(), { lifecycle: 'stopped' }))
       if (status !== 'error') setStatus((s) => (s === 'live' || s.startsWith('live') ? 'finished' : s))
     }
   }
@@ -216,6 +217,9 @@ export function Live() {
     // until the server got round to closing - which on a slow phone link read as
     // "Stop did nothing".
     setRunning(false)
+    // Reflect the finished state: the same readings now mean "this is all there
+    // is", not "still collecting".
+    setSession(summarizeSession(collector.current.all(), { lifecycle: 'stopped' }))
   }
 
   const warming = state?.warming_up ?? true
@@ -267,7 +271,7 @@ export function Live() {
       roi: 'face', qualityVerdict: verdict,
       rejectionReason: verdict === 'valid' ? null : reason, ...shared,
     })
-    setSession(summarizeSession(collector.current.all()))
+    setSession(summarizeSession(collector.current.all(),{lifecycle:'running'}))
   }
 
   function download(content: BlobPart, type: string, name: string) {

@@ -182,8 +182,10 @@ describe('live session aggregation',()=>{
     const send = await startLive()
     for(let i=0;i<3;i++) send(frame({consensus_hr:null, quality_status:'roi_lost', quality_reason:'All skin ROIs are lost', elapsed:20+i*20}))
     await waitFor(()=>expect(screen.getAllByText('Insufficient data').length).toBeGreaterThan(0))
-    // Readings exist but none passed, so the summary says exactly that.
-    expect(within(liveSection()).getByText(/No readings accepted yet \(3 rejected/i)).toBeInTheDocument()
+    // Readings exist but none passed: the summary reports the aggregate's own
+    // reason rather than a reassuring progress count.
+    expect(within(liveSection()).getByText(/0 of 3 readings passed the quality checks/i)).toBeInTheDocument()
+    expect(within(liveSection()).getByText(/No accepted readings/i)).toBeInTheDocument()
   })
 
   it('aggregates heart rate and respiratory rate as separate metrics with their own units',async()=>{

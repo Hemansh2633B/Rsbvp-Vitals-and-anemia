@@ -111,7 +111,27 @@ when the two disagree the outlier sensitivity is visible instead of hidden.
   non-cardiovascular pathway). They are listed in `NOT_AGGREGATED` and have no
   aggregation path at all.
 
-## Insufficient data
+## Session completion states
+
+Completion is derived from the **aggregate's availability**, never from a count of
+accepted readings. A session can accumulate many readings and still have no result,
+because those readings may all come from the same window. The state machine takes
+the readings *and* the capture lifecycle (`running` / `stopped` / `interrupted`):
+
+| State | Condition | Copy | Stop invited? |
+|---|---|---|---|
+| `idle` | no session, no readings | "No session yet: press Start…" | no |
+| `initialising` | running, no analysable window yet | "Waiting for the first analysable window" | no |
+| `collecting` | running, aggregate not available | "Collecting: N of 5 accepted readings" / "…they overlap (1 independent window); keep capturing" | no |
+| `insufficient` | stopped, aggregate not available | "Insufficient data: N accepted readings…" | **no** |
+| `available` | running, aggregate available | "Enough independent readings…; you can stop the camera" | yes |
+| `interrupted` | interrupted before the aggregate was available | "Capture interrupted with N accepted readings…" | no |
+| `completed` | stopped, aggregate available | "Session complete: N accepted readings" | n/a |
+
+**Invariant:** a stop invitation may appear only when `resultAvailable` is true,
+which is exactly the heart-rate aggregate verdict being `available`. This is
+enforced by a sweep test over lifecycle/reading combinations and mirrored in both
+languages (`docs/SPRINT_14_REPORT.md` §2 describes the defect it fixes).
 
 A session average is presented only when:
 
@@ -119,12 +139,38 @@ A session average is presented only when:
 - at least `minIndependentWindows` (2) of them do not overlap.
 
 Otherwise the UI states **Insufficient data** with the specific reason ("Only 3
-accepted readings…", "Only 1 independent window…", "No readings accepted yet (4
-rejected…)") and never shows a number in the headline position. Statistics that do
-exist (mean of 3 readings, say) remain visible in advanced details, labelled with
+accepted readings…", "Only 1 independent window…", "0 of 3 readings passed the
+quality checks…") and never shows a number in the headline position. Statistics that
+do exist (mean of 3 readings, say) remain visible in advanced details, labelled with
 their verdict — the point is not to hide data, but not to present it as a result.
 
-All thresholds live in `DEFAULT_CONFIG` and are overridable per collector.
+All thresholds live in `DEFAULT_CONFIG` and are overridable per collector. None of
+them was lowered in Sprint 14; only the reporting was corrected.
+
+## Experimental metrics
+
+`METRICS[...]` carries `primary` and `experimental`. Heart rate is primary.
+Respiratory rate is experimental: it is inferred from beat-to-beat pulse-interval
+variability, is not a direct breathing measurement, and has no independent reference
+validation here. It is therefore rendered in a separate "Experimental (not part of
+the session result)" block, is excluded from the session average, and is flagged in
+the export (`primary: false, experimental: true`). The browser pathway commonly has
+no respiratory estimate at all, in which case the block states that it was not
+reported and why.
+
+## Analysis density
+
+The headline mean weights every accepted reading equally, so a stretch that is
+analysed more often contributes more. That is only material when density is uneven
+**and** the value drifts; see [the aggregation analysis](AGGREGATION_ANALYSIS.md) for
+the comparison of all-window vs non-overlapping means and why the headline statistic
+is unchanged.
+
+- `density_ratio` = (count in the densest third of the session) / (count in the
+  sparsest third); `null` when there are fewer than 4 timed readings or zero span.
+- `uneven_density` is `true` above `densityRatioWarning` (default 3).
+- The ratio is **reported, never applied**: it does not alter the mean, does not
+  reweight readings and does not drop any. A regression test asserts this.
 
 ## Exports
 
@@ -135,17 +181,30 @@ All thresholds live in `DEFAULT_CONFIG` and are overridable per collector.
   per-metric statistics, per-estimator series, window counts, acceptance band,
   aggregation config, acquisition provenance, and the statistics caveats. The
   independence caveat travels *inside* the file so it cannot be quoted without it.
+  Sprint 14 added (additively, so existing readers keep working): top-level
+  `completion_state`, `result_available`, `density_ratio`, `uneven_density`; per
+  aggregate `primary` and `experimental`; config `density_ratio_warning`.
 
 Both are local downloads. Nothing is uploaded. The existing RGB-trace and
 window-analysis exports are unchanged.
 
 ## Interface
 
-Main view: one large session average with its unit; accepted/rejected counts; the
-observed acceptance percentage with a Good/Fair/Poor band derived **only** from that
-percentage (explicitly not a confidence score); median and range; a chart of accepted
-readings against the mean; expandable individual readings; and the live value kept
-visually separate and labelled "this window".
+Main view (mobile first: one value above the fold, diagnostics collapsed):
+
+- one large session average with its unit, plus the completion-state chip;
+- accepted / rejected counts and the observed acceptance percentage with a
+  Good/Fair/Poor band derived **only** from that percentage (explicitly not a
+  confidence score);
+- median and range; a chart of accepted readings against the mean;
+- a plain-language note on what the number does and does not mean;
+- the density warning, shown only when analysis density is uneven;
+- the live value kept visually separate and labelled "this window";
+- expandable individual readings (elapsed seconds hidden below 480 px width).
+
+A separate dashed block lists **experimental** metrics, headed "Experimental (not
+part of the session result)", with the reason each is unvalidated and any metric that
+was simply not reported.
 
 Advanced details (collapsed): per-series verdicts, counts, independent windows, SD,
 standard error, and the list of metrics that are deliberately not aggregated.
@@ -153,16 +212,21 @@ standard error, and the list of metrics that are deliberately not aggregated.
 ## Known limitations
 
 1. The standard error assumes independent windows are exchangeable; drifting
-   physiology within a session means they are not strictly, so it is a coarse
-   indicator rather than a confidence interval.
+   physiology within a session means they are not strictly, and readings from
+   overlapping windows are strongly autocorrelated (lag-1 up to 0.93 in the
+   analysis fixtures). It is a coarse indicator, **not a confidence interval**, and
+   no formal interval is claimed.
 2. Overlap is estimated from window bounds. When bounds are unavailable, the
    independence claim is dropped (`null`) rather than approximated.
 3. The plausibility bands are hygiene filters, not clinical ranges; a genuine
    arrhythmia or an unusual resting rate outside them would be rejected.
 4. A session average cannot correct systematic bias: if the estimator reads 5 BPM
    low, the session average reads 5 BPM low — more precisely.
-5. Respiratory-rate aggregation is limited to windows where its estimator produced a
-   value and the shared verdict passed; it is not an independent breathing
-   measurement.
-6. No real-camera session has been used to evaluate these thresholds (see
-   `docs/SPRINT_12_EVIDENCE.md` for the evidence tiers).
+5. Respiratory rate is experimental and excluded from the headline result. It is
+   inferred from pulse-interval variability, not measured from breathing, and has no
+   reference validation here.
+6. No real-camera session has been used to evaluate these thresholds. Sprint 14
+   performed no hardware testing; see `docs/SPRINT_14_REPORT.md` §5 and the evidence
+   tiers in `docs/IMPLEMENTATION_STATUS.md`.
+7. The density warning threshold (3x) is a disclosure heuristic chosen for
+   interpretability, not calibrated on real sessions.

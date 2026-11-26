@@ -52,17 +52,27 @@ class MetricSpec:
     plausible_min: float
     plausible_max: float
     note: str
+    #: May this metric occupy the headline position? Only independently
+    #: substantiated metrics may; see the respiratory-rate spec.
+    primary: bool = False
+    #: Must be labelled experimental wherever it is shown.
+    experimental: bool = True
 
 
 METRICS: dict[str, MetricSpec] = {
     "heart_rate": MetricSpec(
         "heart_rate", "Heart rate", "BPM", 1, 30.0, 220.0,
         "Estimate from accepted camera readings, not a medical measurement.",
+        primary=True, experimental=False,
     ),
     "respiratory_rate": MetricSpec(
         "respiratory_rate", "Respiratory rate", "br/min", 1, 4.0, 60.0,
-        "Derived from beat-to-beat interval variability (experimental); "
-        "not a direct breathing measurement.",
+        # Not a direct breathing measurement: inferred from pulse-to-pulse
+        # interval variability, unvalidated against a respiratory reference, and
+        # confounded by motion and by the pulse estimate itself.
+        "Experimental. Inferred from beat-to-beat pulse-interval variability, not from a "
+        "breathing measurement; unvalidated against a respiratory reference.",
+        primary=False, experimental=True,
     ),
 }
 
@@ -85,6 +95,10 @@ class AggregationConfig:
     min_independent_windows: int = 2
     target_accepted_readings: int = 8
     stale_after_ms: int = 5000
+    #: Above this ratio of densest to sparsest analysis density the result is
+    #: flagged as potentially density-biased. Reports a property of the accepted
+    #: readings; it is not a quality gate.
+    density_ratio_warning: float = 3.0
     plausible: dict[str, tuple[float, float]] = field(
         default_factory=lambda: {k: (v.plausible_min, v.plausible_max) for k, v in METRICS.items()}
     )
@@ -160,6 +174,8 @@ class MetricAggregate:
             "algorithm": self.algorithm,
             "verdict": self.verdict,
             "reason": self.reason,
+            "experimental": METRICS[self.metric].experimental if self.metric in METRICS else True,
+            "primary": METRICS[self.metric].primary if self.metric in METRICS else False,
             "accepted_readings": self.n_accepted,
             "rejected_readings": self.n_rejected,
             "total_readings": self.n_total,
@@ -253,6 +269,44 @@ def count_independent_windows(readings: Iterable[Reading]) -> int | None:
             count += 1
             last_end = r.window_end_s
     return count
+
+
+#: What the capture is doing. Completion is not derivable from readings alone.
+SESSION_LIFECYCLE = ("running", "stopped", "interrupted")
+
+
+def density_ratio(readings: Sequence[Reading]) -> float | None:
+    """Ratio of the densest to the sparsest analysis density across the session.
+
+    Density is readings per unit time over the span the readings cover, split
+    into thirds so a single short burst does not dominate. ``None`` when there is
+    too little span to judge, rather than guessing 1.
+
+    This exists because the all-window mean weights every reading equally: when
+    one stretch was analysed far more often than another, that stretch dominates
+    the average. Reporting the ratio makes the condition visible without changing
+    the statistic.
+    """
+    times = [r.session_elapsed_s for r in readings
+             if r.session_elapsed_s is not None and math.isfinite(r.session_elapsed_s)]
+    if len(times) < 4:
+        return None
+    ordered = sorted(times)
+    span = ordered[-1] - ordered[0]
+    if not span > 0:
+        return None
+    third = span / 3.0
+    if third <= 0:
+        return None
+    start = ordered[0]
+    counts = [0, 0, 0]
+    for t in ordered:
+        counts[min(2, int((t - start) / third))] += 1
+    non_zero = [c for c in counts if c > 0]
+    if not non_zero:
+        return None
+    sparsest = min(non_zero)
+    return max(non_zero) / sparsest if sparsest else None
 
 
 class SessionCollector:
@@ -384,9 +438,18 @@ ACCEPTANCE_BANDS = {"good": 70.0, "fair": 40.0}
 
 
 def summarize_session(
-    readings: Sequence[Measurement], config: AggregationConfig = DEFAULT_CONFIG
+    readings: Sequence[Measurement], config: AggregationConfig = DEFAULT_CONFIG,
+    lifecycle: str = "stopped",
 ) -> dict:
-    """Session summary: per-metric aggregates plus completion state."""
+    """Session summary: per-metric aggregates, completion state, result availability.
+
+    The single rule this function exists to enforce: ``completed`` (permission to
+    stop) and ``available`` (a headline number) both require the aggregate verdict
+    to actually be ``available``. An accepted-reading count is progress, never
+    permission to stop.
+    """
+    if lifecycle not in SESSION_LIFECYCLE:
+        raise ValueError(f"unknown lifecycle: {lifecycle}")
     metrics = [summarize(readings, m, config=config) for m in METRICS]
     per_algorithm: list[MetricAggregate] = []
     for metric in METRICS:
@@ -412,23 +475,62 @@ def summarize_session(
         band = "poor"
 
     presentable = [a for a in metrics if a.verdict == "available"]
-    # Progress is tracked on the primary metric's accepted count, NOT on whether
-    # an average is presentable yet: otherwise a session with some accepted
-    # readings but not enough for an average would claim nothing had passed.
-    progress_metric = next((a for a in metrics if a.metric == "heart_rate"), metrics[0])
-    accepted_so_far = progress_metric.n_accepted
-    completion = "idle"
-    completion_reason = "Start a session to collect readings"
-    if primary:
-        completion = "collecting"
+    # Completion follows the metric the interface headlines: heart rate. A session
+    # is not "available" because a secondary metric has enough readings.
+    primary_aggregate = next((a for a in metrics if a.metric == "heart_rate"), metrics[0])
+    result_available = primary_aggregate.verdict == "available"
+    needed = config.min_accepted_readings
+    progress_metric = primary_aggregate
+
+    # Density flag uses the consensus series only: the per-estimator readings are
+    # recorded at the same moments, so including them would divide out.
+    density = density_ratio(primary)
+    uneven_density = density is not None and density > config.density_ratio_warning
+
+    if not primary:
+        if lifecycle == "interrupted":
+            completion, completion_reason = (
+                "interrupted", "Capture was interrupted before any window was analysed")
+        elif lifecycle == "stopped":
+            # No session exists yet. Calling an idle page "initialising" would
+            # imply work is happening when none is.
+            completion, completion_reason = (
+                "idle", "No session yet: press Start to begin collecting readings")
+        else:
+            completion, completion_reason = (
+                "initialising", "Waiting for the first analysable window")
+    elif result_available:
+        completion = "available" if lifecycle == "running" else "completed"
         completion_reason = (
-            f"{accepted_so_far} of {config.target_accepted_readings} accepted readings collected"
-            if accepted_so_far > 0
-            else f"No readings accepted yet ({n_rejected} rejected by the quality checks)")
-        if accepted_so_far >= config.target_accepted_readings:
-            completion = "complete"
-            completion_reason = ("Enough accepted readings for a session average; you can stop "
-                                 "the camera")
+            f"Session average available from {progress_metric.n_accepted} accepted readings; "
+            "you can stop the camera" if lifecycle == "running"
+            else f"Session complete: {progress_metric.n_accepted} accepted readings")
+    elif lifecycle == "interrupted":
+        completion = "interrupted"
+        completion_reason = (f"Capture interrupted with {progress_metric.n_accepted} accepted "
+                             "readings - not enough for a session average")
+    elif lifecycle == "running":
+        # Name whichever condition is actually blocking, so "collecting" is never a
+        # vague reassurance when the real problem is overlap, not a low count.
+        completion = "collecting"
+        accepted = progress_metric.n_accepted
+        independent = progress_metric.n_independent_accepted
+        if accepted < needed:
+            completion_reason = f"Collecting: {accepted} of {needed} accepted readings"
+        elif independent is not None and independent < config.min_independent_windows:
+            completion_reason = (
+                f"Collecting: {accepted} accepted readings, but they overlap "
+                f"({independent} independent window{'s' if independent != 1 else ''}); "
+                "keep capturing")
+        else:
+            completion_reason = (f"Collecting: {accepted} accepted readings; waiting for the "
+                                 "aggregate to become available")
+    else:
+        # Capture finished without enough evidence: a final state, and it never
+        # invites the user to stop.
+        completion = "insufficient"
+        completion_reason = progress_metric.reason or (
+            "Not enough accepted readings for a session average")
 
     return {
         "metrics": metrics,
@@ -442,6 +544,9 @@ def summarize_session(
         "acceptance_band": band,
         "completion": completion,
         "completion_reason": completion_reason,
+        "result_available": result_available,
+        "density_ratio": density,
+        "uneven_density": uneven_density,
         "has_result": bool(presentable),
         "config": config,
     }
@@ -474,12 +579,16 @@ def build_aggregate_export(summary: dict, session_id: str, created_utc: str,
             "score and says nothing about accuracy."
         ),
         "completion_state": summary["completion"],
+        "result_available": summary["result_available"],
+        "density_ratio": summary["density_ratio"],
+        "uneven_density": summary["uneven_density"],
         "completion_reason": summary["completion_reason"],
         "aggregation_config": {
             "min_accepted_readings": config.min_accepted_readings,
             "min_independent_windows": config.min_independent_windows,
             "target_accepted_readings": config.target_accepted_readings,
             "stale_after_ms": config.stale_after_ms,
+            "density_ratio_warning": config.density_ratio_warning,
             "plausible_bounds": {k: list(v) for k, v in config.plausible.items()},
         },
         "acquisition": acquisition or {},
