@@ -10,9 +10,11 @@ import pytest
 
 from gui.rppg_core.quality import (
     MIN_WINDOW_SECONDS,
+    QualityConfig,
     acquisition_report,
     agreement_report,
     assess_window,
+    rejection_telemetry,
     spectral_quality,
     trace_report,
 )
@@ -361,3 +363,60 @@ def test_concepts_not_evaluated_when_not_applicable():
     assert out.concepts["pulse_signal"] == "fail"          # cannot be trusted mid-motion
     assert out.concepts["algorithm_agreement"] == "not_evaluated"  # never reaches agreement
     assert out.concepts["availability"] == "fail"
+
+
+# ------------------------------------------------------------ quality config
+
+
+def _clean_window_kwargs():
+    t = np.arange(int(12 * FS)) / FS
+    return dict(
+        acquisition=acquisition_report(np.full((10, 3), 150.0) + np.arange(30).reshape(10, 3) % 40),
+        spectral=spectral_quality(pulse(), FS),
+        agreement=agreement_report({"green": 70.0, "pos": 71.0}),
+    )
+
+
+def test_quality_config_looser_gap_passes():
+    # A 0.33 s gap exceeds the default 0.25 s max-gap gate. Under a looser
+    # config (max_gap_seconds=1.0) the gap check itself is bypassed — the
+    # reason text no longer cites the 0.25 s threshold — proving the gate is
+    # configurable, not hard-coded. (A 0.33 s gap in a 30 fps stream is still
+    # irregular timing, so jitter may keep flagging it; that's a separate
+    # check and correct behaviour.)
+    t = np.arange(int(12 * FS)) / FS
+    t[150:] += 0.3
+    rep = trace_report(t)
+    assert rep.max_gap_s > 0.25
+    strict = assess_window(trace=rep, **_clean_window_kwargs())
+    assert strict.status == "irregular_timestamps"
+    assert "exceeds 0.25s" in strict.reason
+    loose = assess_window(trace=rep, **_clean_window_kwargs(),
+                          config=QualityConfig(max_gap_seconds=1.0))
+    assert "exceeds 0.25s" not in loose.reason
+
+
+def test_quality_config_min_window_seconds_override():
+    # The per-call min_window_s still overrides config.min_window_seconds.
+    rep = trace_report(np.arange(int(9 * FS)) / FS)  # 9 s
+    out = assess_window(trace=rep, spectral=spectral_quality(pulse(seconds=9.0), FS),
+                        min_window_s=10.0)
+    assert out.status == "warming_up"
+    out2 = assess_window(trace=rep, spectral=spectral_quality(pulse(seconds=9.0), FS),
+                         min_window_s=8.0)
+    assert out2.status != "warming_up"
+
+
+def test_rejection_telemetry_counts_each_token():
+    rejection_telemetry(reset=True)
+    t = np.arange(int(12 * FS)) / FS
+    assess_window(
+        trace=trace_report(t),
+        acquisition=acquisition_report(np.full((10, 3), 150.0) + np.arange(30).reshape(10, 3) % 40),
+        spectral=spectral_quality(pulse(), FS),
+        agreement=agreement_report({"green": 70.0, "pos": 85.0}),  # 15 bpm spread -> disagreement
+    )
+    telemetry = rejection_telemetry(reset=True)
+    assert telemetry.get("estimator_disagreement_15.0bpm", 0) >= 1
+    # Reset must actually zero the counters.
+    assert rejection_telemetry(reset=True) == {}

@@ -47,6 +47,74 @@ CLIP_MAX_FRACTION = 0.10              # fraction of saturated/black channel valu
 MIN_DYNAMIC_RANGE = 6.0               # counts; below this the sensor is effectively flat
 
 
+# ------------------------------------------------------------ quality config
+#
+# All :func:`assess_window` thresholds are collected here so a research
+# deployment can tune them without editing gate logic. The module-level
+# :data:`QUALITY_CONFIG` carries the documented heuristic defaults; callers
+# may pass a different :class:`QualityConfig` to :func:`assess_window` to
+# override per-call (e.g. looser thresholds for a noisy camera, stricter for
+# a controlled lab capture).
+
+
+@dataclass(frozen=True)
+class QualityConfig:
+    """Tunable thresholds for :func:`assess_window`.
+
+    Every field mirrors a module-level constant documented above. Pass a
+    customized instance to :func:`assess_window(config=...)`; fields not
+    relevant to a particular check are simply ignored by that check.
+    """
+
+    spectral_min_concentration: float = 0.20
+    spectral_min_snr_db: float = 3.0
+    spectral_min_separation: float = 1.5
+    peak_guard_radius_hz: float = 0.15
+    competitor_min_distance_hz: float = 0.25
+    agreement_tolerance_bpm: float = 12.0
+    candidate_near_estimator_bpm: float = 6.0
+    min_window_seconds: float = 10.0
+    min_sampling_rate_hz: float = 12.0
+    max_gap_seconds: float = 0.25
+    min_roi_coverage: float = 0.50
+    clip_max_fraction: float = 0.10
+    min_dynamic_range: float = 6.0
+    duplicate_epsilon_s: float = 0.001
+    stall_interval_multiple: float = 2.5
+
+
+#: Research-default configuration. Override per-call via ``assess_window(config=...)``.
+QUALITY_CONFIG = QualityConfig()
+
+
+# ------------------------------------------------------------ rejection telemetry
+#
+# Module-level counters so a research deployment can see which gate is the
+# bottleneck. Incremented by :func:`assess_window` on every rejection. Use
+# :func:`rejection_telemetry` to snapshot and reset.
+
+
+_REJECTION_COUNTER: dict[str, int] = {}
+
+
+def _count_rejection(reason: str) -> None:
+    _REJECTION_COUNTER[reason] = _REJECTION_COUNTER.get(reason, 0) + 1
+
+
+def rejection_telemetry(reset: bool = False) -> dict[str, int]:
+    """Return a copy of the per-rejection-token counter.
+
+    Keys are the machine-readable rejection tokens emitted by
+    :func:`assess_window` (e.g. ``warming_up``, ``irregular_timestamps``,
+    ``low_concentration_0.12``, ``estimator_disagreement_14.3bpm``). Pass
+    ``reset=True`` to zero the counters after reading.
+    """
+    snapshot = dict(_REJECTION_COUNTER)
+    if reset:
+        _REJECTION_COUNTER.clear()
+    return snapshot
+
+
 @dataclass(frozen=True)
 class SpectralQuality:
     peak_hz: float | None
@@ -216,7 +284,7 @@ DUPLICATE_EPSILON_S = 0.001   # ~1 ms: same sensor frame sampled twice
 STALL_INTERVAL_MULTIPLE = 2.5  # one interval this far beyond typical = a stall
 
 
-def trace_report(timestamps) -> TraceReport:
+def trace_report(timestamps, *, config: QualityConfig | None = None) -> TraceReport:
     """Describe the timing of the delivered samples.
 
     Mirrors ``gui/frontend/src/rppg/captureIntegrity.ts`` so the browser and the
@@ -225,6 +293,7 @@ def trace_report(timestamps) -> TraceReport:
     median interval to zero and report the rate as unknown instead of reporting
     the real frame rate alongside a duplicate warning.
     """
+    cfg = config or QUALITY_CONFIG
     t = np.asarray(timestamps, dtype=float)
     # Keep ascending, finite timestamps only. A clock that goes backwards is a
     # defect to report, not something to smooth over.
@@ -241,7 +310,7 @@ def trace_report(timestamps) -> TraceReport:
     if np.any(d <= 0):
         return TraceReport(n, float(t[-1] - t[0]), None, None, None)
 
-    distinct = d[d > DUPLICATE_EPSILON_S]
+    distinct = d[d > cfg.duplicate_epsilon_s]
     basis = distinct if distinct.size else d
     median_interval = float(np.median(basis))
     if median_interval <= 0:
@@ -249,9 +318,9 @@ def trace_report(timestamps) -> TraceReport:
 
     fs = float(1.0 / median_interval)
     dropped = float(np.mean(d > 1.5 * median_interval))
-    duplicates = float(np.mean(d <= DUPLICATE_EPSILON_S))
+    duplicates = float(np.mean(d <= cfg.duplicate_epsilon_s))
     jitter_cv = float(np.std(basis) / median_interval) if basis.size else None
-    stalled = bool(np.any(distinct > STALL_INTERVAL_MULTIPLE * median_interval))
+    stalled = bool(np.any(distinct > cfg.stall_interval_multiple * median_interval))
     return TraceReport(n, float(t[-1] - t[0]), fs, float(d.max()), dropped,
                        duplicate_interval_fraction=duplicates,
                        interval_jitter_cv=jitter_cv,
@@ -297,7 +366,8 @@ def assess_window(*, trace: TraceReport | None = None,
                   excessive_motion: bool = False,
                   candidate_bpm: float | None = None,
                   age_s: float | None = None,
-                  min_window_s: float = MIN_WINDOW_SECONDS) -> QualityAssessment:
+                  min_window_s: float | None = None,
+                  config: QualityConfig | None = None) -> QualityAssessment:
     """Composite window verdict. Hierarchical; the most fundamental failure wins.
 
     Estimator agreement is only meaningful once signal quality passes; agreement is
@@ -308,16 +378,26 @@ def assess_window(*, trace: TraceReport | None = None,
     agreement tolerance of every trustworthy estimator and within half that
     tolerance of at least one, so a heuristic cannot manufacture agreement that
     no estimator supports.
+
+    ``config`` overrides the module-level :data:`QUALITY_CONFIG` thresholds.
+    ``min_window_s``, when given, takes precedence over ``config.min_window_seconds``
+    (kept for backward compatibility with existing callers).
     """
+    cfg = config or QUALITY_CONFIG
+    if min_window_s is None:
+        min_window_s = cfg.min_window_seconds
+
     reasons: list[str] = []
     scores: dict[str, float | None] = {}
 
     if not face_detected:
+        _count_rejection("face_not_detected")
         return QualityAssessment("face_not_detected", "No usable face in the camera frame",
                                  ("face_not_detected",), scores,
                                  _concepts(FAIL, NOT_EVALUATED, NOT_EVALUATED,
                                            NOT_EVALUATED, NOT_EVALUATED, FAIL))
     if tracking_lost or (roi_coverage is not None and roi_coverage <= 0.0):
+        _count_rejection("roi_lost")
         return QualityAssessment("roi_lost", "Tracked skin regions are lost or occluded",
                                  ("roi_lost",), scores,
                                  _concepts(PASS, FAIL, NOT_EVALUATED,
@@ -329,19 +409,22 @@ def assess_window(*, trace: TraceReport | None = None,
                        "duplicate_interval_fraction": trace.duplicate_interval_fraction,
                        "interval_jitter_cv": trace.interval_jitter_cv,
                        "stalled": 1.0 if trace.stalled else 0.0})
-        roi_state = NOT_EVALUATED if roi_coverage is None else (PASS if roi_coverage >= MIN_ROI_COVERAGE else FAIL)
-        if trace.fs_hz is None or trace.fs_hz < MIN_SAMPLING_RATE_HZ:
+        roi_state = NOT_EVALUATED if roi_coverage is None else (PASS if roi_coverage >= cfg.min_roi_coverage else FAIL)
+        if trace.fs_hz is None or trace.fs_hz < cfg.min_sampling_rate_hz:
+            _count_rejection("insufficient_frames")
             return QualityAssessment("insufficient_frames",
                                      f"Effective sampling rate too low or invalid (fs={trace.fs_hz})",
                                      ("insufficient_frames",), scores,
                                      _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
-        if trace.max_gap_s is not None and trace.max_gap_s > MAX_GAP_SECONDS:
+        if trace.max_gap_s is not None and trace.max_gap_s > cfg.max_gap_seconds:
+            _count_rejection("irregular_timestamps")
             return QualityAssessment("irregular_timestamps",
-                                     f"Timestamp gap {trace.max_gap_s:.2f}s exceeds {MAX_GAP_SECONDS}s",
+                                     f"Timestamp gap {trace.max_gap_s:.2f}s exceeds {cfg.max_gap_seconds}s",
                                      ("irregular_timestamps",), scores,
                                      _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
         if trace.has_duplicate_samples:
             pct = (trace.duplicate_interval_fraction or 0.0) * 100
+            _count_rejection("duplicate_samples")
             return QualityAssessment(
                 "irregular_timestamps",
                 f"{pct:.0f}% of samples repeated the same camera frame "
@@ -352,6 +435,7 @@ def assess_window(*, trace: TraceReport | None = None,
             detail = ("a single stall far beyond the frame interval"
                       if trace.stalled and (trace.interval_jitter_cv or 0.0) <= 0.25
                       else f"interval jitter {100 * (trace.interval_jitter_cv or 0.0):.0f}%")
+            _count_rejection("irregular_timing")
             return QualityAssessment(
                 "irregular_timestamps",
                 f"Irregular frame timing ({detail})",
@@ -359,14 +443,16 @@ def assess_window(*, trace: TraceReport | None = None,
                 _concepts(PASS, roi_state, FAIL, NOT_EVALUATED, NOT_EVALUATED, FAIL))
         if trace.duration_s < min_window_s:
             remaining = min_window_s - trace.duration_s
+            _count_rejection("warming_up")
             return QualityAssessment("warming_up", f"Acquire {remaining:.1f} more seconds",
                                      ("warming_up",), scores,
                                      _concepts(PASS, roi_state, NOT_EVALUATED,
                                                NOT_EVALUATED, NOT_EVALUATED, FAIL))
     if excessive_motion:
+        _count_rejection("excessive_motion")
         return QualityAssessment("excessive_motion", "Excessive face displacement; hold still",
                                  ("excessive_motion",), scores,
-                                 _concepts(PASS, PASS if roi_coverage is None or roi_coverage >= MIN_ROI_COVERAGE else FAIL,
+                                 _concepts(PASS, PASS if roi_coverage is None or roi_coverage >= cfg.min_roi_coverage else FAIL,
                                            PASS, FAIL, NOT_EVALUATED, FAIL))
     if acquisition is not None:
         scores.update({"clip_fraction": acquisition.clip_fraction,
@@ -375,12 +461,12 @@ def assess_window(*, trace: TraceReport | None = None,
                        "underexposed_fraction": acquisition.underexposed_fraction,
                        "overexposed_fraction": acquisition.overexposed_fraction})
         if not acquisition.passing:
-            reasons.append("acquisition_clipping_or_flat" if acquisition.clip_fraction > CLIP_MAX_FRACTION
+            reasons.append("acquisition_clipping_or_flat" if acquisition.clip_fraction > cfg.clip_max_fraction
                            else "acquisition_low_dynamic_range")
-    roi_state = NOT_EVALUATED if roi_coverage is None else (PASS if roi_coverage >= MIN_ROI_COVERAGE else FAIL)
+    roi_state = NOT_EVALUATED if roi_coverage is None else (PASS if roi_coverage >= cfg.min_roi_coverage else FAIL)
     if roi_coverage is not None:
         scores["roi_coverage"] = float(roi_coverage)
-        if roi_coverage < MIN_ROI_COVERAGE:
+        if roi_coverage < cfg.min_roi_coverage:
             reasons.append(f"insufficient_roi_coverage_{roi_coverage:.2f}")
     pulse_state = NOT_EVALUATED
     if spectral is not None:
@@ -398,8 +484,8 @@ def assess_window(*, trace: TraceReport | None = None,
                        "estimators_within_tolerance": float(agreement.within_tolerance)})
         agreement_values.extend(agreement.values)
         if agreement.n_valid >= 2 and agreement.spread_bpm is not None:
-            agreement_state = PASS if agreement.spread_bpm <= AGREEMENT_TOLERANCE_BPM else FAIL
-            if agreement.spread_bpm > AGREEMENT_TOLERANCE_BPM:
+            agreement_state = PASS if agreement.spread_bpm <= cfg.agreement_tolerance_bpm else FAIL
+            if agreement.spread_bpm > cfg.agreement_tolerance_bpm:
                 reasons.append(f"estimator_disagreement_{agreement.spread_bpm:.1f}bpm")
     # Cross-ROI agreement: independent skin regions must not yield divergent
     # estimates, else the consensus is unsupported even when per-ROI spectra look clean.
@@ -409,24 +495,29 @@ def assess_window(*, trace: TraceReport | None = None,
                        "roi_estimators_within_tolerance": float(roi_agreement.within_tolerance)})
         agreement_values.extend(roi_agreement.values)
         if roi_agreement.n_valid >= 2 and roi_agreement.spread_bpm is not None:
-            roi_agreement_state = PASS if roi_agreement.spread_bpm <= AGREEMENT_TOLERANCE_BPM else FAIL
-            if roi_agreement.spread_bpm > AGREEMENT_TOLERANCE_BPM:
+            roi_agreement_state = PASS if roi_agreement.spread_bpm <= cfg.agreement_tolerance_bpm else FAIL
+            if roi_agreement.spread_bpm > cfg.agreement_tolerance_bpm:
                 reasons.append(f"roi_estimator_disagreement_{roi_agreement.spread_bpm:.1f}bpm")
     # A corrected consensus candidate must not override independent estimates.
     # With no trustworthy estimator anchor, a heuristic-manufactured consensus
     # cannot be validated and must be rejected.
     if candidate_bpm is not None:
         if not agreement_values:
+            _count_rejection("candidate_no_estimator_backing")
             reasons.append("candidate_no_estimator_backing")
         elif not np.isfinite(candidate_bpm):
+            _count_rejection("candidate_not_finite")
             reasons.append("candidate_not_finite")
         else:
             candidate_bpm = float(candidate_bpm)
-            within_all = all(abs(candidate_bpm - v) <= AGREEMENT_TOLERANCE_BPM for v in agreement_values)
-            near_one = any(abs(candidate_bpm - v) <= CANDIDATE_NEAR_ESTIMATOR_BPM for v in agreement_values)
+            within_all = all(abs(candidate_bpm - v) <= cfg.agreement_tolerance_bpm for v in agreement_values)
+            near_one = any(abs(candidate_bpm - v) <= cfg.candidate_near_estimator_bpm for v in agreement_values)
             if not (within_all and near_one):
+                _count_rejection("candidate_disagrees_with_estimators")
                 reasons.append("candidate_disagrees_with_estimators")
     if reasons:
+        for r in reasons:
+            _count_rejection(r)
         return QualityAssessment("low_signal_quality",
                                  "Inadequate signal quality: " + ", ".join(reasons),
                                  tuple(reasons), scores,

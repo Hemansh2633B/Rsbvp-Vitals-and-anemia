@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from rppg_core.research import chrom_rppg, quality_status, timestamps_to_fs, resample_rgb_traces, measurement_gate
-from rppg_core.pipeline import bandpass_filter, compute_fft_spectrum, MIN_BPM, MAX_BPM
+from rppg_core.pipeline import bandpass_filter, compute_fft_spectrum, adaptive_final_correction, MIN_BPM, MAX_BPM
 
 
 def test_research_band_and_fft_search():
@@ -164,3 +164,59 @@ def test_measurement_gate_candidate_far_from_roi_anchor_rejected():
     )
     assert gate["valid"] is False
     assert gate["state"] == "low_signal_quality"
+
+
+# ------------------------------------------------------------ accuracy guard
+#
+# Sprint-10 hardening: adaptive_final_correction must not override consensus
+# values that two independent spectral estimates already support.
+
+
+def test_adaptive_final_correction_passes_through_agreeing_estimates():
+    # green=70, pos=71 agree within 4 BPM -> heuristic corrections must not
+    # touch them, even if info dicts contain tempting high-BPM candidates.
+    green_info = {
+        "candidates": [{"bpm": 82.0, "norm_magnitude": 0.9}],
+        "full_best": 82.0,
+        "window_hr": 70.0,
+        "window_median": 70.0,
+        "reliability": 0.8,
+    }
+    pos_info = {
+        "candidates": [{"bpm": 83.0, "norm_magnitude": 0.9}],
+        "full_best": 83.0,
+        "window_hr": 71.0,
+        "window_median": 71.0,
+        "reliability": 0.8,
+    }
+    out = adaptive_final_correction(
+        green_info, pos_info,
+        hr_green_fft=70.0, hr_pos_fft=71.0, hr_consensus=70.5,
+        hr_green_peak=70.0, hr_pos_peak=71.0,
+    )
+    assert out == (70.0, 71.0, 70.5, None), out
+
+
+def test_adaptive_final_correction_still_runs_when_estimators_disagree():
+    # green=70, pos=85 disagree (>4 BPM) -> correction logic runs instead of
+    # short-circuiting.
+    green_info = {
+        "candidates": [{"bpm": 70.0, "norm_magnitude": 0.9}],
+        "full_best": 70.0,
+        "window_hr": 70.0,
+        "window_median": 70.0,
+        "reliability": 0.8,
+    }
+    pos_info = {
+        "candidates": [{"bpm": 85.0, "norm_magnitude": 0.9}],
+        "full_best": 85.0,
+        "window_hr": 85.0,
+        "window_median": 85.0,
+        "reliability": 0.8,
+    }
+    out = adaptive_final_correction(
+        green_info, pos_info,
+        hr_green_fft=70.0, hr_pos_fft=85.0, hr_consensus=77.5,
+        hr_green_peak=70.0, hr_pos_peak=85.0,
+    )
+    assert out[:3] != (70.0, 85.0, 77.5), out

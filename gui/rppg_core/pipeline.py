@@ -16,8 +16,6 @@ from pathlib import Path
 # so the pipeline can render plots to PNG files on a headless server.
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-IN_COLAB = False
-
 import cv2
 import numpy as np
 import matplotlib
@@ -45,9 +43,6 @@ WINDOW_STEP_SECONDS = 2.0
 
 FFT_TOP_N_PEAKS = 8
 FFT_ZERO_PADDING_FACTOR = 8
-
-SHOW_HEAD_TRACKING_PREVIEW = True
-SHOW_RPPG_PREVIEW = True
 MAX_PREVIEW_FRAMES = 5
 
 
@@ -89,13 +84,6 @@ def show_plot(filename=None):
     output_name = filename or f"plot_{_plot_counter:02d}.png"
     plt.savefig(PLOT_OUTPUT_DIR / output_name, dpi=150, bbox_inches="tight")
     plt.close()
-
-
-def infer_csv_path_from_video(video_path):
-    path = Path(video_path)
-    csv_name = path.name.replace("_rppg_input_", "_cms50d_sync_data_")
-    csv_path = path.with_name(Path(csv_name).with_suffix(".csv").name)
-    return csv_path if csv_path.exists() else None
 
 
 # ============================================================
@@ -610,6 +598,18 @@ def adaptive_final_correction(
     hr_green_peak,
     hr_pos_peak
 ):
+    # If the two independent spectral estimates already agree within tolerance,
+    # there is no genuine disagreement to resolve — heuristic corrections must
+    # not override consensus values that the data already supports. This keeps
+    # legacy motion rescues from manufacturing a plausible-looking consensus
+    # that neither channel actually measured.
+    if (
+        hr_green_fft is not None
+        and hr_pos_fft is not None
+        and abs(float(hr_green_fft) - float(hr_pos_fft)) <= 4.0
+    ):
+        return hr_green_fft, hr_pos_fft, hr_consensus, None
+
     def get_strong_high_candidate(channel_info, low_bpm=78.0, high_bpm=86.5, min_norm=0.70):
         valid_candidates = []
 
@@ -2188,21 +2188,21 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
         if roi_trace is None or len(roi_trace) < int(sampling_rate * 6):
             continue
         roi_green = roi_trace[:, 1]
-        roi_pos_raw = P.pos_rppg(
-            roi_trace, fs=sampling_rate, window_seconds=P.POS_WINDOW_SECONDS
+        roi_pos_raw = pos_rppg(
+            roi_trace, fs=sampling_rate, window_seconds=POS_WINDOW_SECONDS
         )
         try:
-            roi_pos_raw = P.detrend(roi_pos_raw)
+            roi_pos_raw = detrend(roi_pos_raw)
         except Exception:
             roi_pos_raw = roi_pos_raw - np.mean(roi_pos_raw)
-        roi_pos_filt = P.bandpass_filter(
-            P.normalize_signal(roi_pos_raw), fs=sampling_rate,
-            min_bpm=P.MIN_BPM, max_bpm=P.MAX_BPM,
+        roi_pos_filt = bandpass_filter(
+            normalize_signal(roi_pos_raw), fs=sampling_rate,
+            min_bpm=MIN_BPM, max_bpm=MAX_BPM,
         )
-        _, _, roi_consensus, _, _ = P.estimate_smart_fft_pair(
+        _, _, roi_consensus, _, _ = estimate_smart_fft_pair(
             roi_green, roi_pos_filt, sampling_rate,
-            min_bpm=P.MIN_BPM, max_bpm=P.MAX_BPM,
-            trim_start_seconds=P.TRIM_START_SECONDS,
+            min_bpm=MIN_BPM, max_bpm=MAX_BPM,
+            trim_start_seconds=TRIM_START_SECONDS,
         )
         if roi_consensus is not None and np.isfinite(roi_consensus):
             roi_estimates[roi_name] = float(roi_consensus)
@@ -2227,7 +2227,7 @@ def run_full_rppg_pipeline(video_path, selected_pipeline):
     if hr_consensus is not None and roi_agreement.n_valid >= 2:
         roi_gate = Q.assess_window(
             roi_agreement=roi_agreement,
-            min_window_s=P.MIN_WINDOW_SECONDS,
+            min_window_s=Q.MIN_WINDOW_SECONDS,
         )
         if not roi_gate.available:
             hr_consensus = None
