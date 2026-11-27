@@ -86,13 +86,6 @@ def show_plot(filename=None):
     plt.close()
 
 
-def infer_csv_path_from_video(video_path):
-    path = Path(video_path)
-    csv_name = path.name.replace("_rppg_input_", "_cms50d_sync_data_")
-    csv_path = path.with_name(Path(csv_name).with_suffix(".csv").name)
-    return csv_path if csv_path.exists() else None
-
-
 # ============================================================
 # Basic signal functions
 # ============================================================
@@ -605,6 +598,18 @@ def adaptive_final_correction(
     hr_green_peak,
     hr_pos_peak
 ):
+    # If the two independent spectral estimates already agree within tolerance,
+    # there is no genuine disagreement to resolve — heuristic corrections must
+    # not override consensus values that the data already supports. This keeps
+    # legacy motion rescues from manufacturing a plausible-looking consensus
+    # that neither channel actually measured.
+    if (
+        hr_green_fft is not None
+        and hr_pos_fft is not None
+        and abs(float(hr_green_fft) - float(hr_pos_fft)) <= 4.0
+    ):
+        return hr_green_fft, hr_pos_fft, hr_consensus, None
+
     def get_strong_high_candidate(channel_info, low_bpm=78.0, high_bpm=86.5, min_norm=0.70):
         valid_candidates = []
 
