@@ -1,0 +1,24 @@
+{
+  "schema": "rsbvp.session-aggregate.v1",
+  "capture_session_id": "synthetic-fixture-demo",
+  "generated_utc": "2026-01-01T00:00:00.000Z",
+  "metrics": [
+    {
+      "metric": "heart_rate",
+      "unit": "BPM",
+      "primary": true,
+      "verdict": "available",
+      "mean": 70.0,
+      "median": 70.0,
+      "accepted_readings": 81,
+      "rejected_readings": 20
+    }
+  ],
+  "acquisition": {
+    "backend": "synthetic-fixture",
+    "algorithms": ["GREEN", "POS", "CHROM"],
+    "rois": ["forehead", "left_cheek", "right_cheek"]
+  },
+  "frames_images_included": false,
+  "frames_uploaded": false
+}

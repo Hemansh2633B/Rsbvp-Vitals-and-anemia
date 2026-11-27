@@ -225,6 +225,40 @@ cd gui/frontend && npm test && npm run build && npm run lint
 The bundled dataset is unpacked with `bash deploy.sh --unpack-dataset` (ask for it
 explicitly; deployment never touches data).
 
+### Validating an export against an independent reference (Sprint 17)
+
+`research/validation/` evaluates a real session export against a synchronised,
+independent reference measurement: validation, clock-alignment, agreement metrics,
+algorithm/ROI comparison, session-average analysis, and an auditable JSON + Markdown
+report with figures. It is **separate from the measurement screen** — nothing it
+produces is shown to someone taking a measurement, and no offline result is evidence
+that a phone measurement is accurate.
+
+```bash
+.venv/bin/python -m research.validation readiness     # what data is lawfully available
+.venv/bin/python -m research.validation check   --readings R.csv --reference REF.csv \
+    --time-base capture_start --offset 0             # validate + align, no report
+.venv/bin/python -m research.validation evaluate --readings R.csv --summary S.json \
+    --reference REF.csv --time-base capture_start --offset 0 --out reports/validation
+```
+
+Three things it refuses to do, because each would produce a number that looks
+authoritative and is not:
+
+- **guess a clock offset.** The export mixes three time bases and cannot tell them
+  apart, so the time base must be declared and an offset established from an operator
+  value or ≥2 independent anchors. It is never defaulted to zero.
+- **pair records by row number.** Windows are matched to the reference by timestamp
+  overlap.
+- **treat correlation as accuracy.** The fixtures include a method with **r = 1.000 and
+  an 8 BPM bias**, which the report presents exactly as that.
+
+Start with [`docs/SPRINT_17_VALIDATION_GUIDE.md`](docs/SPRINT_17_VALIDATION_GUIDE.md).
+No dataset is bundled, downloaded or fabricated: see
+[`docs/DATA_READINESS.md`](docs/DATA_READINESS.md). Synthetic data exists only under
+`tests/fixtures/validation/`, and every artefact generated from it is stamped
+`SYNTHETIC TEST DATA — NOT VALIDATION`.
+
 ### About the bundled dataset - a deliberate, documented exception
 
 Every other dataset in this repository is **not** stored in Git: `data/README.md`
@@ -441,6 +475,8 @@ The Sprint 3 intake tools read only local files. Configure `RSBVP_DATA_ROOT` or 
 - [Open-source research audit](docs/OPEN_SOURCE_RESEARCH_AUDIT.md)
 - [Research backends guide](docs/RESEARCH_BACKENDS.md)
 - [Reliability and failure analysis](docs/RELIABILITY.md)
+- [Validation guide — evaluating a real export against a reference](docs/SPRINT_17_VALIDATION_GUIDE.md)
+- [Data readiness — dataset access, blockers and intake](docs/DATA_READINESS.md)
 - [Public-interest safeguards](docs/PUBLIC_INTEREST_SAFEGUARDS.md)
 - [Open-source license register](docs/OPEN_SOURCE_LICENSE_REGISTER.md)
 - [Methodology and status](docs/RESEARCH_METHODOLOGY.md)
