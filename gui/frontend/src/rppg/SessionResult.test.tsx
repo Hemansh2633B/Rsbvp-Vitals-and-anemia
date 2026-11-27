@@ -47,7 +47,9 @@ describe('session result: main result', () => {
     const value = screen.getByTestId('session-value-heart_rate')
     expect(value).toHaveTextContent('74.0')
     expect(value).toHaveTextContent('BPM')
-    expect(screen.getByText(/session average of 5 accepted readings/i)).toBeInTheDocument()
+    // The brief's required plain-language explanation, with the count in it.
+    expect(screen.getByText(/This result is calculated from the 5 valid readings collected during this session/i)).toBeInTheDocument()
+    expect(screen.getByText(/average pulse rate/i)).toBeInTheDocument()
     // Stated twice on purpose: once in the framing, once next to the number.
     expect(screen.getAllByText(/not a medical measurement/i).length).toBeGreaterThan(0)
   })
@@ -91,7 +93,7 @@ describe('session result: insufficient data', () => {
   it('explains an empty session and does not invent readings', () => {
     render(<SessionResult summary={summarizeSession([], { lifecycle:'running' })} sessionId="s"
       onExportReadings={noop} onExportAggregate={noop} />)
-    expect(screen.getByText(/No readings yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/No readings\s+were recorded yet/i)).toBeInTheDocument()
     expect(screen.getByText(/Waiting for the first analysable window/i)).toBeInTheDocument()
   })
 
@@ -182,7 +184,9 @@ describe('session result: individual readings', () => {
     fireEvent.click(screen.getByRole('button', { name: /Show individual readings/i }))
     const table = screen.getByRole('table')
     expect(within(table).getByText('Rejected')).toBeInTheDocument()
-    expect(within(table).getByText('Frame gap of 0.40 s')).toBeInTheDocument()
+    // The reason is rendered inside the status cell alongside the verdict, so match
+    // on its text rather than on an exact cell.
+    expect(within(table).getByText(/Frame gap of 0.40 s/)).toBeInTheDocument()
   })
 
   it('disables the export buttons when there is nothing to export', () => {
@@ -361,5 +365,133 @@ describe('experimental metrics', () => {
     // The heart-rate headline must not have become an RR number.
     expect(screen.getByTestId('session-value-heart_rate')).toHaveTextContent(/BPM/)
     expect(screen.queryByTestId('session-value-respiratory_rate')).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Sprint 16: the simple-results experience. A non-technical reader must get one
+// number, three supporting facts, plain warnings, and detail only on request.
+// All readings here are synthetic.
+// ---------------------------------------------------------------------------
+describe('session result: simple result screen', () => {
+  it('leads with a plainly labelled average pulse rate', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78])} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByRole('heading', { name: /your session result/i })).toBeInTheDocument()
+    expect(screen.getByText(/average pulse rate/i)).toBeInTheDocument()
+    expect(screen.getByTestId('session-value-heart_rate')).toHaveTextContent('74.0')
+  })
+
+  it('shows median, range and accepted count as the supporting facts', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78])} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText(/median/i)).toBeInTheDocument()
+    expect(screen.getByText(/range/i)).toBeInTheDocument()
+    // median of 70..78 is 74; range 70-78
+    expect(screen.getByText('74.0 BPM')).toBeInTheDocument()
+    expect(screen.getByText('70.0 – 78.0 BPM')).toBeInTheDocument()
+    expect(screen.getByText(/^Accepted$/i)).toBeInTheDocument()
+  })
+
+  it('says the result comes from the valid readings of this session', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78])} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText(/calculated from the 5 valid readings collected during this session/i))
+      .toBeInTheDocument()
+  })
+
+  it('warns about variability without hiding the result', () => {
+    const summary = sessionWith([55, 95, 60, 100, 70, 85])
+    expect(summary.variable).toBe(true)
+    render(<SessionResult summary={summary} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText(/your readings varied during this session/i)).toBeInTheDocument()
+    expect(screen.getByText(/consider repeating the measurement under steady conditions/i)).toBeInTheDocument()
+    // The number is still shown: a warning is not a refusal.
+    expect(screen.getByTestId('session-value-heart_rate')).toHaveTextContent('77.5')
+  })
+
+  it('stays silent about variability in a steady session', () => {
+    render(<SessionResult summary={sessionWith([72, 73, 72, 71, 73, 72])} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.queryByText(/your readings varied/i)).not.toBeInTheDocument()
+  })
+
+  it('offers the required retry wording when data is insufficient', () => {
+    render(<SessionResult summary={sessionWith([72, 72], {}, 'stopped')} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.getByText(/not enough reliable readings were collected/i)).toBeInTheDocument()
+    expect(screen.getByText(/please try again/i)).toBeInTheDocument()
+    // And no reassuring number anywhere.
+    expect(screen.queryByText(/average pulse rate/i)).not.toBeInTheDocument()
+  })
+
+  it('never shows a success state for a rejected-only session', () => {
+    const summary = sessionWith(
+      [null, null, null],
+      { qualityVerdict: 'low_signal_quality', rejectionReason: 'low_signal_quality' },
+      'stopped',
+    )
+    render(<SessionResult summary={summary} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(summary.resultAvailable).toBe(false)
+    expect(screen.getByText(/not enough reliable readings/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Insufficient data/i).length).toBeGreaterThan(0)
+  })
+})
+
+describe('session result: individual readings', () => {
+  const open = () =>
+    fireEvent.click(screen.getByRole('button', { name: /individual readings/i }))
+
+  it('shows time, BPM, ROI, method and verdict for every reading', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78])} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    open()
+    const table = screen.getByRole('table')
+    for (const col of ['Time', 'BPM', 'ROI', 'Method', 'Signal', 'Status']) {
+      expect(within(table).getByRole('columnheader', { name: col })).toBeInTheDocument()
+    }
+    expect(within(table).getAllByText('All regions').length).toBeGreaterThan(0)
+    expect(within(table).getAllByText(CONSENSUS).length).toBeGreaterThan(0)
+  })
+
+  it('marks a repeated window as repeated rather than as bad signal', () => {
+    const collector = new SessionCollector()
+    let firstWindow: ReadingInput['sampling'] | null = null
+    for (const v of [70, 72, 74, 76, 78]) {
+      const r = reading(v)
+      firstWindow ??= r.sampling
+      collector.add(r, r.analyzedAtMs)
+    }
+    // Re-deliver the *first* reading's window. Read from the collector rather than
+    // hard-coding, because `reading()` advances a shared clock between tests.
+    const dup = reading(70, { sampling: firstWindow! })
+    collector.add(dup, dup.analyzedAtMs)
+    expect(collector.rejected().map(r => r.finalRejectionReason)).toEqual(['duplicate_window'])
+    render(<SessionResult summary={summarizeSession(collector.all())} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    open()
+    expect(document.body.textContent).toMatch(/repeated window/i)
+    // Disclosed at session level too.
+    expect(screen.getByText(/already been counted/i)).toBeInTheDocument()
+  })
+
+  it('discloses flagged outliers and says they are included', () => {
+    const summary = sessionWith([70, 71, 72, 71, 70, 155])
+    expect(summary.nFlaggedOutliers).toBe(1)
+    render(<SessionResult summary={summary} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    // "included" appears in bold inside the sentence, so assert the sentence.
+    expect(document.body.textContent).toMatch(/They are included in the average/i)
+    expect(screen.getByText(/less affected by them/i)).toBeInTheDocument()
+  })
+
+  it('keeps the screen simple until detail is requested', () => {
+    render(<SessionResult summary={sessionWith([70, 72, 74, 76, 78])} sessionId="s"
+      onExportReadings={noop} onExportAggregate={noop} />)
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    open()
+    expect(screen.getByRole('table')).toBeInTheDocument()
   })
 })

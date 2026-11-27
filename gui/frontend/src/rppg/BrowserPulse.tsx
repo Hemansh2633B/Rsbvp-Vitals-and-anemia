@@ -89,6 +89,15 @@ export function BrowserPulse(){
   const [roiDiagnostics,setRoiDiagnostics]=useState<RoiDiagnostics[]>([])
   const [showRoiDetails,setShowRoiDetails]=useState(false)
   const [unparsableKeys,setUnparsableKeys]=useState<string[]>([])
+  // Pausing is a measurement-layer stop, not a camera stop: the stream stays open
+  // so resuming is instant, but no window is analysed and no reading is recorded.
+  // A paused session is `stopped` for aggregation purposes, so the same readings
+  // are not presented as though capture were still feeding them.
+  const [paused,setPaused]=useState(false)
+  // Bumped to force a full collector teardown when a new session begins. Reading
+  // ids restart, so anything holding an old id must be dropped rather than merged.
+  const [sessionEpoch,setSessionEpoch]=useState(0)
+  const [finished,setFinished]=useState(false)
   const [environment,setEnvironment]=useState<SecureContextReport|null>(null)
   const [geometry,setGeometry]=useState<TrackGeometry|null>(null)
   const stop=()=>{sessionId.current++;cancelAnimationFrame(raf.current);worker.current?.terminate();worker.current=null;pendingJob.current=false;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;landmarker.current?.close();landmarker.current=null;if(video.current)video.current.srcObject=null;setTrack('idle');setRoiState('Camera stopped');setRoiDiagnostics([]);roiDiagRef.current=[];setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Capture stopped; no live estimate is available'}))}
@@ -238,13 +247,16 @@ export function BrowserPulse(){
   // collecting, and "collecting" can never be shown after an interruption.
   function lifecycleNow():SessionLifecycle{
     if(track==='error')return 'interrupted'
-    if(track==='idle')return 'stopped'
+    if(track==='idle'||paused||finished)return 'stopped'
     return 'running'
   }
   function resummarize(lifecycle:SessionLifecycle=lifecycleNow()){
     setSession(summarizeSession(collector.current.all(),{lifecycle}))
   }
   function recordWindow(result:LiveAnalysis,win:{start_s:number;end_s:number;n_samples:number}|null){
+    // A worker result that lands after Pause or Finish describes a window the user
+    // already ended. Recording it would let a paused session keep collecting.
+    if(paused||finished)return
     const nowMs=Date.now()
     const sampling={fsHz:result.fs,nSamples:win?.n_samples??null,windowStartS:win?.start_s??null,windowEndS:win?.end_s??null}
     const elapsed=acquisitionStart.current===null?null:performance.now()/1000-acquisitionStart.current
@@ -323,10 +335,93 @@ export function BrowserPulse(){
   if (timingProblem) reasons.push(timingProblem)
   if (acquisition?.insufficientSamplingRate) reasons.push(`Needs at least ${MIN_USABLE_FS_HZ} fps`)
   if (analysis.status!=='valid') reasons.push(analysis.reason)
+  // ---- Session controls -------------------------------------------------
+  // Pause keeps the camera open but stops recording, so resuming is instant and
+  // no window is analysed meanwhile. Finish closes the session: the camera is
+  // released and the aggregate is finalised as `completed` rather than reverting
+  // to a progress state. Starting a new session clears every piece of aggregate
+  // state, including ids, so nothing from the old session can survive into it.
+  function pauseSession(){
+    setPaused(true)
+    jobId.current++;pendingJob.current=false
+    setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Session paused; no reading is being recorded'}))
+    resummarize('stopped')
+  }
+  function resumeSession(){
+    setPaused(false)
+    setAnalysis(prev=>({...prev,status:'warming_up',bpm:null,reason:'Resuming; collecting a fresh window'}))
+    samples.current=[];centers.current=[];acquisitionStart.current=null;setDuration(0)
+    resummarize('running')
+  }
+  function finishSession(){
+    // Guard against a second finish: completion must not happen twice. Once the
+    // session is finished the aggregate is frozen and further windows are refused.
+    if(finished)return
+    setFinished(true)
+    stop()
+    resummarize('stopped')
+    setAnalysis(prev=>({...prev,status:'low_signal_quality',bpm:null,reason:'Session finished'}))
+  }
+  function newSession(){
+    // Full teardown. The camera is not restarted automatically: a new session
+    // begins from the Ready state so the user consciously starts collecting again.
+    stop()
+    collector.current.reset()
+    setPaused(false);setFinished(false)
+    sessionRef.current=newSessionId()
+    setSessionEpoch(e=>e+1)
+    samples.current=[];exportSamples.current=[];exportDropped.current=0
+    windowLog.current=[];pendingWindow.current=null;windowsDropped.current=0
+    acquisitionStart.current=null;centers.current=[];previousCenter.current=null
+    setDuration(0);setCameraFps(null);setUnparsableKeys([])
+    setSession(summarizeSession([],{lifecycle:'stopped'}))
+    setAnalysis(initial)
+    setError('')
+  }
+  const canStart = !finished && (track==='idle'||track==='error')
+  const hasReadings = session.primaryReadings.length>0
   const unavailableBecause = analysis.bpm===null ? [...new Set(reasons)].join(' · ') : ''
   return <section className="panel browser-pulse">
     <h2>Browser-local live pulse research</h2><p className="muted">Frames are analyzed in this browser; only numeric waveform summaries remain in memory. Camera access starts only after you press Start. This is experimental, not medical measurement.</p>
-    <div className="live-controls"><label className="ctl">Camera<select value={deviceId} onChange={e=>setDeviceId(e.target.value)} disabled={track!=='idle'&&track!=='error'}><option value="">Default camera</option>{devices.map(d=><option value={d.deviceId} key={d.deviceId}>{d.label||'Camera'}</option>)}</select></label>{track!=='idle'&&track!=='error'?<button className="danger" onClick={stop}>Stop camera</button>:<button className="primary" onClick={start}>Start camera</button>}<span aria-live="polite" className="live-status">{track.replaceAll('_',' ')}</span></div>
+    <div className="live-controls">
+      <label className="ctl">Camera<select value={deviceId} onChange={e=>setDeviceId(e.target.value)} disabled={track!=='idle'&&track!=='error'}><option value="">Default camera</option>{devices.map(d=><option value={d.deviceId} key={d.deviceId}>{d.label||'Camera'}</option>)}</select></label>
+      {canStart && <button className="primary" onClick={start}>{track==='error'?'Retry measurement':'Start measurement'}</button>}
+      {!canStart && !paused && !finished && <button className="secondary" onClick={pauseSession}>Pause</button>}
+      {paused && !finished && <button className="primary" onClick={resumeSession}>Resume</button>}
+      {!canStart && !finished && <button className="danger" onClick={finishSession}>Finish session</button>}
+      {(hasReadings||finished) && <button className="secondary" onClick={newSession}>New session</button>}
+      <span aria-live="polite" className="live-status">
+        {finished?'Session finished':paused?'Paused':track.replaceAll('_',' ')}
+      </span>
+    </div>
+
+    {/* Step 1 of the session workflow: one line per precondition, so a user can see
+        which one is actually blocking instead of "camera not working". */}
+    {(track==='idle'||track==='error')&&!hasReadings && (
+      <section className="ready-panel" aria-label="Before you start">
+        <h3>Before you start</h3>
+        <ul className="ready-list">
+          <li className={environment?.canCapture?'ok':'bad'}>
+            <strong>Camera:</strong>{' '}
+            {environment===null
+              ? 'will be requested when you press Start'
+              : environment.canCapture
+                ? 'available'
+                : environment.message}
+          </li>
+          {/* This panel only renders before capture starts, so the face has not
+              been searched for yet: say that rather than showing a false "ok". */}
+          <li className="pending"><strong>Face detection:</strong> starts when you press Start</li>
+          <li className={roiDiagnostics.length?'ok':'pending'}><strong>Face regions (ROI):</strong> {roiDiagnostics.length?'tracked':'waiting for the face'}</li>
+          <li className={analysis.status==='valid'?'ok':'pending'}><strong>Signal quality:</strong> {analysis.status==='valid'?'acceptable':(analysis.reason||'not assessed yet')}</li>
+        </ul>
+        <p className="muted small">
+          Sit facing a window or lamp, fill the frame with your face, and keep still. A session
+          collects several short windows and reports one average, because a single reading moves
+          around too much to be useful on its own.
+        </p>
+      </section>
+    )}
     {error&&<div role="alert" className="status error">{error}</div>}
     <div className="acquisition-status" role="status" aria-live="polite">
       <span className={`phase-chip phase-${phase}`}>{PHASE_LABELS[phase]}</span>
@@ -347,7 +442,7 @@ export function BrowserPulse(){
                 : 'Hold still in even, bright light until the signal is acceptable.'}`}
       </p>
     </div>
-    <SessionResult summary={session} sessionId={sessionRef.current} onExportReadings={exportSessionReadings} onExportAggregate={exportSessionAggregate} liveStatus={session.completion==='collecting'||session.completion==='available'?`Live: ${analysis.status==='valid'?'signal acceptable':analysis.reason}`:null}/>
+    <SessionResult key={sessionEpoch} summary={session} sessionId={sessionRef.current} onExportReadings={exportSessionReadings} onExportAggregate={exportSessionAggregate} liveStatus={session.completion==='collecting'||session.completion==='available'?`Live: ${analysis.status==='valid'?'signal acceptable':analysis.reason}`:null}/>
     <div className="browser-camera"><video ref={video} muted playsInline aria-label="Local camera preview"/><canvas ref={overlay} aria-label="Forehead and cheek ROI overlay"/><canvas ref={canvas} hidden/></div>
     <h3>ROI tracking quality</h3><div className="subcards">{roiCoverage.map(({roi,pct})=><div className="subcard" key={roi}><strong>{roi.replace('_',' ')}</strong><p>{pct>=.8?'Tracking':pct>0?'Partial / unstable':'ROI lost'}</p><p className="muted small">{(pct*100).toFixed(0)}% valid skin samples</p></div>)}</div>
     <p className="muted small">Union coverage: {unionCoverage===null?'—':`${(unionCoverage*100).toFixed(0)}%`} of analyzed-window samples have at least one usable skin ROI (a window is only analysable at ≥ 50%).</p>

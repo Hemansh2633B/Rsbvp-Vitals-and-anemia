@@ -46,3 +46,57 @@ button.secondary.small { font-size: .85rem; padding: .35rem .7rem }
 @media (max-width: 480px) {
   .roi-diag-table { font-size: .76rem }
 }
+
+/* Sprint 16: the pre-start checklist. Four preconditions, each with its own
+   state, so "camera not working" is never the only thing a user can learn. */
+.ready-panel {
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border, #d8dee6);
+  border-radius: 0.6rem;
+  background: var(--surface-muted, #f7f9fc);
+}
+
+.ready-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.ready-list {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+.ready-list li {
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.4;
+}
+
+/* Status is encoded by both a glyph and a colour, so it survives colour-blindness
+   and greyscale screenshots. */
+.ready-list li::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+}
+
+.ready-list li.ok::before { content: '✓'; color: var(--ok, #2e7d4f); }
+.ready-list li.bad::before { content: '✕'; color: var(--danger, #b3261e); }
+.ready-list li.pending::before { content: '•'; color: var(--muted, #6b7784); }
+
+@media (max-width: 480px) {
+  .live-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .live-controls button {
+    width: 100%;
+  }
+}

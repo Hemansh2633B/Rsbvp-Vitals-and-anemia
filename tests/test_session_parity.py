@@ -72,10 +72,56 @@ def _run_case(case: dict) -> dict:
         # aggregate must not carry a shortfall placeholder. Caught by parity: the
         # TypeScript side had the bug, Python did not.
         "reason": hr.reason,
+        # Sprint 16 disclosure fields. A duplicate window is recorded but is not a
+        # new observation, and outliers are flagged without being removed; both
+        # must agree across the two implementations.
+        "n_duplicate_windows": hr.n_duplicate_windows,
+        "n_flagged_outliers": hr.n_flagged_outliers,
+        "variable": hr.variable,
+        "session_duplicate_windows": summary["n_duplicate_windows"],
+        "session_variable": summary["variable"],
     }
 
 
 CASES = [
+    # The same window re-delivered three times: one observation, not three.
+    {
+        "name": "duplicate_window_redelivered",
+        "lifecycle": "stopped",
+        "readings": [
+            {"value": 72, "window_start_s": 0, "window_end_s": 10},
+            {"value": 72, "window_start_s": 0, "window_end_s": 10},
+            {"value": 72, "window_start_s": 0, "window_end_s": 10},
+            {"value": 74, "window_start_s": 10, "window_end_s": 20},
+            {"value": 76, "window_start_s": 20, "window_end_s": 30},
+            {"value": 78, "window_start_s": 30, "window_end_s": 40},
+            {"value": 80, "window_start_s": 40, "window_end_s": 50},
+        ],
+    },
+    # One reading far from the rest. It is FLAGGED, never dropped: the mean still
+    # includes it, which is exactly what the disclosure is for.
+    {
+        "name": "outlier_flagged_not_removed",
+        "lifecycle": "stopped",
+        "readings": [
+            {"value": 70, "window_start_s": 0, "window_end_s": 10},
+            {"value": 71, "window_start_s": 10, "window_end_s": 20},
+            {"value": 72, "window_start_s": 20, "window_end_s": 30},
+            {"value": 71, "window_start_s": 30, "window_end_s": 40},
+            {"value": 70, "window_start_s": 40, "window_end_s": 50},
+            {"value": 155, "window_start_s": 50, "window_end_s": 60},
+        ],
+    },
+    # A steady session: no variability warning.
+    {
+        "name": "steady_session_no_warning",
+        "lifecycle": "stopped",
+        "readings": [
+            {"value": v, "window_start_s": 10 * i, "window_end_s": 10 * i + 10}
+            for i, v in enumerate([72, 73, 72, 71, 73, 72])
+        ],
+    },
+
     # A sliding-window session: many readings, few independent windows.
     {
         "name": "sliding_window_overlap",

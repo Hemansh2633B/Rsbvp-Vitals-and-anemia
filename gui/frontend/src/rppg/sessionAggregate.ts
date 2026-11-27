@@ -150,6 +150,38 @@ export interface AggregationConfig {
    * unchanged, this only reports a property of the accepted readings.
    */
   densityRatioWarning: number
+  /**
+   * A reading whose analysis window duplicates one already recorded is not a new
+   * observation: it is the same underlying moment re-reported. It is kept in
+   * history (flagged, never deleted) but excluded from the aggregate so one window
+   * cannot contribute twice. Windows are the same observation when they share the
+   * same metric, algorithm and window bounds.
+   */
+  suppressDuplicateWindows: boolean
+  /**
+   * A reading this many sample standard deviations from the mean of the accepted
+   * readings is *flagged* as an outlier. It is NOT removed: the project rule is
+   * that a reading is never silently dropped for disagreeing with the others. The
+   * flag drives a disclosure ("N readings sat far from the average"), and the mean
+   * and median are both shown so the reader can see the effect.
+   */
+  outlierSdThreshold: number
+  /**
+   * Spread (sample SD in the metric's own unit) at or above which the session is
+   * described as variable rather than steady. Interpretable in BPM, not a ratio.
+   */
+  variabilitySdWarning: number
+  /**
+   * Smallest deviation from the rest of the session, in the metric's own unit,
+   * that can count as an outlier at all.
+   *
+   * The spread test alone is a poor flag at small n: when six windows agree to
+   * within 1 BPM, a 1.4 BPM difference is statistically "far" and would be
+   * flagged on every steady session. A reading must therefore be both
+   * statistically unusual AND materially different before it is flagged. This
+   * affects only the label, never the statistics.
+   */
+  outlierMinDeviation: Record<MetricId, number>
   plausible: Record<MetricId, { min: number; max: number }>
 }
 
@@ -165,6 +197,18 @@ export const DEFAULT_CONFIG: AggregationConfig = {
   targetAcceptedReadings: 8,
   staleAfterMs: 5000,
   densityRatioWarning: 3,
+  suppressDuplicateWindows: true,
+  // 2.5 SD is the conventional "far from the centre" marker. It is a disclosure
+  // threshold, not a filter, so a wrong value costs a note rather than a number.
+  outlierSdThreshold: 2.5,
+  // 8 BPM of spread across accepted windows is visibly variable for a resting
+  // measurement and is roughly where the earlier analysis found the all-window
+  // mean starting to drift. Chosen for interpretability in the metric's own unit,
+  // NOT calibrated on real sessions.
+  variabilitySdWarning: 8,
+  // ~6 BPM for pulse, ~3 br/min for breathing: below this, a difference between
+  // windows is ordinary measurement noise rather than a disagreement worth naming.
+  outlierMinDeviation: { heart_rate: 6, respiratory_rate: 3 },
   plausible: {
     heart_rate: { min: METRICS.heart_rate.plausibleMin, max: METRICS.heart_rate.plausibleMax },
     respiratory_rate: { min: METRICS.respiratory_rate.plausibleMin, max: METRICS.respiratory_rate.plausibleMax },
@@ -174,18 +218,49 @@ export const DEFAULT_CONFIG: AggregationConfig = {
 /** Acceptance-band cut-offs for the plain-language quality indicator. */
 export const ACCEPTANCE_BANDS = { good: 70, fair: 40 } as const
 
+/**
+ * Rejection reason for a window that repeats one already recorded.
+ *
+ * Note the asymmetry with `stale_reading`: a stale reading describes a moment the
+ * session has already moved past, a duplicate describes a moment already
+ * counted. Both are excluded, and both are named rather than dropped.
+ */
+export const DUPLICATE_WINDOW = 'duplicate_window'
+
+/** Rejection reasons that mean "not a new observation" rather than "bad signal". */
+export const NON_OBSERVATION_REASONS: ReadonlySet<string> = new Set([DUPLICATE_WINDOW])
+
 function isMetricId(value: string): value is MetricId {
   return Object.prototype.hasOwnProperty.call(METRICS, value)
 }
 
 /**
+ * Identity of the underlying observation: the same metric, estimator and window
+ * bounds describe one moment in the session, no matter how many times the
+ * pipeline re-reports it.
+ *
+ * Windows with unknown bounds return null and are never treated as duplicates:
+ * "I do not know the window" is not evidence that it repeats one.
+ */
+export function windowKey(input: ReadingInput): string | null {
+  const { windowStartS, windowEndS } = input.sampling
+  if (windowStartS === null || windowEndS === null) return null
+  if (!Number.isFinite(windowStartS) || !Number.isFinite(windowEndS)) return null
+  return `${input.metric}|${input.algorithm}|${windowStartS}|${windowEndS}`
+}
+
+/**
  * Decide whether one raw estimate may contribute to a session average.
  * Returns the reason when it may not, so nothing is dropped silently.
+ *
+ * `prior` is the session's history so far. It is used only for the duplicate
+ * check; every other rule is a property of the reading alone.
  */
 export function classifyReading(
   input: ReadingInput,
   config: AggregationConfig,
   nowMs: number,
+  prior: readonly Measurement[] = [],
 ): { accepted: boolean; reason: string | null } {
   if (!isMetricId(input.metric)) return { accepted: false, reason: `unsupported_metric:${input.metric}` }
   if (nowMs - input.analyzedAtMs > config.staleAfterMs) {
@@ -212,6 +287,20 @@ export function classifyReading(
       reason: `implausible_value_${input.value.toFixed(1)}_outside_${bounds.min}-${bounds.max}`,
     }
   }
+  // A duplicate window is the same observation arriving twice. It is recorded
+  // (so the history is complete) but refused, because letting it in would give
+  // one moment two votes in the mean, the median and every count on screen.
+  // Checked last so a duplicate that also failed a quality gate keeps the more
+  // specific reason.
+  if (config.suppressDuplicateWindows) {
+    const key = windowKey(input)
+    if (key !== null) {
+      const seen = prior.some(
+        r => (r.accepted || r.finalRejectionReason === DUPLICATE_WINDOW) && windowKey(r) === key,
+      )
+      if (seen) return { accepted: false, reason: DUPLICATE_WINDOW }
+    }
+  }
   return { accepted: true, reason: null }
 }
 
@@ -228,7 +317,12 @@ export class SessionCollector {
   private config: AggregationConfig
 
   constructor(config: Partial<AggregationConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config, plausible: { ...DEFAULT_CONFIG.plausible, ...(config.plausible ?? {}) } }
+    this.config = {
+      ...DEFAULT_CONFIG,
+      ...config,
+      plausible: { ...DEFAULT_CONFIG.plausible, ...(config.plausible ?? {}) },
+      outlierMinDeviation: { ...DEFAULT_CONFIG.outlierMinDeviation, ...(config.outlierMinDeviation ?? {}) },
+    }
   }
 
   setConfig(config: Partial<AggregationConfig>) {
@@ -240,7 +334,8 @@ export class SessionCollector {
   }
 
   add(input: ReadingInput, nowMs: number = Date.now()): Measurement {
-    const { accepted, reason } = classifyReading(input, this.config, nowMs)
+    // History is passed in so the duplicate rule can see what is already counted.
+    const { accepted, reason } = classifyReading(input, this.config, nowMs, this.readings)
     const reading: Measurement = {
       ...input,
       id: this.nextId++,
@@ -323,6 +418,24 @@ export interface MetricAggregate {
    * agreement-checked consensus is presented as the session result.
    */
   multipleAlgorithmSeries: boolean
+  /**
+   * Accepted readings whose window repeats one already counted. Excluded from
+   * every statistic above; surfaced so the UI can say what was set aside and why.
+   */
+  nDuplicateWindows: number
+  /**
+   * Accepted readings flagged as far from the session centre (see
+   * `outlierSdThreshold`). These ARE included in every statistic; the count exists
+   * so the disagreement is disclosed instead of silently trimmed.
+   */
+  nFlaggedOutliers: number
+  /** Ids of the flagged readings, so the UI can mark the exact rows. */
+  flaggedOutlierIds: number[]
+  /**
+   * True when the spread across accepted readings is at or above
+   * `variabilitySdWarning`. Drives a variability warning; changes no number.
+   */
+  variable: boolean
 }
 
 function mean(values: number[]): number | null {
@@ -405,6 +518,10 @@ function emptyAggregate(metric: MetricId, algorithm: string): MetricAggregate {
     medianQuality: null,
     algorithmsSeen: [],
     multipleAlgorithmSeries: false,
+    nDuplicateWindows: 0,
+    nFlaggedOutliers: 0,
+    flaggedOutlierIds: [],
+    variable: false,
   }
 }
 
@@ -446,11 +563,19 @@ export function summarize(
     algorithmsSeen,
     multipleAlgorithmSeries: algorithmsSeen.length > 1,
   }
+  // A duplicate window is recorded but is not a new observation, so it is kept
+  // out of the statistics and counted separately: the UI must be able to explain
+  // the difference between "rejected" and "already counted".
+  const duplicates = series.filter(r => r.finalRejectionReason === DUPLICATE_WINDOW)
   const accepted = series.filter(r => r.accepted)
   const values = accepted.map(r => r.value as number)
 
   result.nAccepted = accepted.length
-  result.nRejected = series.length - accepted.length
+  // Duplicates are rejections of a special kind; subtracting them keeps
+  // nAccepted + nRejected + nDuplicateWindows == nTotal, which the UI and the
+  // export both rely on.
+  result.nRejected = series.length - accepted.length - duplicates.length
+  result.nDuplicateWindows = duplicates.length
   result.acceptancePct = series.length ? (accepted.length / series.length) * 100 : null
   result.nIndependentAccepted = countIndependentWindows(accepted)
   result.overlapFactor =
@@ -469,9 +594,13 @@ export function summarize(
   if (!values.length) {
     result.verdict = 'insufficient'
     result.reason =
-      series.length > 0
-        ? `No accepted readings (${result.nRejected} rejected by the quality gates)`
-        : 'No readings for this algorithm in this session'
+      series.length === 0
+        ? 'No readings for this algorithm in this session'
+        : result.nDuplicateWindows === series.length
+          ? `All ${series.length} readings repeated a window already counted, so none are new observations`
+          : `No accepted readings (${result.nRejected} rejected by the quality gates${
+              result.nDuplicateWindows ? `, ${result.nDuplicateWindows} duplicate window${result.nDuplicateWindows === 1 ? '' : 's'}` : ''
+            })`
     return result
   }
 
@@ -481,6 +610,36 @@ export function summarize(
   result.max = Math.max(...values)
   result.sd = sampleSd(values)
   result.range = (result.max as number) - (result.min as number)
+
+  // Outliers are FLAGGED, never removed. Dropping a reading for disagreeing with
+  // the mean would hide exactly the disagreement a reader most needs to know
+  // about, and with autocorrelated windows it would also bias the result toward
+  // whatever the surviving windows happened to say.
+  //
+  // The comparison is leave-one-out on purpose. Comparing a reading with a centre
+  // and spread that include it lets a single wild value inflate the very spread it
+  // is measured against: in [70,71,72,71,70,155] the naive test gives limit 86 and
+  // misses 155 entirely. Excluding the reading from its own baseline gives a limit
+  // of ~2.5 around ~70.8 and catches it. n >= 3 so the comparison has a spread.
+  if (result.sd !== null && result.sd > 0 && accepted.length >= 3) {
+    const limit = config.outlierSdThreshold
+    const flagged: Measurement[] = []
+    for (const r of accepted) {
+      const others = accepted.filter(o => o.id !== r.id).map(o => o.value as number)
+      const centre = mean(others)
+      const spread = sampleSd(others)
+      if (centre === null || spread === null) continue
+      // A zero spread among the others means every other reading agrees exactly;
+      // any disagreement with that consensus is far from the centre by definition.
+      const deviation = Math.abs((r.value as number) - centre)
+      const material = deviation >= (config.outlierMinDeviation?.[r.metric] ?? 0)
+      const far = spread === 0 ? (r.value as number) !== centre && material : deviation > limit * spread && material
+      if (far) flagged.push(r)
+    }
+    result.nFlaggedOutliers = flagged.length
+    result.flaggedOutlierIds = flagged.map(r => r.id)
+  }
+  result.variable = result.sd !== null && result.sd >= config.variabilitySdWarning
   const qualities = accepted.map(r => r.qualityScore).filter((q): q is number => q !== null && Number.isFinite(q))
   result.medianQuality = median(qualities)
   result.firstAcceptedUtc = accepted[0]?.recordedUtc ?? null
@@ -572,6 +731,12 @@ export interface SessionSummary {
   unevenDensity: boolean
   /** True when at least one metric has a presentable average. */
   hasResult: boolean
+  /** Windows that repeated one already counted, across the primary series. */
+  nDuplicateWindows: number
+  /** Readings flagged as far from the centre across the primary series. */
+  nFlaggedOutliers: number
+  /** True when the headline metric's spread warrants a variability warning. */
+  variable: boolean
   config: AggregationConfig
 }
 
@@ -643,7 +808,12 @@ export function summarizeSession(
   }
   const primaryReadings = readings.filter(r => r.algorithm === CONSENSUS)
   const nAcceptedTotal = primaryReadings.filter(r => r.accepted).length
-  const nRejectedTotal = primaryReadings.length - nAcceptedTotal
+  const nDuplicateWindows = primaryReadings.filter(
+    r => r.finalRejectionReason === DUPLICATE_WINDOW,
+  ).length
+  // Rejections exclude duplicates: "the signal was bad" and "this window was
+  // already counted" are different messages and must not be added together.
+  const nRejectedTotal = primaryReadings.length - nAcceptedTotal - nDuplicateWindows
   const acceptancePct = primaryReadings.length ? (nAcceptedTotal / primaryReadings.length) * 100 : null
   const acceptanceBand =
     acceptancePct === null
@@ -728,6 +898,9 @@ export function summarizeSession(
     densityRatio: density,
     unevenDensity,
     hasResult: presentable.length > 0,
+    nDuplicateWindows,
+    nFlaggedOutliers: primaryAggregate?.nFlaggedOutliers ?? 0,
+    variable: primaryAggregate?.variable ?? false,
     config,
   }
 }
@@ -786,6 +959,10 @@ export function buildSessionAggregateExport(input: SessionExportInput) {
     median_quality_score: a.medianQuality,
     first_accepted_utc: a.firstAcceptedUtc,
     last_accepted_utc: a.lastAcceptedUtc,
+    duplicate_windows: a.nDuplicateWindows,
+    flagged_outliers: a.nFlaggedOutliers,
+    flagged_outlier_ids: a.flaggedOutlierIds,
+    variable: a.variable,
   })
   return {
     schema: SESSION_SCHEMA,
@@ -806,6 +983,9 @@ export function buildSessionAggregateExport(input: SessionExportInput) {
       'Band derived from the observed acceptance rate only. It is not a confidence score and says nothing about accuracy.',
     completion_state: summary.completion,
     result_available: summary.resultAvailable,
+    duplicate_windows: summary.nDuplicateWindows,
+    flagged_outliers: summary.nFlaggedOutliers,
+    variable: summary.variable,
     density_ratio: summary.densityRatio,
     uneven_density: summary.unevenDensity,
     aggregation_config: {
@@ -813,6 +993,10 @@ export function buildSessionAggregateExport(input: SessionExportInput) {
       min_independent_windows: summary.config.minIndependentWindows,
       target_accepted_readings: summary.config.targetAcceptedReadings,
       stale_after_ms: summary.config.staleAfterMs,
+      suppress_duplicate_windows: summary.config.suppressDuplicateWindows,
+      outlier_sd_threshold: summary.config.outlierSdThreshold,
+      variability_sd_warning: summary.config.variabilitySdWarning,
+      density_ratio_warning: summary.config.densityRatioWarning,
       plausible_bounds: summary.config.plausible,
     },
     acquisition: {
@@ -829,6 +1013,9 @@ export function buildSessionAggregateExport(input: SessionExportInput) {
       'Readings come from overlapping analysis windows, so independent_windows is the number of non-overlapping observations and the only basis used for the standard error.',
       'standard_error is null when fewer than three independent windows exist, rather than being estimated from overlapping samples.',
       'Averaging readings reduces random variation; it does not establish physiological accuracy and this is not a medical measurement.',
+      'A reading whose analysis window repeats one already recorded is excluded from the statistics and counted in duplicate_windows; it is never a second observation.',
+      'Readings flagged in flagged_outliers are INCLUDED in every statistic. Nothing is removed for disagreeing with the mean; the flag exists so the disagreement is visible.',
+      'The median is reported beside the mean because it is far less sensitive to a single unusual reading. Both describe the same accepted readings.',
     ],
     frames_images_included: false,
     frames_uploaded: false,

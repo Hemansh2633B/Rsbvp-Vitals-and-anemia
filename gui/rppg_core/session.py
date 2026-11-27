@@ -99,6 +99,25 @@ class AggregationConfig:
     #: flagged as potentially density-biased. Reports a property of the accepted
     #: readings; it is not a quality gate.
     density_ratio_warning: float = 3.0
+    #: A reading whose window repeats one already recorded is the same observation
+    #: arriving twice. It is kept in history (flagged, never deleted) but excluded
+    #: from the aggregate so one window cannot contribute twice.
+    suppress_duplicate_windows: bool = True
+    #: A reading this many sample SDs from the mean is FLAGGED, never removed.
+    #: The project rule is that nothing is dropped for disagreeing with the others.
+    outlier_sd_threshold: float = 2.5
+    #: Spread (sample SD, in the metric's own unit) at or above which the session is
+    #: described as variable rather than steady. Interpretable in BPM.
+    variability_sd_warning: float = 8.0
+    #: Smallest deviation from the rest of the session, in the metric's own unit,
+    #: that can count as an outlier at all. The spread test alone is a poor flag at
+    #: small n: when six windows agree to within 1 BPM, a 1.4 BPM difference is
+    #: statistically "far" and would be flagged on every steady session. A reading
+    #: must be both statistically unusual AND materially different. Affects only the
+    #: label, never the statistics.
+    outlier_min_deviation: dict[str, float] = field(
+        default_factory=lambda: {"heart_rate": 6.0, "respiratory_rate": 3.0}
+    )
     plausible: dict[str, tuple[float, float]] = field(
         default_factory=lambda: {k: (v.plausible_min, v.plausible_max) for k, v in METRICS.items()}
     )
@@ -165,6 +184,15 @@ class MetricAggregate:
     median_quality: float | None = None
     algorithms_seen: tuple[str, ...] = ()
     multiple_algorithm_series: bool = False
+    #: Accepted readings whose window repeats one already counted. Excluded from
+    #: every statistic; surfaced so the UI can explain what was set aside.
+    n_duplicate_windows: int = 0
+    #: Accepted readings flagged as far from the centre. These ARE included in
+    #: every statistic; nothing is removed for disagreeing with the mean.
+    n_flagged_outliers: int = 0
+    flagged_outlier_ids: tuple[int, ...] = ()
+    #: True when the spread across accepted readings warrants a variability warning.
+    variable: bool = False
 
     def as_dict(self) -> dict:
         return {
@@ -225,10 +253,41 @@ def median(values: Sequence[float]) -> float | None:
     return (ordered[mid - 1] + ordered[mid]) / 2.0
 
 
+#: Rejection reason for a window that repeats one already recorded.
+#:
+#: Asymmetric with ``stale_reading``: stale describes a moment the session has moved
+#: past, duplicate describes a moment already counted. Both are excluded, both named.
+DUPLICATE_WINDOW = "duplicate_window"
+
+#: Rejection reasons that mean "not a new observation" rather than "bad signal".
+NON_OBSERVATION_REASONS = frozenset({DUPLICATE_WINDOW})
+
+
+def window_key(reading: Reading) -> str | None:
+    """Identity of the underlying observation.
+
+    The same metric, estimator and window bounds describe one moment in the
+    session, however many times the pipeline re-reports it. Unknown bounds return
+    None and are never treated as duplicates: "I do not know the window" is not
+    evidence that it repeats one.
+    """
+    start, end = reading.window_start_s, reading.window_end_s
+    if start is None or end is None:
+        return None
+    if not (math.isfinite(start) and math.isfinite(end)):
+        return None
+    return f"{reading.metric}|{reading.algorithm}|{start}|{end}"
+
+
 def classify_reading(
-    reading: Reading, config: AggregationConfig = DEFAULT_CONFIG, now_ms: float | None = None
+    reading: Reading, config: AggregationConfig = DEFAULT_CONFIG, now_ms: float | None = None,
+    prior: Sequence[Reading] = (),
 ) -> tuple[bool, str | None]:
-    """May this reading contribute to a session average? Returns (accepted, reason)."""
+    """May this reading contribute to a session average? Returns (accepted, reason).
+
+    ``prior`` is the session history so far and is used only for the duplicate
+    check; every other rule is a property of the reading alone.
+    """
     if reading.metric not in METRICS:
         return False, f"unsupported_metric:{reading.metric}"
     reference = reading.analyzed_at_ms if now_ms is None else now_ms
@@ -246,6 +305,17 @@ def classify_reading(
                                                        METRICS[reading.metric].plausible_max))
     if not (low <= reading.value <= high):
         return False, f"implausible_value_{reading.value:.1f}_outside_{low:g}-{high:g}"
+    # A duplicate window is the same observation arriving twice; letting it in
+    # would give one moment two votes in the mean, the median and every count.
+    # Checked last so a duplicate that also failed a gate keeps the specific reason.
+    if config.suppress_duplicate_windows:
+        key = window_key(reading)
+        if key is not None and any(
+            (r.accepted or getattr(r, "final_rejection_reason", None) == DUPLICATE_WINDOW)
+            and window_key(r) == key
+            for r in prior
+        ):
+            return False, DUPLICATE_WINDOW
     return True, None
 
 
@@ -322,7 +392,8 @@ class SessionCollector:
         return self._config
 
     def add(self, reading: Reading, now_ms: float | None = None) -> Measurement:
-        accepted, reason = classify_reading(reading, self._config, now_ms)
+        # History is passed in so the duplicate rule can see what is already counted.
+        accepted, reason = classify_reading(reading, self._config, now_ms, self._readings)
         measurement = Measurement(
             **{**reading.__dict__},
             id=self._next_id,
@@ -374,8 +445,12 @@ def summarize(
                                "No readings recorded for this metric in this session")
     algorithms_seen = tuple(sorted({r.algorithm for r in for_metric}))
     series = [r for r in for_metric if r.algorithm == algorithm]
+    # A duplicate window is recorded but is not a new observation: kept out of the
+    # statistics, counted separately, so "rejected" and "already counted" stay
+    # distinguishable in the UI and the export.
+    duplicates = [r for r in series if r.final_rejection_reason == DUPLICATE_WINDOW]
     accepted = [r for r in series if r.accepted]
-    n_rejected = len(series) - len(accepted)
+    n_rejected = len(series) - len(accepted) - len(duplicates)
     acceptance_pct = (len(accepted) / len(series) * 100.0) if series else None
 
     if len({r.algorithm for r in series}) > 1:
@@ -396,6 +471,7 @@ def summarize(
     base = dict(
         metric=metric, label=spec.label, unit=spec.unit, decimals=spec.decimals, note=spec.note,
         algorithm=algorithm, n_accepted=len(accepted), n_rejected=n_rejected, n_total=len(series),
+        n_duplicate_windows=len(duplicates),
         acceptance_pct=acceptance_pct, n_independent_accepted=independent,
         overlap_factor=overlap_factor, median_quality=median(qualities),
         algorithms_seen=algorithms_seen, multiple_algorithm_series=len(algorithms_seen) > 1,
@@ -404,8 +480,15 @@ def summarize(
     )
 
     if not values:
-        reason = (f"No accepted readings ({n_rejected} rejected by the quality gates)"
-                  if series else "No readings for this algorithm in this session")
+        if not series:
+            reason = "No readings for this algorithm in this session"
+        elif len(duplicates) == len(series):
+            reason = (f"All {len(series)} readings repeated a window already counted, "
+                      "so none are new observations")
+        else:
+            dup = (f", {len(duplicates)} duplicate window{'s' if len(duplicates) != 1 else ''}"
+                   if duplicates else "")
+            reason = f"No accepted readings ({n_rejected} rejected by the quality gates{dup})"
         return MetricAggregate(verdict="insufficient", reason=reason, **base)
 
     m = mean(values)
@@ -415,8 +498,37 @@ def summarize(
     if independent is not None and independent >= 3 and sd is not None:
         standard_error = sd / math.sqrt(independent)
 
+    # Outliers are FLAGGED, never removed: dropping a reading for disagreeing with
+    # the mean would hide the disagreement a reader most needs, and with
+    # autocorrelated windows it would bias the result toward the survivors.
+    #
+    # Leave-one-out on purpose: comparing a reading with a centre and spread that
+    # include it lets one wild value inflate the spread it is judged against (in
+    # [70,71,72,71,70,155] the naive limit is 86 and misses 155). Excluding the
+    # reading from its own baseline catches it. n >= 3 so a spread exists.
+    flagged: list[int] = []
+    if sd is not None and sd > 0 and len(accepted) >= 3:
+        for r in accepted:
+            others = [o.value for o in accepted
+                      if o.id != r.id and o.value is not None]
+            centre = mean(others)
+            spread = sample_sd(others)
+            if centre is None or spread is None:
+                continue
+            deviation = abs(r.value - centre)
+            material = deviation >= config.outlier_min_deviation.get(r.metric, 0.0)
+            if spread == 0:
+                far = r.value != centre and material
+            else:
+                far = deviation > config.outlier_sd_threshold * spread and material
+            if far:
+                flagged.append(r.id)
+    flagged_ids = tuple(flagged)
+
     result = dict(base, mean=m, median=median(values), min=low, max=high, sd=sd,
-                  range=high - low, standard_error=standard_error)
+                  range=high - low, standard_error=standard_error,
+                  n_flagged_outliers=len(flagged_ids), flagged_outlier_ids=flagged_ids,
+                  variable=sd is not None and sd >= config.variability_sd_warning)
 
     if len(values) < config.min_accepted_readings:
         return MetricAggregate(
@@ -463,7 +575,10 @@ def summarize_session(
     # window are diagnostics, not additional evidence.
     primary = [r for r in readings if r.algorithm == CONSENSUS]
     n_accepted = sum(1 for r in primary if r.accepted)
-    n_rejected = len(primary) - n_accepted
+    # "The signal was bad" and "this window was already counted" are different
+    # messages; adding them together would misreport what happened.
+    n_duplicate = sum(1 for r in primary if r.final_rejection_reason == DUPLICATE_WINDOW)
+    n_rejected = len(primary) - n_accepted - n_duplicate
     acceptance_pct = (n_accepted / len(primary) * 100.0) if primary else None
     if acceptance_pct is None:
         band = None
@@ -548,6 +663,9 @@ def summarize_session(
         "density_ratio": density,
         "uneven_density": uneven_density,
         "has_result": bool(presentable),
+        "n_duplicate_windows": n_duplicate,
+        "n_flagged_outliers": primary_aggregate.n_flagged_outliers,
+        "variable": primary_aggregate.variable,
         "config": config,
     }
 
@@ -570,6 +688,9 @@ def build_aggregate_export(summary: dict, session_id: str, created_utc: str,
         "windows_total": summary["windows_total"],
         "windows_accepted": summary["windows_accepted"],
         "windows_rejected": summary["windows_rejected"],
+        "duplicate_windows": summary["n_duplicate_windows"],
+        "flagged_outliers": summary["n_flagged_outliers"],
+        "variable": summary["variable"],
         "readings_total": summary["readings_total"],
         "readings_accepted": summary["readings_accepted"],
         "acceptance_pct": summary["acceptance_pct"],

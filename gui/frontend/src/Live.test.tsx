@@ -218,6 +218,10 @@ describe('live session aggregation',()=>{
     await waitFor(()=>expect(startButton()).toBeTruthy())
     fireEvent.click(startButton() as HTMLElement)
     await waitFor(()=>expect(screen.queryByTestId('session-value-heart_rate')).not.toBeInTheDocument())
-    expect(within(liveSection()).getByText(/No readings yet/i)).toBeInTheDocument()
+    // Sprint 16 replaced this wording with the requested retry message, which now
+    // also appears in the empty state (it previously existed only on the
+    // "available" card). The intent of the assertion is unchanged: a fresh run
+    // must not carry the previous run's readings.
+    expect(within(liveSection()).getByText(/Not enough reliable readings/i)).toBeInTheDocument()
   })
 })
