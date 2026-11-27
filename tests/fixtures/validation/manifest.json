@@ -1,0 +1,21 @@
+{
+  "note": "SYNTHETIC test fixtures. Not data. Not validation. See README.md.",
+  "synthetic": true,
+  "generated_by": "tests/fixtures/generate_validation_fixtures.py",
+  "design": {
+    "window_s": 10.0,
+    "step_s": 0.5,
+    "duration_s": 60.0,
+    "reference_ramp_bpm": [
+      62.0,
+      78.0
+    ],
+    "rejected_every_nth_window": 5,
+    "summary_json": "synthetic_session_summary_good.json accompanies the good session CSV so the bundle path (readings + summary) is exercised",
+    "oracles": {
+      "good": "small alternating error, MAE ~1 BPM",
+      "biased": "constant +8 BPM offset: excellent correlation, poor accuracy",
+      "drifting": "-6 to +6 BPM ramp: averaging should not help"
+    }
+  }
+}

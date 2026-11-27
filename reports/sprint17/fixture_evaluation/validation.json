@@ -1,0 +1,2091 @@
+{
+  "schema": "rsbvp.validation-results.v1",
+  "protocol_version": "sprint17-1",
+  "created_utc": "2026-11-27T02:23:36Z",
+  "input_is_synthetic": true,
+  "inputs": {
+    "session_source": "tests/fixtures/validation/synthetic_session_summary_good.json + tests/fixtures/validation/synthetic_session_good.csv",
+    "session_id": "synthetic-fixture-demo",
+    "reference_source": "synthetic_reference_intervals.csv",
+    "reference_layout": "intervals",
+    "reference_span_s": [
+      0.0,
+      60.0
+    ],
+    "acquisition": {
+      "backend": "synthetic-fixture",
+      "algorithms": [
+        "GREEN",
+        "POS",
+        "CHROM"
+      ],
+      "rois": [
+        "forehead",
+        "left_cheek",
+        "right_cheek"
+      ]
+    },
+    "stratum": "synthetic fixture, no participant",
+    "notes": null
+  },
+  "validation": {
+    "findings": [
+      {
+        "severity": "info",
+        "code": "alignment_summary",
+        "message": "81 of 81 evaluable window(s) paired (100%)",
+        "count": 81
+      }
+    ],
+    "summary": {
+      "worst": "info",
+      "by_severity": {
+        "info": 1,
+        "warn": 0,
+        "reject": 0
+      },
+      "by_code": {
+        "alignment_summary": 1
+      }
+    },
+    "session_findings": [],
+    "reference_findings": []
+  },
+  "sync": {
+    "settings": {
+      "time_base": "capture_start",
+      "offset_s": 0.0,
+      "min_overlap_fraction": 0.5,
+      "min_window_duration_s": 4.0,
+      "evaluate_from_s": null,
+      "evaluate_to_s": null,
+      "max_reference_variation_fraction": 0.25
+    },
+    "offset_provenance": "reference_clock_s = window_start_s + (+0.000 s); time base declared as capture_start; reference evaluated over [0.000, 60.000] s",
+    "coverage": {
+      "windows_considered": 81,
+      "windows_paired": 81,
+      "windows_unmatched_no_reference": 0,
+      "windows_excluded": 0,
+      "coverage_fraction": 1.0
+    },
+    "unmatched": [],
+    "unmatched_truncated": false,
+    "excluded": [],
+    "excluded_truncated": false
+  },
+  "metrics": {
+    "n_paired_observations": 81,
+    "evaluation_available": true,
+    "reason": "",
+    "headline_series": {
+      "label": "Consensus \u00b7 all regions",
+      "algorithm": "consensus",
+      "roi": "all",
+      "available": true,
+      "reason": "",
+      "n_pairs": 81,
+      "agreement": {
+        "available": true,
+        "n_pairs": 81,
+        "mae_bpm": 0.7592549382716057,
+        "rmse_bpm": 0.8443684634128482,
+        "bias_bpm": 0.31481419753086337,
+        "median_absolute_error_bpm": 0.5002999999999957,
+        "error_sd_bpm": 0.7883674584717222,
+        "error_p05_bpm": -1.0002999999999957,
+        "error_p50_bpm": 0.4999999999999858,
+        "error_p95_bpm": 1.5000499999999874,
+        "mae_ci95_bpm": [
+          0.6790343364197545,
+          0.8456580555555561
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -1.230386021073712,
+        "loa_upper_bpm": 1.8600144161354388,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 81,
+        "pearson_r": 0.9800603367440912,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.6666
+        ],
+        "estimate_range_bpm": [
+          63.0,
+          77.9
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 81,
+        "windows_paired": 81,
+        "independent_windows": 6,
+        "acceptance_rate": 0.801980198019802,
+        "rejection_rate": 0.19801980198019797,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    "error_by_window": {
+      "available": true,
+      "n_pairs": 81,
+      "mae_bpm": 0.7592549382716057,
+      "rmse_bpm": 0.8443684634128482,
+      "bias_bpm": 0.31481419753086337,
+      "median_absolute_error_bpm": 0.5002999999999957,
+      "error_sd_bpm": 0.7883674584717222,
+      "error_p05_bpm": -1.0002999999999957,
+      "error_p50_bpm": 0.4999999999999858,
+      "error_p95_bpm": 1.5000499999999874,
+      "mae_ci95_bpm": [
+        0.6790343364197545,
+        0.8456580555555561
+      ],
+      "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+      "loa_lower_bpm": -1.230386021073712,
+      "loa_upper_bpm": 1.8600144161354388,
+      "fraction_within_loa": 1.0,
+      "within_3_bpm_fraction": 1.0,
+      "within_5_bpm_fraction": 1.0
+    },
+    "per_estimator_series": [
+      {
+        "label": "CHROM \u00b7 forehead",
+        "algorithm": "chrom",
+        "roi": "forehead",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 2.085522222222219,
+          "rmse_bpm": 2.227835131833057,
+          "bias_bpm": -2.085522222222219,
+          "median_absolute_error_bpm": 1.900350000000003,
+          "error_sd_bpm": 0.798408362635086,
+          "error_p05_bpm": -3.4003350000000006,
+          "error_p50_bpm": -1.900350000000003,
+          "error_p95_bpm": -0.9003149999999976,
+          "mae_ci95_bpm": [
+            1.7892369444444396,
+            2.3818130092592558
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": -3.650402612986987,
+          "loa_upper_bpm": -0.5206418314574506,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 0.7777777777777778,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.9795212209991765,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            61.833,
+            74.233
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "CHROM \u00b7 left cheek",
+        "algorithm": "chrom",
+        "roi": "left_cheek",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 2.085522222222219,
+          "rmse_bpm": 2.227835131833057,
+          "bias_bpm": -2.085522222222219,
+          "median_absolute_error_bpm": 1.900350000000003,
+          "error_sd_bpm": 0.798408362635086,
+          "error_p05_bpm": -3.4003350000000006,
+          "error_p50_bpm": -1.900350000000003,
+          "error_p95_bpm": -0.9003149999999976,
+          "mae_ci95_bpm": [
+            1.7892369444444396,
+            2.3818130092592558
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": -3.650402612986987,
+          "loa_upper_bpm": -0.5206418314574506,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 0.7777777777777778,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.9795212209991765,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            61.833,
+            74.233
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "CHROM \u00b7 right cheek",
+        "algorithm": "chrom",
+        "roi": "right_cheek",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 2.085522222222219,
+          "rmse_bpm": 2.227835131833057,
+          "bias_bpm": -2.085522222222219,
+          "median_absolute_error_bpm": 1.900350000000003,
+          "error_sd_bpm": 0.798408362635086,
+          "error_p05_bpm": -3.4003350000000006,
+          "error_p50_bpm": -1.900350000000003,
+          "error_p95_bpm": -0.9003149999999976,
+          "mae_ci95_bpm": [
+            1.7892369444444396,
+            2.3818130092592558
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": -3.650402612986987,
+          "loa_upper_bpm": -0.5206418314574506,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 0.7777777777777778,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.9795212209991765,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            61.833,
+            74.233
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "GREEN \u00b7 forehead",
+        "algorithm": "green",
+        "roi": "forehead",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 0.7590666666666698,
+          "rmse_bpm": 0.8442409063549141,
+          "bias_bpm": 0.3144777777777803,
+          "median_absolute_error_bpm": 0.49970000000000425,
+          "error_sd_bpm": 0.7984083626350886,
+          "error_p05_bpm": -1.0003350000000069,
+          "error_p50_bpm": 0.4996500000000026,
+          "error_p95_bpm": 1.4996850000000037,
+          "mae_ci95_bpm": [
+            0.6294073611111153,
+            0.9071765277777804
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": -1.2504026129869934,
+          "loa_upper_bpm": 1.879358168542554,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.9795212209991767,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            64.233,
+            76.633
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "GREEN \u00b7 left cheek",
+        "algorithm": "green",
+        "roi": "left_cheek",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 0.7590666666666698,
+          "rmse_bpm": 0.8442409063549141,
+          "bias_bpm": 0.3144777777777803,
+          "median_absolute_error_bpm": 0.49970000000000425,
+          "error_sd_bpm": 0.7984083626350886,
+          "error_p05_bpm": -1.0003350000000069,
+          "error_p50_bpm": 0.4996500000000026,
+          "error_p95_bpm": 1.4996850000000037,
+          "mae_ci95_bpm": [
+            0.6294073611111153,
+            0.9071765277777804
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": -1.2504026129869934,
+          "loa_upper_bpm": 1.879358168542554,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.9795212209991767,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            64.233,
+            76.633
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "GREEN \u00b7 right cheek",
+        "algorithm": "green",
+        "roi": "right_cheek",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 0.7590666666666698,
+          "rmse_bpm": 0.8442409063549141,
+          "bias_bpm": 0.3144777777777803,
+          "median_absolute_error_bpm": 0.49970000000000425,
+          "error_sd_bpm": 0.7984083626350886,
+          "error_p05_bpm": -1.0003350000000069,
+          "error_p50_bpm": 0.4996500000000026,
+          "error_p95_bpm": 1.4996850000000037,
+          "mae_ci95_bpm": [
+            0.6294073611111153,
+            0.9071765277777804
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": -1.2504026129869934,
+          "loa_upper_bpm": 1.879358168542554,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 1.0,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.9795212209991767,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            64.233,
+            76.633
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "POS \u00b7 forehead",
+        "algorithm": "pos",
+        "roi": "forehead",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 2.01447777777778,
+          "rmse_bpm": 2.1614733753639936,
+          "bias_bpm": 2.01447777777778,
+          "median_absolute_error_bpm": 2.1996500000000054,
+          "error_sd_bpm": 0.7984083626350872,
+          "error_p05_bpm": 0.699664999999996,
+          "error_p50_bpm": 2.1996500000000054,
+          "error_p95_bpm": 3.1996849999999966,
+          "mae_ci95_bpm": [
+            1.7181869907407425,
+            2.310763055555559
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": 0.449597387013009,
+          "loa_upper_bpm": 3.5793581685425506,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 0.8518518518518519,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.979521220999177,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            65.933,
+            78.333
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "POS \u00b7 left cheek",
+        "algorithm": "pos",
+        "roi": "left_cheek",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 2.01447777777778,
+          "rmse_bpm": 2.1614733753639936,
+          "bias_bpm": 2.01447777777778,
+          "median_absolute_error_bpm": 2.1996500000000054,
+          "error_sd_bpm": 0.7984083626350872,
+          "error_p05_bpm": 0.699664999999996,
+          "error_p50_bpm": 2.1996500000000054,
+          "error_p95_bpm": 3.1996849999999966,
+          "mae_ci95_bpm": [
+            1.7181869907407425,
+            2.310763055555559
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": 0.449597387013009,
+          "loa_upper_bpm": 3.5793581685425506,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 0.8518518518518519,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.979521220999177,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            65.933,
+            78.333
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      },
+      {
+        "label": "POS \u00b7 right cheek",
+        "algorithm": "pos",
+        "roi": "right_cheek",
+        "available": true,
+        "reason": "",
+        "n_pairs": 27,
+        "agreement": {
+          "available": true,
+          "n_pairs": 27,
+          "mae_bpm": 2.01447777777778,
+          "rmse_bpm": 2.1614733753639936,
+          "bias_bpm": 2.01447777777778,
+          "median_absolute_error_bpm": 2.1996500000000054,
+          "error_sd_bpm": 0.7984083626350872,
+          "error_p05_bpm": 0.699664999999996,
+          "error_p50_bpm": 2.1996500000000054,
+          "error_p95_bpm": 3.1996849999999966,
+          "mae_ci95_bpm": [
+            1.7181869907407425,
+            2.310763055555559
+          ],
+          "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+          "loa_lower_bpm": 0.449597387013009,
+          "loa_upper_bpm": 3.5793581685425506,
+          "fraction_within_loa": 1.0,
+          "within_3_bpm_fraction": 0.8518518518518519,
+          "within_5_bpm_fraction": 1.0
+        },
+        "correlation": {
+          "available": true,
+          "n_pairs": 27,
+          "pearson_r": 0.979521220999177,
+          "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+          "reference_range_bpm": [
+            63.333400000000005,
+            76.1334
+          ],
+          "estimate_range_bpm": [
+            65.933,
+            78.333
+          ]
+        },
+        "coverage": {
+          "windows_considered": 101,
+          "windows_accepted": 27,
+          "windows_paired": 27,
+          "independent_windows": 5,
+          "acceptance_rate": 0.26732673267326734,
+          "rejection_rate": 0.7326732673267327,
+          "paired_fraction_of_accepted": 1.0,
+          "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+        }
+      }
+    ],
+    "session_aggregation": {
+      "available": true,
+      "reason": "",
+      "n_windows": 81,
+      "n_independent_windows": 6,
+      "individual_windows": {
+        "available": true,
+        "n_pairs": 81,
+        "mae_bpm": 0.7592549382716057,
+        "rmse_bpm": 0.8443684634128482,
+        "bias_bpm": 0.31481419753086337,
+        "median_absolute_error_bpm": 0.5002999999999957,
+        "error_sd_bpm": 0.7883674584717222,
+        "error_p05_bpm": -1.0002999999999957,
+        "error_p50_bpm": 0.4999999999999858,
+        "error_p95_bpm": 1.5000499999999874,
+        "mae_ci95_bpm": [
+          0.6790343364197545,
+          0.8456580555555561
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -1.230386021073712,
+        "loa_upper_bpm": 1.8600144161354388,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "outlier_detection": {
+        "available": true,
+        "n": 81,
+        "median_error_bpm": 0.4999999999999858,
+        "robust_sd_bpm": 0.0005189100000172259,
+        "sd_threshold": 2.5,
+        "min_deviation_bpm": 6.0,
+        "outlier_ids": [],
+        "outlier_errors_bpm": [],
+        "n_flagged": 0,
+        "removed": false,
+        "note": "Flagged windows are disclosed, not removed. The session statistics below include every accepted window; the median is reported beside the mean because it is not pulled by a single unusual window."
+      },
+      "session_mean": {
+        "estimate_bpm": 70.26543209876543,
+        "reference_bpm": 69.95061790123457,
+        "error_bpm": 0.3148141975308647,
+        "abs_error_bpm": 0.3148141975308647,
+        "n": 1,
+        "note": "One session-level observation. No interval is reported: with a single session there is nothing to estimate one from.",
+        "flagged_outlier_ids": [],
+        "outliers_retained": true,
+        "outlier_detection": {
+          "available": true,
+          "n": 81,
+          "median_error_bpm": 0.4999999999999858,
+          "robust_sd_bpm": 0.0005189100000172259,
+          "sd_threshold": 2.5,
+          "min_deviation_bpm": 6.0,
+          "outlier_ids": [],
+          "outlier_errors_bpm": [],
+          "n_flagged": 0,
+          "removed": false,
+          "note": "Flagged windows are disclosed, not removed. The session statistics below include every accepted window; the median is reported beside the mean because it is not pulled by a single unusual window."
+        }
+      },
+      "session_median": {
+        "estimate_bpm": 70.233,
+        "reference_bpm": 69.95061790123457,
+        "error_bpm": 0.2823820987654386,
+        "abs_error_bpm": 0.2823820987654386,
+        "n": 1,
+        "note": "Reported beside the mean because it is not pulled by a single unusual window. Neither is more 'correct'; they answer different questions."
+      },
+      "comparison": {
+        "individual_mae_bpm": 0.7592549382716057,
+        "individual_error_p95_bpm": 1.5000499999999874,
+        "session_mean_abs_error_bpm": 0.3148141975308647,
+        "session_median_abs_error_bpm": 0.2823820987654386,
+        "averaging_improves_point_estimate": true,
+        "verdict": "averaging_helped",
+        "explanation": "The session mean is 0.4 BPM closer to the reference than the average individual window. That is consistent with zero-mean window noise being reduced by averaging; it is not evidence of accuracy beyond this recording. The error changes by -0.1 BPM across the session (slope -0.002 BPM/s). The session mean gives every accepted window equal weight, so a stretch analysed more often contributes more; with a drifting error the mean inherits that stretch's bias rather than describing the whole interval.",
+        "reference_weighting": "duration-weighted mean of matched reference values",
+        "drift": {
+          "available": true,
+          "n": 81,
+          "slope_bpm_per_s": -0.002458675437469182,
+          "change_over_span_bpm": -0.1229337718734591,
+          "intercept_bpm": 0.375825773201395,
+          "note": "A non-zero slope means the error is not stationary, so the session mean describes no single part of the recording well."
+        }
+      }
+    }
+  },
+  "methods": [
+    {
+      "label": "Consensus \u00b7 all regions",
+      "algorithm": "consensus",
+      "roi": "all",
+      "available": true,
+      "reason": "",
+      "n_pairs": 81,
+      "agreement": {
+        "available": true,
+        "n_pairs": 81,
+        "mae_bpm": 0.7592549382716057,
+        "rmse_bpm": 0.8443684634128482,
+        "bias_bpm": 0.31481419753086337,
+        "median_absolute_error_bpm": 0.5002999999999957,
+        "error_sd_bpm": 0.7883674584717222,
+        "error_p05_bpm": -1.0002999999999957,
+        "error_p50_bpm": 0.4999999999999858,
+        "error_p95_bpm": 1.5000499999999874,
+        "mae_ci95_bpm": [
+          0.6790343364197545,
+          0.8456580555555561
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -1.230386021073712,
+        "loa_upper_bpm": 1.8600144161354388,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 81,
+        "pearson_r": 0.9800603367440912,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.6666
+        ],
+        "estimate_range_bpm": [
+          63.0,
+          77.9
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 81,
+        "windows_paired": 81,
+        "independent_windows": 6,
+        "acceptance_rate": 0.801980198019802,
+        "rejection_rate": 0.19801980198019797,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "CHROM \u00b7 forehead",
+      "algorithm": "chrom",
+      "roi": "forehead",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 2.085522222222219,
+        "rmse_bpm": 2.227835131833057,
+        "bias_bpm": -2.085522222222219,
+        "median_absolute_error_bpm": 1.900350000000003,
+        "error_sd_bpm": 0.798408362635086,
+        "error_p05_bpm": -3.4003350000000006,
+        "error_p50_bpm": -1.900350000000003,
+        "error_p95_bpm": -0.9003149999999976,
+        "mae_ci95_bpm": [
+          1.7892369444444396,
+          2.3818130092592558
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -3.650402612986987,
+        "loa_upper_bpm": -0.5206418314574506,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 0.7777777777777778,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.9795212209991765,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          61.833,
+          74.233
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "CHROM \u00b7 left cheek",
+      "algorithm": "chrom",
+      "roi": "left_cheek",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 2.085522222222219,
+        "rmse_bpm": 2.227835131833057,
+        "bias_bpm": -2.085522222222219,
+        "median_absolute_error_bpm": 1.900350000000003,
+        "error_sd_bpm": 0.798408362635086,
+        "error_p05_bpm": -3.4003350000000006,
+        "error_p50_bpm": -1.900350000000003,
+        "error_p95_bpm": -0.9003149999999976,
+        "mae_ci95_bpm": [
+          1.7892369444444396,
+          2.3818130092592558
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -3.650402612986987,
+        "loa_upper_bpm": -0.5206418314574506,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 0.7777777777777778,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.9795212209991765,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          61.833,
+          74.233
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "CHROM \u00b7 right cheek",
+      "algorithm": "chrom",
+      "roi": "right_cheek",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 2.085522222222219,
+        "rmse_bpm": 2.227835131833057,
+        "bias_bpm": -2.085522222222219,
+        "median_absolute_error_bpm": 1.900350000000003,
+        "error_sd_bpm": 0.798408362635086,
+        "error_p05_bpm": -3.4003350000000006,
+        "error_p50_bpm": -1.900350000000003,
+        "error_p95_bpm": -0.9003149999999976,
+        "mae_ci95_bpm": [
+          1.7892369444444396,
+          2.3818130092592558
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -3.650402612986987,
+        "loa_upper_bpm": -0.5206418314574506,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 0.7777777777777778,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.9795212209991765,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          61.833,
+          74.233
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "GREEN \u00b7 forehead",
+      "algorithm": "green",
+      "roi": "forehead",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 0.7590666666666698,
+        "rmse_bpm": 0.8442409063549141,
+        "bias_bpm": 0.3144777777777803,
+        "median_absolute_error_bpm": 0.49970000000000425,
+        "error_sd_bpm": 0.7984083626350886,
+        "error_p05_bpm": -1.0003350000000069,
+        "error_p50_bpm": 0.4996500000000026,
+        "error_p95_bpm": 1.4996850000000037,
+        "mae_ci95_bpm": [
+          0.6294073611111153,
+          0.9071765277777804
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -1.2504026129869934,
+        "loa_upper_bpm": 1.879358168542554,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.9795212209991767,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          64.233,
+          76.633
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "GREEN \u00b7 left cheek",
+      "algorithm": "green",
+      "roi": "left_cheek",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 0.7590666666666698,
+        "rmse_bpm": 0.8442409063549141,
+        "bias_bpm": 0.3144777777777803,
+        "median_absolute_error_bpm": 0.49970000000000425,
+        "error_sd_bpm": 0.7984083626350886,
+        "error_p05_bpm": -1.0003350000000069,
+        "error_p50_bpm": 0.4996500000000026,
+        "error_p95_bpm": 1.4996850000000037,
+        "mae_ci95_bpm": [
+          0.6294073611111153,
+          0.9071765277777804
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -1.2504026129869934,
+        "loa_upper_bpm": 1.879358168542554,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.9795212209991767,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          64.233,
+          76.633
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "GREEN \u00b7 right cheek",
+      "algorithm": "green",
+      "roi": "right_cheek",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 0.7590666666666698,
+        "rmse_bpm": 0.8442409063549141,
+        "bias_bpm": 0.3144777777777803,
+        "median_absolute_error_bpm": 0.49970000000000425,
+        "error_sd_bpm": 0.7984083626350886,
+        "error_p05_bpm": -1.0003350000000069,
+        "error_p50_bpm": 0.4996500000000026,
+        "error_p95_bpm": 1.4996850000000037,
+        "mae_ci95_bpm": [
+          0.6294073611111153,
+          0.9071765277777804
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": -1.2504026129869934,
+        "loa_upper_bpm": 1.879358168542554,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 1.0,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.9795212209991767,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          64.233,
+          76.633
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "POS \u00b7 forehead",
+      "algorithm": "pos",
+      "roi": "forehead",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 2.01447777777778,
+        "rmse_bpm": 2.1614733753639936,
+        "bias_bpm": 2.01447777777778,
+        "median_absolute_error_bpm": 2.1996500000000054,
+        "error_sd_bpm": 0.7984083626350872,
+        "error_p05_bpm": 0.699664999999996,
+        "error_p50_bpm": 2.1996500000000054,
+        "error_p95_bpm": 3.1996849999999966,
+        "mae_ci95_bpm": [
+          1.7181869907407425,
+          2.310763055555559
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": 0.449597387013009,
+        "loa_upper_bpm": 3.5793581685425506,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 0.8518518518518519,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.979521220999177,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          65.933,
+          78.333
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "POS \u00b7 left cheek",
+      "algorithm": "pos",
+      "roi": "left_cheek",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 2.01447777777778,
+        "rmse_bpm": 2.1614733753639936,
+        "bias_bpm": 2.01447777777778,
+        "median_absolute_error_bpm": 2.1996500000000054,
+        "error_sd_bpm": 0.7984083626350872,
+        "error_p05_bpm": 0.699664999999996,
+        "error_p50_bpm": 2.1996500000000054,
+        "error_p95_bpm": 3.1996849999999966,
+        "mae_ci95_bpm": [
+          1.7181869907407425,
+          2.310763055555559
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": 0.449597387013009,
+        "loa_upper_bpm": 3.5793581685425506,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 0.8518518518518519,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.979521220999177,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          65.933,
+          78.333
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    },
+    {
+      "label": "POS \u00b7 right cheek",
+      "algorithm": "pos",
+      "roi": "right_cheek",
+      "available": true,
+      "reason": "",
+      "n_pairs": 27,
+      "agreement": {
+        "available": true,
+        "n_pairs": 27,
+        "mae_bpm": 2.01447777777778,
+        "rmse_bpm": 2.1614733753639936,
+        "bias_bpm": 2.01447777777778,
+        "median_absolute_error_bpm": 2.1996500000000054,
+        "error_sd_bpm": 0.7984083626350872,
+        "error_p05_bpm": 0.699664999999996,
+        "error_p50_bpm": 2.1996500000000054,
+        "error_p95_bpm": 3.1996849999999966,
+        "mae_ci95_bpm": [
+          1.7181869907407425,
+          2.310763055555559
+        ],
+        "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+        "loa_lower_bpm": 0.449597387013009,
+        "loa_upper_bpm": 3.5793581685425506,
+        "fraction_within_loa": 1.0,
+        "within_3_bpm_fraction": 0.8518518518518519,
+        "within_5_bpm_fraction": 1.0
+      },
+      "correlation": {
+        "available": true,
+        "n_pairs": 27,
+        "pearson_r": 0.979521220999177,
+        "interpretation": "Correlation only. It measures whether the two series move together and is invariant to scale and offset: an estimate that reads consistently high still correlates almost perfectly. It is not agreement and not accuracy.",
+        "reference_range_bpm": [
+          63.333400000000005,
+          76.1334
+        ],
+        "estimate_range_bpm": [
+          65.933,
+          78.333
+        ]
+      },
+      "coverage": {
+        "windows_considered": 101,
+        "windows_accepted": 27,
+        "windows_paired": 27,
+        "independent_windows": 5,
+        "acceptance_rate": 0.26732673267326734,
+        "rejection_rate": 0.7326732673267327,
+        "paired_fraction_of_accepted": 1.0,
+        "note": "Coverage is reported with every accuracy figure: a small MAE over few paired windows describes only those windows."
+      }
+    }
+  ],
+  "comparison": {
+    "comparisons": [
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "CHROM \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.085522222222219,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.085522222222219,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "CHROM \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.085522222222219,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.085522222222219,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "Consensus \u00b7 all regions",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 54,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7592549382716057,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "GREEN \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "GREEN \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "GREEN \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "POS \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 forehead",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "CHROM \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.085522222222219,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.085522222222219,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "Consensus \u00b7 all regions",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 54,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7592549382716057,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "GREEN \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "GREEN \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "GREEN \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "POS \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 left cheek",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 right cheek",
+        "right": "Consensus \u00b7 all regions",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 54,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7592549382716057,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 right cheek",
+        "right": "GREEN \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 right cheek",
+        "right": "GREEN \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 right cheek",
+        "right": "GREEN \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 right cheek",
+        "right": "POS \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 right cheek",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "CHROM \u00b7 right cheek",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.085522222222219,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.085522222222219,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "Consensus \u00b7 all regions",
+        "right": "GREEN \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 54,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7592549382716057,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "Consensus \u00b7 all regions",
+        "right": "GREEN \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 54,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7592549382716057,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "Consensus \u00b7 all regions",
+        "right": "GREEN \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 54,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7592549382716057,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "Consensus \u00b7 all regions",
+        "right": "POS \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 54,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7592549382716057,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "Consensus \u00b7 all regions",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 54,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7592549382716057,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "Consensus \u00b7 all regions",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 54,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7592549382716057,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 forehead",
+        "right": "GREEN \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 forehead",
+        "right": "GREEN \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 forehead",
+        "right": "POS \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 forehead",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 forehead",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 left cheek",
+        "right": "GREEN \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 0.7590666666666698,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 0.7590666666666698,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 left cheek",
+        "right": "POS \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 left cheek",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 left cheek",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 right cheek",
+        "right": "POS \u00b7 forehead",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 right cheek",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "GREEN \u00b7 right cheek",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 0.7590666666666698,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 0.7590666666666698,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "POS \u00b7 forehead",
+        "right": "POS \u00b7 left cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.01447777777778,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.01447777777778,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "POS \u00b7 forehead",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.01447777777778,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.01447777777778,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      },
+      {
+        "left": "POS \u00b7 left cheek",
+        "right": "POS \u00b7 right cheek",
+        "shared_windows": 27,
+        "left_only_windows": 0,
+        "right_only_windows": 0,
+        "shared_fraction": 1.0,
+        "left_mae_own_subset_bpm": 2.01447777777778,
+        "right_mae_own_subset_bpm": 2.01447777777778,
+        "left_mae_shared_subset_bpm": 2.01447777777778,
+        "right_mae_shared_subset_bpm": 2.01447777777778,
+        "verdict": "comparable",
+        "explanation": "27 shared window(s) (100% of the smaller subset) allow a like-for-like comparison on the shared subset."
+      }
+    ],
+    "min_shared_subset_fraction": 0.7,
+    "note": "Overlapping windows are not independent observations; these are descriptive pooled statistics, not a population estimate."
+  },
+  "session_aggregation": {
+    "available": true,
+    "reason": "",
+    "n_windows": 81,
+    "n_independent_windows": 6,
+    "individual_windows": {
+      "available": true,
+      "n_pairs": 81,
+      "mae_bpm": 0.7592549382716057,
+      "rmse_bpm": 0.8443684634128482,
+      "bias_bpm": 0.31481419753086337,
+      "median_absolute_error_bpm": 0.5002999999999957,
+      "error_sd_bpm": 0.7883674584717222,
+      "error_p05_bpm": -1.0002999999999957,
+      "error_p50_bpm": 0.4999999999999858,
+      "error_p95_bpm": 1.5000499999999874,
+      "mae_ci95_bpm": [
+        0.6790343364197545,
+        0.8456580555555561
+      ],
+      "mae_ci95_note": "resamples the paired windows, which overlap and are not independent, so this interval is optimistic; it is not an interval about RSBVP in general",
+      "loa_lower_bpm": -1.230386021073712,
+      "loa_upper_bpm": 1.8600144161354388,
+      "fraction_within_loa": 1.0,
+      "within_3_bpm_fraction": 1.0,
+      "within_5_bpm_fraction": 1.0
+    },
+    "outlier_detection": {
+      "available": true,
+      "n": 81,
+      "median_error_bpm": 0.4999999999999858,
+      "robust_sd_bpm": 0.0005189100000172259,
+      "sd_threshold": 2.5,
+      "min_deviation_bpm": 6.0,
+      "outlier_ids": [],
+      "outlier_errors_bpm": [],
+      "n_flagged": 0,
+      "removed": false,
+      "note": "Flagged windows are disclosed, not removed. The session statistics below include every accepted window; the median is reported beside the mean because it is not pulled by a single unusual window."
+    },
+    "session_mean": {
+      "estimate_bpm": 70.26543209876543,
+      "reference_bpm": 69.95061790123457,
+      "error_bpm": 0.3148141975308647,
+      "abs_error_bpm": 0.3148141975308647,
+      "n": 1,
+      "note": "One session-level observation. No interval is reported: with a single session there is nothing to estimate one from.",
+      "flagged_outlier_ids": [],
+      "outliers_retained": true,
+      "outlier_detection": {
+        "available": true,
+        "n": 81,
+        "median_error_bpm": 0.4999999999999858,
+        "robust_sd_bpm": 0.0005189100000172259,
+        "sd_threshold": 2.5,
+        "min_deviation_bpm": 6.0,
+        "outlier_ids": [],
+        "outlier_errors_bpm": [],
+        "n_flagged": 0,
+        "removed": false,
+        "note": "Flagged windows are disclosed, not removed. The session statistics below include every accepted window; the median is reported beside the mean because it is not pulled by a single unusual window."
+      }
+    },
+    "session_median": {
+      "estimate_bpm": 70.233,
+      "reference_bpm": 69.95061790123457,
+      "error_bpm": 0.2823820987654386,
+      "abs_error_bpm": 0.2823820987654386,
+      "n": 1,
+      "note": "Reported beside the mean because it is not pulled by a single unusual window. Neither is more 'correct'; they answer different questions."
+    },
+    "comparison": {
+      "individual_mae_bpm": 0.7592549382716057,
+      "individual_error_p95_bpm": 1.5000499999999874,
+      "session_mean_abs_error_bpm": 0.3148141975308647,
+      "session_median_abs_error_bpm": 0.2823820987654386,
+      "averaging_improves_point_estimate": true,
+      "verdict": "averaging_helped",
+      "explanation": "The session mean is 0.4 BPM closer to the reference than the average individual window. That is consistent with zero-mean window noise being reduced by averaging; it is not evidence of accuracy beyond this recording. The error changes by -0.1 BPM across the session (slope -0.002 BPM/s). The session mean gives every accepted window equal weight, so a stretch analysed more often contributes more; with a drifting error the mean inherits that stretch's bias rather than describing the whole interval.",
+      "reference_weighting": "duration-weighted mean of matched reference values",
+      "drift": {
+        "available": true,
+        "n": 81,
+        "slope_bpm_per_s": -0.002458675437469182,
+        "change_over_span_bpm": -0.1229337718734591,
+        "intercept_bpm": 0.375825773201395,
+        "note": "A non-zero slope means the error is not stationary, so the session mean describes no single part of the recording well."
+      }
+    }
+  },
+  "coverage": {
+    "windows_recorded": 101,
+    "windows_accepted": 81,
+    "windows_rejected": 20,
+    "windows_paired": 81,
+    "windows_unmatched": 0,
+    "windows_excluded_from_alignment": 0,
+    "independent_windows_paired": 6,
+    "acceptance_rate": 0.801980198019802,
+    "acceptance_band": "good",
+    "density_ratio": 1.0769230769230769,
+    "density_note": "Reported only. Uneven density means the session mean weights the most analysed stretch most; it never alters a statistic here.",
+    "evaluation_adequacy": {
+      "min_accepted_readings_required": 5,
+      "min_independent_windows_required": 2,
+      "accepted_readings_sufficient": true,
+      "independent_windows_sufficient": true
+    }
+  },
+  "stratification": {
+    "available": true,
+    "note": "Stratification uses only metadata supplied alongside the reference. Nothing is inferred from the estimates, and absent metadata is labelled unknown.",
+    "condition": {
+      "still_indoor": {
+        "n": 81,
+        "mae_bpm": 0.7592549382716057,
+        "bias_bpm": 0.31481419753086337,
+        "available": true
+      }
+    },
+    "device": {
+      "SYNTHETIC-ref": {
+        "n": 81,
+        "mae_bpm": 0.7592549382716057,
+        "bias_bpm": 0.31481419753086337,
+        "available": true
+      }
+    },
+    "participant": {
+      "unknown": {
+        "n": 81,
+        "mae_bpm": null
+      }
+    }
+  },
+  "findings": [
+    {
+      "severity": "info",
+      "code": "alignment_summary",
+      "message": "81 of 81 evaluable window(s) paired (100%)",
+      "count": 81
+    }
+  ],
+  "limitations": [
+    "Overlapping analysis windows are autocorrelated, so pooled per-window statistics are descriptive of these recordings and are not a population estimate.",
+    "A pooled bootstrap interval resamples windows and is therefore optimistic; only a participant-level resample generalises, and that needs more than one participant.",
+    "Correlation is not agreement and not accuracy. An estimator with a fixed offset can correlate almost perfectly and still be wrong by that offset on every window.",
+    "Agreement with a reference is not clinical validation. These are estimates from consumer cameras compared with another measurement device, not diagnoses.",
+    "Coverage limits every accuracy figure: methods that produce fewer estimates are scored on a smaller, self-selected part of the session unless the shared-subset comparison says otherwise.",
+    "A session average reduces zero-mean window noise only. Correlated error, drift and a changing reference are not reduced by averaging and can make a session mean worse than a typical window.",
+    "No HRV, blood pressure, oxygen saturation or hemoglobin quantity can be inferred from these evaluations; none is computed here."
+  ],
+  "reproducibility": {
+    "protocol_version": "sprint17-1",
+    "deterministic": true,
+    "random_sources": [
+      "bootstrap MAE interval (seeded)"
+    ],
+    "bootstrap_seed": 20261127,
+    "input_digests": {
+      "readings_csv": "65ccb09dbffa24be34926f904ae226573b779784c9cfa195d1e3d88ac6eedf44",
+      "summary_json": "1b1c54c74d5e941f7911cca7dc451b8093741e2c7dfa46ad261d8e36e42846d8",
+      "reference_csv": "70033a8adcdc7d576b64608c76e1d4343d4976f56db0d2fc28edc14c148e9bca"
+    },
+    "reproduce_with": "research.validation.evaluate_session(readings_csv=..., summary_json=..., reference_csv=..., sync=SyncConfig(**sync_settings))",
+    "sync_settings": {
+      "time_base": "capture_start",
+      "offset_s": 0.0,
+      "min_overlap_fraction": 0.5,
+      "min_window_duration_s": 4.0,
+      "evaluate_from_s": null,
+      "evaluate_to_s": null,
+      "max_reference_variation_fraction": 0.25
+    },
+    "python": "3.11.2",
+    "numpy": "2.4.6"
+  }
+}
