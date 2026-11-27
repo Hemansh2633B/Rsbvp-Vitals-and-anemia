@@ -227,3 +227,141 @@
     width: 100%;
   }
 }
+
+/* Sprint 16: mobile-first session result.
+   The headline number is the one thing a user came for, so it gets the largest
+   type on the page and everything technical is behind a toggle. Sizes clamp so
+   the number stays readable on a small Android screen without overflowing it. */
+.session-result .session-metric.is-available .session-value {
+  font-size: clamp(2.75rem, 13vw, 4.25rem);
+  line-height: 1.02;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  margin: 0.15em 0 0.1em;
+}
+
+.session-result .session-metric-head {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.session-result .session-unit {
+  font-size: 0.32em;
+  font-weight: 600;
+  margin-left: 0.3em;
+  vertical-align: baseline;
+  opacity: 0.75;
+}
+
+/* The three supporting figures: median, range, accepted count. */
+.session-secondary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.session-secondary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border, #d8dee6);
+  border-radius: 0.6rem;
+  background: var(--surface-muted, #f7f9fc);
+}
+
+.session-secondary-value {
+  font-size: 1.15rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Warnings are informational, not errors: they must be noticed but not alarming. */
+.variability-warning {
+  margin: 0.85rem 0;
+  padding: 0.8rem 0.9rem;
+  border-left: 4px solid var(--warn, #b6862c);
+  border-radius: 0.4rem;
+  background: var(--warn-bg, #fdf6e6);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.duplicate-note,
+.outlier-note {
+  margin: 0.4rem 0;
+}
+
+/* Individual-reading table: the provenance columns are narrow by nature, so the
+   wrapper scrolls rather than forcing the page wide. Horizontal page overflow is
+   the failure mode this avoids. */
+.readings-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 0.6rem;
+}
+
+.readings-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.readings-table th,
+.readings-table td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border, #e3e8ee);
+  white-space: nowrap;
+}
+
+.readings-table tr.rejected td {
+  color: var(--muted, #6b7784);
+}
+
+.readings-table tr.duplicate td {
+  color: var(--muted, #6b7784);
+  font-style: italic;
+}
+
+.readings-table tr.accepted td:first-child {
+  border-left: 3px solid var(--ok, #2e7d4f);
+}
+
+.row-flag {
+  color: var(--warn, #b6862c);
+  font-weight: 700;
+}
+
+/* Touch targets: a thumb needs ~44 px. */
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.session-actions button,
+.live-controls button {
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 480px) {
+  .session-result .session-metric.is-available .session-value {
+    font-size: clamp(3rem, 17vw, 4rem);
+  }
+  .session-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .session-secondary > div:last-child {
+    grid-column: 1 / -1;
+  }
+  .session-actions button {
+    flex: 1 1 100%;
+  }
+  .readings-table {
+    font-size: 0.8rem;
+  }
+}

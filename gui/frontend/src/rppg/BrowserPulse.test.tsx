@@ -5,11 +5,11 @@ vi.mock('@mediapipe/tasks-vision',()=>({FaceLandmarker:{createFromOptions:vi.fn(
 class MockWorker{static latest:MockWorker;onmessage:any=null;onerror:any=null;constructor(){MockWorker.latest=this}postMessage=vi.fn();terminate=vi.fn()}
 beforeEach(()=>{vi.stubGlobal('Worker',MockWorker);vi.stubGlobal('requestAnimationFrame',vi.fn(()=>1));vi.stubGlobal('cancelAnimationFrame',vi.fn());Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:vi.fn(),enumerateDevices:vi.fn().mockResolvedValue([])}});Object.defineProperty(HTMLMediaElement.prototype,'play',{configurable:true,value:vi.fn().mockResolvedValue(undefined)})})
 describe('browser camera lifecycle',()=>{
- it('reports denied permission and exposes no estimate',async()=>{vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(new DOMException('denied','NotAllowedError'));render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}));expect(await screen.findByRole('alert')).toHaveTextContent(/denied/i);expect(screen.getByText('Unavailable')).toBeInTheDocument()})
- it('reports missing camera hardware distinctly',async()=>{vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(new DOMException('Requested device not found','NotFoundError'));render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}));expect(await screen.findByRole('alert')).toHaveTextContent(/NotFoundError/i)})
- it('reports lost face tracking without a stale BPM',async()=>{let callback:FrameRequestCallback|undefined;vi.stubGlobal('requestAnimationFrame',vi.fn((cb:FrameRequestCallback)=>{callback=cb;return 2}));Object.defineProperties(HTMLVideoElement.prototype,{readyState:{configurable:true,get:()=>2},videoWidth:{configurable:true,get:()=>640},videoHeight:{configurable:true,get:()=>480}});vi.spyOn(HTMLCanvasElement.prototype,'getContext').mockReturnValue(canvasContext2d());vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream);render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}));await waitFor(()=>expect(callback).toBeTruthy());act(()=>callback?.(performance.now()+100));expect((await screen.findAllByText('face not detected')).length).toBeGreaterThan(0);expect(screen.getByText('Unavailable')).toBeInTheDocument()})
- it('stops every acquired camera track on stop',async()=>{const stop=vi.fn();const mockStream={getTracks:()=>[{stop}],getVideoTracks:()=>[]};vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce(mockStream as unknown as MediaStream);render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}));await waitFor(()=>expect(screen.getByRole('button',{name:'Stop camera'})).toBeInTheDocument());fireEvent.click(screen.getByRole('button',{name:'Stop camera'}));expect(stop).toHaveBeenCalled();expect(MockWorker.latest.terminate).toHaveBeenCalled()})
- it('invalidates output and stops capture after a DSP worker crash',async()=>{const stop=vi.fn();vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop}],getVideoTracks:()=>[]} as unknown as MediaStream);render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}));await waitFor(()=>expect(MockWorker.latest).toBeTruthy());MockWorker.latest.onerror?.();expect(await screen.findByRole('alert')).toHaveTextContent(/worker crashed/i);expect(stop).toHaveBeenCalled()})
+ it('reports denied permission and exposes no estimate',async()=>{vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(new DOMException('denied','NotAllowedError'));render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}));expect(await screen.findByRole('alert')).toHaveTextContent(/denied/i);expect(screen.getByText('Unavailable')).toBeInTheDocument()})
+ it('reports missing camera hardware distinctly',async()=>{vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(new DOMException('Requested device not found','NotFoundError'));render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}));expect(await screen.findByRole('alert')).toHaveTextContent(/NotFoundError/i)})
+ it('reports lost face tracking without a stale BPM',async()=>{let callback:FrameRequestCallback|undefined;vi.stubGlobal('requestAnimationFrame',vi.fn((cb:FrameRequestCallback)=>{callback=cb;return 2}));Object.defineProperties(HTMLVideoElement.prototype,{readyState:{configurable:true,get:()=>2},videoWidth:{configurable:true,get:()=>640},videoHeight:{configurable:true,get:()=>480}});vi.spyOn(HTMLCanvasElement.prototype,'getContext').mockReturnValue(canvasContext2d());vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream);render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}));await waitFor(()=>expect(callback).toBeTruthy());act(()=>callback?.(performance.now()+100));expect((await screen.findAllByText('face not detected')).length).toBeGreaterThan(0);expect(screen.getByText('Unavailable')).toBeInTheDocument()})
+ it('stops every acquired camera track on stop',async()=>{const stop=vi.fn();const mockStream={getTracks:()=>[{stop}],getVideoTracks:()=>[]};vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce(mockStream as unknown as MediaStream);render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}));await waitFor(()=>expect(screen.getByRole('button',{name:'Finish session'})).toBeInTheDocument());fireEvent.click(screen.getByRole('button',{name:'Finish session'}));expect(stop).toHaveBeenCalled();expect(MockWorker.latest.terminate).toHaveBeenCalled()})
+ it('invalidates output and stops capture after a DSP worker crash',async()=>{const stop=vi.fn();vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop}],getVideoTracks:()=>[]} as unknown as MediaStream);render(<BrowserPulse/>);fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}));await waitFor(()=>expect(MockWorker.latest).toBeTruthy());MockWorker.latest.onerror?.();expect(await screen.findByRole('alert')).toHaveTextContent(/worker crashed/i);expect(stop).toHaveBeenCalled()})
 })
 
 // Complete-enough CanvasRenderingContext2D for the overlay. jsdom has no canvas
@@ -37,7 +37,7 @@ describe('browser camera failure and recovery paths',()=>{
    create.mockResolvedValue({close:vi.fn(),detectForVideo:vi.fn(()=>({faceLandmarks:[]}))} as never)
    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream)
    render(<BrowserPulse/>)
-   fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}))
+   fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}))
    await waitFor(()=>expect(create).toHaveBeenCalledTimes(2))
    expect((create.mock.calls[0][1] as {baseOptions:{delegate:string}}).baseOptions.delegate).toBe('GPU')
    expect((create.mock.calls[1][1] as {baseOptions:{delegate:string}}).baseOptions.delegate).toBe('CPU')
@@ -60,7 +60,7 @@ describe('browser camera failure and recovery paths',()=>{
    vi.mocked(FaceLandmarker.createFromOptions).mockResolvedValueOnce({close:vi.fn(),detectForVideo} as never)
    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream)
    render(<BrowserPulse/>)
-   fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}))
+   fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}))
    await waitFor(()=>expect(callback).toBeTruthy())
    act(()=>{nowSpy.mockReturnValue(t0+100);videoTime=0.03;callback?.(t0+100)})          // face missing
    expect((await screen.findAllByText('face not detected')).length).toBeGreaterThan(0)
@@ -74,8 +74,8 @@ describe('browser camera failure and recovery paths',()=>{
    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:stopTrack}],getVideoTracks:()=>[]} as unknown as MediaStream)
    Object.defineProperty(document,'hidden',{configurable:true,get:()=>true})
    render(<BrowserPulse/>)
-   fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}))
-   await waitFor(()=>expect(screen.getByRole('button',{name:'Stop camera'})).toBeInTheDocument())
+   fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}))
+   await waitFor(()=>expect(screen.getByRole('button',{name:'Finish session'})).toBeInTheDocument())
    act(()=>{document.dispatchEvent(new Event('visibilitychange'))})
    expect(stopTrack).toHaveBeenCalled()
    Object.defineProperty(document,'hidden',{configurable:true,get:()=>false})
@@ -103,8 +103,8 @@ describe('acquisition phase reporting',()=>{
    stubMedia()
    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream)
    render(<BrowserPulse/>)
-   fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}))
-   await waitFor(()=>expect(screen.getByRole('button',{name:'Stop camera'})).toBeInTheDocument())
+   fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}))
+   await waitFor(()=>expect(screen.getByRole('button',{name:'Finish session'})).toBeInTheDocument())
    const chip=document.querySelector('.phase-chip')
    // The camera is open and a window is being collected; it must no longer claim
    // "not started", and it must not claim an estimate is available.
@@ -118,9 +118,9 @@ describe('acquisition phase reporting',()=>{
    stubMedia()
    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({getTracks:()=>[{stop:vi.fn()}],getVideoTracks:()=>[]} as unknown as MediaStream)
    render(<BrowserPulse/>)
-   fireEvent.click(screen.getByRole('button',{name:/^Start camera$/}))
-   await waitFor(()=>expect(screen.getByRole('button',{name:'Stop camera'})).toBeInTheDocument())
-   fireEvent.click(screen.getByRole('button',{name:'Stop camera'}))
+   fireEvent.click(screen.getByRole('button',{name:/^Start measurement$/}))
+   await waitFor(()=>expect(screen.getByRole('button',{name:'Finish session'})).toBeInTheDocument())
+   fireEvent.click(screen.getByRole('button',{name:'Finish session'}))
    expect(screen.getByText('Unavailable')).toBeInTheDocument()
    expect(screen.getByText(/Why unavailable:/)).toBeInTheDocument()
  })
@@ -169,11 +169,11 @@ describe('acquisition: ROI geometry and provenance', () => {
       getVideoTracks: () => [videoTrack],
     } as unknown as MediaStream)
     render(<BrowserPulse />)
-    fireEvent.click(screen.getByRole('button', { name: /^Start camera$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Start measurement$/ }))
     // Wait for the async start() chain (getUserMedia -> model -> worker -> rAF) to
     // reach the frame loop. Waiting on the Stop button is a real UI transition,
     // whereas waitFor(callback) can race the pending microtasks.
-    await waitFor(() => expect(screen.getByRole('button', { name: /Stop camera/ })).toBeInTheDocument(), { timeout: 3000 })
+    await waitFor(() => expect(screen.getByRole('button', { name: /Finish session/ })).toBeInTheDocument(), { timeout: 3000 })
     await waitFor(() => expect(callback).toBeTruthy(), { timeout: 3000 })
     for (let i = 1; i <= frames; i += 1) {
       act(() => { nowSpy.mockReturnValue(t0 + i * 100); videoTime = i * 0.05; callback?.(t0 + i * 100) })
@@ -231,5 +231,117 @@ describe('acquisition: ROI geometry and provenance', () => {
     expect(screen.getByText('matches frame')).toBeInTheDocument()
     expect(screen.getByText(/Decoded frame 640x480/)).toBeInTheDocument()
     nowSpy.mockRestore()
+  })
+})
+
+describe('session controls', () => {
+  // Local to this block: the legacy `stubMedia` is scoped to its own describe.
+  const stubMedia = () => {
+    Object.defineProperties(HTMLVideoElement.prototype, {
+      readyState: { configurable: true, get: () => 2 },
+      videoWidth: { configurable: true, get: () => 640 },
+      videoHeight: { configurable: true, get: () => 480 },
+    })
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(canvasContext2d({ data: new Uint8ClampedArray(640 * 480 * 4) }))
+  }
+  // Synthetic camera and landmarks throughout. These verify control *logic*: that
+  // pause really stops recording, that finishing cannot happen twice, and that a
+  // new session starts empty. No physiological claim is made or implied.
+  async function startSession() {
+    vi.spyOn(performance, 'now').mockReturnValue(1000)
+    let videoTime = 0
+    let callback: FrameRequestCallback | undefined
+    vi.stubGlobal('requestAnimationFrame', vi.fn((cb: FrameRequestCallback) => { callback = cb; return 2 }))
+    Object.defineProperties(HTMLVideoElement.prototype, {
+      readyState: { configurable: true, get: () => 2 },
+      videoWidth: { configurable: true, get: () => 640 },
+      videoHeight: { configurable: true, get: () => 480 },
+      currentTime: { configurable: true, get: () => videoTime },
+    })
+    const imageData = { data: new Uint8ClampedArray(640 * 480 * 4) }
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      imageData.data[i] = 198; imageData.data[i + 1] = 160; imageData.data[i + 2] = 138; imageData.data[i + 3] = 255
+    }
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(canvasContext2d(imageData))
+    const face = Array.from({ length: 478 }, (_, i) => ({ x: 0.3 + ((i * 7) % 40) / 100, y: 0.15 + ((i * 13) % 50) / 100, z: 0 }))
+    const detectForVideo = vi.fn().mockReturnValue({ faceLandmarks: [face] })
+    const { FaceLandmarker } = await import('@mediapipe/tasks-vision')
+    vi.mocked(FaceLandmarker.createFromOptions).mockResolvedValueOnce({ close: vi.fn(), detectForVideo } as never)
+    const videoTrack = { stop: vi.fn(), addEventListener: vi.fn(), getSettings: () => ({ facingMode: 'user', width: 640, height: 480 }) }
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({
+      getTracks: () => [videoTrack], getVideoTracks: () => [videoTrack],
+    } as unknown as MediaStream)
+    render(<BrowserPulse />)
+    fireEvent.click(screen.getByRole('button', { name: /^Start measurement$/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Finish session/ })).toBeInTheDocument(), { timeout: 3000 })
+    await waitFor(() => expect(callback).toBeTruthy(), { timeout: 3000 })
+    return {
+      tick: (i: number) => act(() => { vi.mocked(performance.now).mockReturnValue(1000 + i * 100); videoTime = i * 0.05; callback?.(1000 + i * 100) }),
+      videoTrack,
+    }
+  }
+
+  it('offers a Ready checklist before the camera opens', () => {
+    stubMedia()
+    render(<BrowserPulse />)
+    expect(screen.getByRole('heading', { name: /before you start/i })).toBeInTheDocument()
+    // Each precondition is named, so "camera not working" is never the only signal.
+    expect(document.body.textContent).toMatch(/Camera:/)
+    expect(document.body.textContent).toMatch(/Face detection:/)
+    expect(document.body.textContent).toMatch(/Face regions \(ROI\):/)
+    expect(document.body.textContent).toMatch(/Signal quality:/)
+    expect(screen.getByRole('button', { name: /^Start measurement$/ })).toBeInTheDocument()
+  })
+
+  it('replaces the checklist with session controls once measuring', async () => {
+    stubMedia()
+    const { tick } = await startSession()
+    tick(1)
+    expect(screen.queryByRole('heading', { name: /before you start/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Finish session/ })).toBeInTheDocument()
+  })
+
+  it('pauses without releasing the camera and resumes cleanly', async () => {
+    stubMedia()
+    const { tick, videoTrack } = await startSession()
+    tick(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    // The camera stays open: pausing is a measurement stop, not a camera stop.
+    expect(videoTrack.stop).not.toHaveBeenCalled()
+    // A window that lands after Pause must not be recorded.
+    tick(2)
+    expect(document.body.textContent).toMatch(/Session paused/i)
+    fireEvent.click(screen.getByRole('button', { name: 'Resume' }))
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+  })
+
+  it('finishes the session and releases the camera', async () => {
+    stubMedia()
+    const { tick, videoTrack } = await startSession()
+    tick(1)
+    fireEvent.click(screen.getByRole('button', { name: /Finish session/ }))
+    expect(videoTrack.stop).toHaveBeenCalled()
+    expect(document.body.textContent).toMatch(/Session finished/i)
+    // Finish cannot happen twice: the control is gone once the session is finished.
+    expect(screen.queryByRole('button', { name: /^Finish session$/ })).not.toBeInTheDocument()
+  })
+
+  it('starts a clean session with no readings carried over', async () => {
+    stubMedia()
+    const { tick } = await startSession()
+    tick(1)
+    tick(2)
+    // Enter a session, then start a new one.
+    fireEvent.click(screen.getByRole('button', { name: /Finish session/ }))
+    fireEvent.click(screen.getByRole('button', { name: /New session/ }))
+    // Back to the Ready state, with the aggregate reset to zero.
+    expect(screen.getByRole('heading', { name: /before you start/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Start measurement$/ })).toBeInTheDocument()
+    // The reset is visible as the empty-session message, not as a stale number.
+    expect(document.body.textContent).toMatch(/No readings\s+were recorded yet/i)
+    expect(document.body.textContent).toMatch(/Not enough reliable readings/i)
   })
 })

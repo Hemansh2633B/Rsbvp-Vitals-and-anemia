@@ -96,6 +96,75 @@ The mean is the requested average and is the presented result. The median is sho
 next to it because a single drifting window can pull a mean far more than a median;
 when the two disagree the outlier sensitivity is visible instead of hidden.
 
+### Duplicate windows are not new observations
+
+Sliding-window analysis re-analyses every 500 ms over a 10 s window, so the same
+underlying moment can reach the collector more than once — a re-delivered worker
+result, a retried frame, a resume that replays a window. Counting it twice would
+give one moment two votes in the mean, the median and every count on screen.
+
+A reading is a **duplicate** when its metric, algorithm and window bounds match one
+already recorded (`windowKey`). It is:
+
+- **recorded** — the history stays complete, and the CSV includes the row;
+- **refused** — `final_rejection_reason = "duplicate_window"`;
+- **counted separately** — `n_duplicate_windows`, never inside `n_rejected`.
+
+That last point matters for honesty: "the signal was bad" and "this window was
+already counted" are different messages and must not be added together. The
+interface shows a *Repeated* figure beside *Accepted* and *Rejected*.
+
+Windows with **unknown bounds are never treated as duplicates.** "I do not know the
+window" is not evidence that it repeats one. Suppression can be disabled
+(`suppressDuplicateWindows` / `suppress_duplicate_windows`) for diagnostics; doing
+so changes nothing else.
+
+### Outliers are flagged, never removed
+
+A reading may not be deleted for disagreeing with the others. Silently trimming it
+would hide exactly the disagreement a reader most needs to know about, and with
+autocorrelated windows it would bias the result toward whatever the survivors
+happened to say.
+
+Instead, each accepted reading is compared against the **other** accepted readings
+(leave-one-out):
+
+- centre = mean of the others, spread = sample SD of the others;
+- a reading is flagged when it is more than `outlierSdThreshold` (2.5) spreads from
+  that centre **and** at least `outlierMinDeviation` (6 BPM, 3 br/min) away from it.
+
+Two details, both learned from tests rather than assumed:
+
+1. **Leave-one-out is required.** Comparing a reading with an SD that includes it
+   lets a wild value inflate the very spread it is judged against. In
+   `[70, 71, 72, 71, 70, 155]` the naive limit is 2.5 × 34.4 = 86 BPM, so 155 passes
+   unremarked. Leave-one-out gives a limit of ~2.5 around ~70.8 and catches it.
+2. **A materiality floor is required.** With six windows agreeing to within 1 BPM, a
+   1.4 BPM difference is statistically "far" and would be flagged on every steady
+   session. A reading must be *both* statistically unusual and materially different.
+
+Flagged readings are **included in every statistic**. The flags drive a disclosure
+in the UI and `flagged_outliers` / `flagged_outlier_ids` in the export, which is why
+the median is shown beside the mean.
+
+### Variability warning
+
+`variable` is true when the spread of accepted readings is at or above
+`variabilitySdWarning` (8 BPM). It is expressed in the metric's own unit so it is
+interpretable, and it **never changes a number** — it only decides whether the user
+sees "Your readings varied during this session. Consider repeating the measurement
+under steady conditions."
+
+### Mean versus median
+
+The headline is the **arithmetic mean of accepted readings**, because a user asking
+for "my average" is asking for a mean, and because it is unbiased under uniform
+cadence and under constant truth at any analysis density (see
+`AGGREGATION_ANALYSIS.md`). The median is shown beside it because it is far less
+sensitive to a single unusual reading — in `[70, 71, 72, 71, 70, 155]` the mean is
+84.8 and the median is 71. Showing both is the disclosure that makes flagging
+sufficient: the reader can see the disagreement's effect for themselves.
+
 ## What is never combined
 
 - **Metrics**: heart rate (BPM) and respiratory rate (br/min) are separate series
@@ -208,6 +277,21 @@ was simply not reported.
 
 Advanced details (collapsed): per-series verdicts, counts, independent windows, SD,
 standard error, and the list of metrics that are deliberately not aggregated.
+
+## Minimum eligible data
+
+A session result requires **all** of:
+
+| Requirement | Default | Why |
+|---|---|---|
+| Accepted readings | ≥ 5 | each already passed the spectral, agreement, coverage and timing gates; a lower bar buys speed, not accuracy |
+| Independent (non-overlapping) windows | ≥ 2 | a session average must never be one moment re-counted |
+| Headline metric | heart rate | respiratory rate stays in advanced details (see `METRICS`) |
+
+Below either threshold the aggregate verdict is `insufficient` and **no number is
+displayed as the result** — the mean and median remain visible in the diagnostics,
+but are never presented as the session answer. Duplicate windows do not count toward
+either threshold.
 
 ## Known limitations
 

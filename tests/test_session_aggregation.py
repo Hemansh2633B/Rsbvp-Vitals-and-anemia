@@ -121,12 +121,50 @@ class TestInsufficientData:
 
     def test_overlapping_windows_are_insufficient_regardless_of_count(self):
         c = S.SessionCollector()
+        # Genuinely overlapping windows: sliding 1 s apart over a 10 s window, so
+        # each is a distinct observation that still overlaps its neighbours.
+        # (Previously this reused one identical window six times, which Sprint 16
+        # correctly treats as the same observation re-delivered, not as overlap.)
         for i in range(6):
-            r = reading(72, start=100.0, analyzed_at=NOW + i * 1000.0)
+            r = reading(72, start=100.0 + i, analyzed_at=NOW + i * 1000.0)
             c.add(r, now_ms=r.analyzed_at_ms)
         a = S.summarize(c.readings, "heart_rate")
         assert a.n_accepted == 6 and a.n_independent_accepted == 1
         assert a.verdict == "insufficient" and "independent" in a.reason
+
+    def test_a_redelivered_window_is_not_counted_as_a_new_observation(self):
+        # The Sprint 16 duplicate rule, on the Python side of the parity contract.
+        c = S.SessionCollector()
+        for i in range(3):
+            r = reading(72, start=0.0, analyzed_at=NOW + i * 1000.0)
+            c.add(r, now_ms=r.analyzed_at_ms)
+        assert len(c.readings) == 3                 # history is complete
+        assert sum(1 for r in c.readings if r.accepted) == 1
+        assert [r.final_rejection_reason for r in c.readings[1:]] == [S.DUPLICATE_WINDOW] * 2
+        a = S.summarize(c.readings, "heart_rate")
+        assert a.n_duplicate_windows == 2 and a.n_accepted == 1
+
+    def test_duplicate_suppression_can_be_disabled_for_diagnostics(self):
+        config = S.AggregationConfig(suppress_duplicate_windows=False)
+        c = S.SessionCollector(config)
+        for i in range(3):
+            r = reading(72, start=0.0, analyzed_at=NOW + i * 1000.0)
+            c.add(r, now_ms=r.analyzed_at_ms)
+        assert sum(1 for r in c.readings if r.accepted) == 3
+
+    def test_an_outlier_is_flagged_and_still_included(self):
+        c = collect([70, 71, 72, 71, 70, 155])
+        a = S.summarize(c.readings, "heart_rate")
+        assert a.n_accepted == 6                      # nothing removed
+        assert a.n_flagged_outliers == 1
+        assert a.flagged_outlier_ids == (6,)
+        assert a.mean > 80                            # the wild value still counts
+        assert a.variable is True
+
+    def test_a_steady_session_flags_nothing(self):
+        c = collect([72, 73, 72, 71, 73, 72])
+        a = S.summarize(c.readings, "heart_rate")
+        assert a.n_flagged_outliers == 0 and a.variable is False
 
     def test_thresholds_are_configurable(self):
         config = S.AggregationConfig(min_accepted_readings=2, min_independent_windows=2)
@@ -250,12 +288,17 @@ class TestCompletion:
         # Sprint 13 bug: 8 accepted readings over ONE window hit the target count
         # and produced "you can stop the camera" while the aggregate was
         # insufficient (1 independent window < 2 required).
+        # Eight accepted readings that all overlap each other (sliding 1 s apart over
+        # a 10 s window) so that exactly one independent window exists. The same
+        # scenario dressed in Sprint 16 terms: eight DISTINCT overlapping windows,
+        # rather than one window submitted eight times, which is now a duplicate.
         c = S.SessionCollector()
         for i in range(8):
+            start = 100.0 + i
             r = S.Reading(metric="heart_rate", value=72.0, algorithm=S.CONSENSUS, roi="all",
                           quality_score=0.6, quality_verdict="valid", fs_hz=30.0, n_samples=300,
-                          window_start_s=100.0, window_end_s=110.0, rejection_reason=None,
-                          analyzed_at_ms=NOW + i * 10_000.0, session_elapsed_s=100.0)
+                          window_start_s=start, window_end_s=start + 10.0, rejection_reason=None,
+                          analyzed_at_ms=NOW + i * 10_000.0, session_elapsed_s=start)
             c.add(r, now_ms=r.analyzed_at_ms)
         summary = S.summarize_session(c.readings, lifecycle="running")
         hr = next(a for a in summary["metrics"] if a.metric == "heart_rate")

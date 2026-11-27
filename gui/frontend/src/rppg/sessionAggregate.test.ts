@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {SessionCollector,DEFAULT_CONFIG,CONSENSUS,classifyReading,summarize,summarizeSession,countIndependentWindows,buildSessionReadingsCsv,buildSessionAggregateExport,SESSION_SCHEMA} from './sessionAggregate'
+import {SessionCollector,DEFAULT_CONFIG,CONSENSUS,DUPLICATE_WINDOW,classifyReading,summarize,summarizeSession,countIndependentWindows,buildSessionReadingsCsv,buildSessionAggregateExport,SESSION_SCHEMA} from './sessionAggregate'
 import type {ReadingInput} from './sessionAggregate'
 
 const NOW = 1_767_000_000_000
@@ -111,7 +111,7 @@ describe('insufficient data and completion',()=>{
  })
  it('states insufficient independently of the count when windows all overlap',()=>{
    const c = new SessionCollector()
-   for(let i=0;i<6;i++) c.add(base({value:72, sampling:{fsHz:30,nSamples:300,windowStartS:100,windowEndS:110}}), NOW+i*1000)
+   for(let i=0;i<6;i++) c.add(base({value:72, sampling:{fsHz:30,nSamples:300,windowStartS:100+i,windowEndS:110+i}}), NOW+i*1000)
    const a = summarize(c.all(),'heart_rate')
    expect(a.nAccepted).toBe(6)
    expect(a.nIndependentAccepted).toBe(1)
@@ -282,9 +282,13 @@ describe('exports',()=>{
 describe('session completion correctness',()=>{
  const overlapping = (n:number) => {
    const c = new SessionCollector()
+   // Genuinely overlapping windows: sliding 1 s apart over a 10 s window, so each
+   // is a distinct observation that still overlaps its neighbours. (Previously
+   // this reused one identical window n times, which Sprint 16 correctly treats as
+   // the same observation re-delivered rather than as overlap.)
    for(let i=0;i<n;i++){
-     // Eight readings, one window: perfectly plausible sliding-window output.
-     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:100,windowEndS:110}})
+     const start = 100 + i
+     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:start,windowEndS:start+10}})
      c.add(r,r.analyzedAtMs)
    }
    return c
@@ -400,4 +404,207 @@ describe('aggregate reason hygiene', () => {
     expect(rr.verdict).toBe('no_readings')
     expect(rr.reason).toMatch(/No readings recorded/)
   })
+})
+
+// ---------------------------------------------------------------------------
+// Sprint 16: duplicate windows, outliers, variability, and session hygiene.
+// These are the behaviours the session experience depends on; each has a
+// corresponding Python test and, where it is a rule, a parity fixture case.
+// ---------------------------------------------------------------------------
+describe('duplicate windows are not new observations',()=>{
+ it('counts a re-delivered window once and records the rest as duplicates',()=>{
+   const c = new SessionCollector()
+   for(let i=0;i<3;i++){
+     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:0,windowEndS:10}})
+     c.add(r,r.analyzedAtMs)
+   }
+   // The history stays complete: nothing is thrown away, it is refused.
+   expect(c.all()).toHaveLength(3)
+   expect(c.accepted()).toHaveLength(1)
+   expect(c.rejected().map(r=>r.finalRejectionReason)).toEqual([DUPLICATE_WINDOW,DUPLICATE_WINDOW])
+   const a = summarize(c.all(),'heart_rate')
+   expect(a.nAccepted).toBe(1)
+   expect(a.nDuplicateWindows).toBe(2)
+   // rejected + accepted + duplicates accounts for every reading.
+   expect(a.nAccepted + a.nRejected + a.nDuplicateWindows).toBe(a.nTotal)
+ })
+
+ it('does not let a duplicate move the mean',()=>{
+   const c = new SessionCollector()
+   // Bounds pinned explicitly: `base()` advances the clock, so relying on it would
+   // produce five DIFFERENT windows and the test would prove nothing.
+   for(let i=0;i<5;i++){
+     const r = base({value:[70,72,74,76,78][i],sampling:{fsHz:30,nSamples:300,windowStartS:10*i,windowEndS:10*i+10}})
+     c.add(r,r.analyzedAtMs)
+   }
+   const clean = summarize(c.all(),'heart_rate')
+   // Re-submit the first window four more times: a naive count would weight it 5x.
+   for(let i=0;i<4;i++){
+     const r = base({value:70,sampling:{fsHz:30,nSamples:300,windowStartS:0,windowEndS:10}})
+     c.add(r,r.analyzedAtMs)
+   }
+   const after = summarize(c.all(),'heart_rate')
+   expect(after.mean).toBe(clean.mean)
+   expect(after.nDuplicateWindows).toBe(4)
+ })
+
+ it('never treats unknown window bounds as duplicates',()=>{
+   // "I do not know the window" is not evidence that it repeats one.
+   const c = new SessionCollector()
+   for(let i=0;i<3;i++){
+     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:null,windowEndS:null}})
+     c.add(r,r.analyzedAtMs)
+   }
+   expect(c.accepted()).toHaveLength(3)
+   expect(summarize(c.all(),'heart_rate').nDuplicateWindows).toBe(0)
+ })
+
+ it('distinguishes metrics and algorithms when matching windows',()=>{
+   const c = new SessionCollector()
+   const s = {fsHz:30,nSamples:300,windowStartS:0,windowEndS:10}
+   const hr = base({value:72,sampling:s}); c.add(hr,hr.analyzedAtMs)
+   const rr = base({metric:'respiratory_rate',value:14,sampling:s}); c.add(rr,rr.analyzedAtMs)
+   const green = base({value:71,algorithm:'green',sampling:s}); c.add(green,green.analyzedAtMs)
+   // Same bounds, three genuinely different series: all three are new observations.
+   expect(c.accepted()).toHaveLength(3)
+ })
+
+ it('can be switched off for diagnostics without changing anything else',()=>{
+   const c = new SessionCollector({suppressDuplicateWindows:false})
+   for(let i=0;i<3;i++){
+     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:0,windowEndS:10}})
+     c.add(r,r.analyzedAtMs)
+   }
+   expect(c.accepted()).toHaveLength(3)
+ })
+})
+
+describe('outliers are disclosed, never removed',()=>{
+ it('flags a wild reading and still includes it in every statistic',()=>{
+   const c = collect([70,71,72,71,70,155])
+   const a = summarize(c.all(),'heart_rate')
+   expect(a.nAccepted).toBe(6)               // nothing was dropped
+   expect(a.nFlaggedOutliers).toBe(1)
+   expect(a.flaggedOutlierIds).toHaveLength(1)
+   // The mean is the all-in mean: if 155 had been trimmed it would be ~70.8.
+   expect(a.mean).toBeGreaterThan(80)
+   expect(a.median).toBeLessThan(80)         // the robust statistic shrugs it off
+   expect(a.variable).toBe(true)
+ })
+
+ it('does not let an outlier hide itself by inflating the spread',()=>{
+   // The naive test compares a reading with an SD that includes it: with
+   // [70,71,72,71,70,155] that SD is 34, so a 2.5 SD limit is 86 and 155 passes.
+   // The flag must therefore use a leave-one-out baseline.
+   const c = collect([70,71,72,71,70,155])
+   expect(summarize(c.all(),'heart_rate').nFlaggedOutliers).toBe(1)
+ })
+
+ it('flags nothing in a steady session',()=>{
+   // Six windows agreeing to within 1.4 BPM are not an outlier problem. A purely
+   // statistical test would flag them; the materiality floor prevents that.
+   const c = collect([72,73,72,71,73,72])
+   const a = summarize(c.all(),'heart_rate')
+   expect(a.nFlaggedOutliers).toBe(0)
+   expect(a.variable).toBe(false)
+ })
+
+ it('reports the spread that drives the variability warning',()=>{
+   const steady = summarize(collect([72,73,72,71]).all(),'heart_rate')
+   expect(steady.variable).toBe(false)
+   const varies = summarize(collect([55,95,60,100,70,85]).all(),'heart_rate')
+   expect(varies.variable).toBe(true)
+ })
+})
+
+describe('empty and insufficient sessions',()=>{
+ it('reports no readings without inventing a number or a zero',()=>{
+   const a = summarize([],'heart_rate')
+   expect(a.verdict).toBe('no_readings')
+   expect(a.mean).toBeNull()
+   expect(a.median).toBeNull()
+   expect(a.nDuplicateWindows).toBe(0)
+   expect(a.nFlaggedOutliers).toBe(0)
+ })
+
+ it('explains a session that is entirely duplicates',()=>{
+   const c = new SessionCollector()
+   for(let i=0;i<4;i++){
+     const r = base({value:72,sampling:{fsHz:30,nSamples:300,windowStartS:0,windowEndS:10}})
+     c.add(r,r.analyzedAtMs)
+   }
+   const a = summarize(c.all(),'heart_rate')
+   // One accepted, three duplicates: insufficient for a session average, and the
+   // reason names duplicates rather than blaming the signal.
+   expect(a.verdict).toBe('insufficient')
+   expect(a.reason).toMatch(/at least 5/)
+   expect(a.nDuplicateWindows).toBe(3)
+ })
+})
+
+describe('session summary carries the new disclosure fields',()=>{
+ it('exposes duplicate and outlier counts at session level',()=>{
+   const c = collect([70,71,72,71,70,155])
+   const s = summarizeSession(c.all(),{lifecycle:'stopped'})
+   expect(s.nDuplicateWindows).toBe(0)
+   expect(s.nFlaggedOutliers).toBe(1)
+   expect(s.variable).toBe(true)
+ })
+
+ it('keeps duplicates out of the rejected count',()=>{
+   // "The signal was bad" and "this window was already counted" are different
+   // messages; adding them together misreports the session.
+   const c = new SessionCollector()
+   for(let i=0;i<5;i++){
+     const r = base({value:[70,72,74,76,78][i],sampling:{fsHz:30,nSamples:300,windowStartS:10*i,windowEndS:10*i+10}})
+     c.add(r,r.analyzedAtMs)
+   }
+   for(let i=0;i<2;i++){
+     const r = base({value:70,sampling:{fsHz:30,nSamples:300,windowStartS:0,windowEndS:10}})
+     c.add(r,r.analyzedAtMs)
+   }
+   const s = summarizeSession(c.all(),{lifecycle:'stopped'})
+   expect(s.nDuplicateWindows).toBe(2)
+   expect(s.nRejectedTotal).toBe(0)
+   expect(s.nAcceptedTotal).toBe(5)
+ })
+})
+
+describe('session reset and interruption',()=>{
+ it('leaves no reading, id or count behind after reset',()=>{
+   const c = collect([70,72,74,76,78])
+   expect(summarizeSession(c.all(),{lifecycle:'running'}).resultAvailable).toBe(true)
+   c.reset()
+   expect(c.all()).toHaveLength(0)
+   const after = summarizeSession(c.all(),{lifecycle:'running'})
+   expect(after.resultAvailable).toBe(false)
+   expect(after.nAcceptedTotal).toBe(0)
+   expect(after.nDuplicateWindows).toBe(0)
+   expect(after.completion).toBe('initialising')
+ })
+
+ it('restarts ids so an old id can never match a new reading',()=>{
+   const first = collect([70]); const oldId = first.all()[0].id
+   first.reset()
+   const second = collect([80]); const newId = second.all()[0].id
+   expect(newId).toBe(oldId)                 // ids restart...
+   expect(second.all()).toHaveLength(1)      // ...but nothing else survived
+   expect(second.all()[0].value).toBe(80)
+ })
+
+ it('marks an interruption as interrupted, not as slow progress',()=>{
+   const s = summarizeSession(collect([70,72]).all(),{lifecycle:'interrupted'})
+   expect(s.completion).toBe('interrupted')
+   expect(s.resultAvailable).toBe(false)
+   expect(s.completionReason).not.toMatch(/you can stop/i)
+ })
+
+ it('does not record a window after the session is finished',()=>{
+   // BrowserPulse refuses post-finish windows; the aggregate must also never show
+   // a "completed" session that keeps growing.
+   const c = collect([70,72,74,76,78])
+   const frozen = summarizeSession(c.all(),{lifecycle:'stopped'})
+   expect(frozen.completion).toBe('completed')
+   expect(frozen.nAcceptedTotal).toBe(5)
+ })
 })

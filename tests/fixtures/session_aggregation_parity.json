@@ -3,6 +3,75 @@
   "note": "Synthetic readings with no dataset and no hardware. Expected values are produced by gui/rppg_core/session.py and asserted by both test suites; they verify agreement between the two implementations, not physiological accuracy.",
   "generated_by": "tests/fixtures/generate_session_parity.py",
   "cases": {
+    "duplicate_window_redelivered": {
+      "lifecycle": "stopped",
+      "expected": {
+        "completion": "completed",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 5,
+        "n_rejected": 0,
+        "n_independent": 5,
+        "mean": 76.0,
+        "median": 76,
+        "sd": 3.162278,
+        "acceptance_pct": 71.428571,
+        "density_ratio": 4.0,
+        "uneven_density": true,
+        "reason": "",
+        "n_duplicate_windows": 2,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 2,
+        "session_variable": false
+      }
+    },
+    "outlier_flagged_not_removed": {
+      "lifecycle": "stopped",
+      "expected": {
+        "completion": "completed",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 6,
+        "n_rejected": 0,
+        "n_independent": 6,
+        "mean": 84.833333,
+        "median": 71.0,
+        "sd": 34.382651,
+        "acceptance_pct": 100.0,
+        "density_ratio": 1.0,
+        "uneven_density": false,
+        "reason": "",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 1,
+        "variable": true,
+        "session_duplicate_windows": 0,
+        "session_variable": true
+      }
+    },
+    "steady_session_no_warning": {
+      "lifecycle": "stopped",
+      "expected": {
+        "completion": "completed",
+        "result_available": true,
+        "verdict": "available",
+        "n_accepted": 6,
+        "n_rejected": 0,
+        "n_independent": 6,
+        "mean": 72.166667,
+        "median": 72.0,
+        "sd": 0.752773,
+        "acceptance_pct": 100.0,
+        "density_ratio": 1.0,
+        "uneven_density": false,
+        "reason": "",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
+      }
+    },
     "sliding_window_overlap": {
       "lifecycle": "running",
       "expected": {
@@ -18,7 +87,12 @@
         "acceptance_pct": 100.0,
         "density_ratio": 1.076923,
         "uneven_density": false,
-        "reason": ""
+        "reason": "",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "non_overlapping_available": {
@@ -36,7 +110,12 @@
         "acceptance_pct": 100.0,
         "density_ratio": 2.0,
         "uneven_density": false,
-        "reason": ""
+        "reason": "",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "non_overlapping_completed": {
@@ -54,7 +133,12 @@
         "acceptance_pct": 100.0,
         "density_ratio": 2.0,
         "uneven_density": false,
-        "reason": ""
+        "reason": "",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "mixed_verdicts": {
@@ -72,7 +156,12 @@
         "acceptance_pct": 71.428571,
         "density_ratio": 1.5,
         "uneven_density": false,
-        "reason": ""
+        "reason": "",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "all_rejected": {
@@ -90,7 +179,12 @@
         "acceptance_pct": 0.0,
         "density_ratio": null,
         "uneven_density": false,
-        "reason": "No accepted readings (3 rejected by the quality gates)"
+        "reason": "No accepted readings (3 rejected by the quality gates)",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "interrupted_short": {
@@ -108,7 +202,12 @@
         "acceptance_pct": 100.0,
         "density_ratio": null,
         "uneven_density": false,
-        "reason": "Only 2 accepted readings; at least 5 are needed for a session average"
+        "reason": "Only 2 accepted readings; at least 5 are needed for a session average",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "single_window_overlap": {
@@ -117,16 +216,21 @@
         "completion": "insufficient",
         "result_available": false,
         "verdict": "insufficient",
-        "n_accepted": 8,
+        "n_accepted": 1,
         "n_rejected": 0,
         "n_independent": 1,
         "mean": 72.0,
-        "median": 72.0,
-        "sd": 0.0,
-        "acceptance_pct": 100.0,
+        "median": 72,
+        "sd": null,
+        "acceptance_pct": 12.5,
         "density_ratio": null,
         "uneven_density": false,
-        "reason": "Only 1 independent (non-overlapping) window; at least 2 are needed"
+        "reason": "Only 1 accepted reading; at least 5 are needed for a session average",
+        "n_duplicate_windows": 7,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 7,
+        "session_variable": false
       }
     },
     "single_window_overlap_running": {
@@ -135,16 +239,21 @@
         "completion": "collecting",
         "result_available": false,
         "verdict": "insufficient",
-        "n_accepted": 8,
+        "n_accepted": 1,
         "n_rejected": 0,
         "n_independent": 1,
         "mean": 72.0,
-        "median": 72.0,
-        "sd": 0.0,
-        "acceptance_pct": 100.0,
+        "median": 72,
+        "sd": null,
+        "acceptance_pct": 12.5,
         "density_ratio": null,
         "uneven_density": false,
-        "reason": "Only 1 independent (non-overlapping) window; at least 2 are needed"
+        "reason": "Only 1 accepted reading; at least 5 are needed for a session average",
+        "n_duplicate_windows": 7,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 7,
+        "session_variable": false
       }
     },
     "empty": {
@@ -162,7 +271,12 @@
         "acceptance_pct": null,
         "density_ratio": null,
         "uneven_density": false,
-        "reason": "No readings recorded for this metric in this session"
+        "reason": "No readings recorded for this metric in this session",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "empty_running": {
@@ -180,7 +294,12 @@
         "acceptance_pct": null,
         "density_ratio": null,
         "uneven_density": false,
-        "reason": "No readings recorded for this metric in this session"
+        "reason": "No readings recorded for this metric in this session",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     },
     "uneven_density": {
@@ -198,7 +317,12 @@
         "acceptance_pct": 100.0,
         "density_ratio": 7.25,
         "uneven_density": true,
-        "reason": ""
+        "reason": "",
+        "n_duplicate_windows": 0,
+        "n_flagged_outliers": 0,
+        "variable": false,
+        "session_duplicate_windows": 0,
+        "session_variable": false
       }
     }
   }

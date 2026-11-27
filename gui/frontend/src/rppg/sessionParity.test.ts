@@ -35,6 +35,11 @@ type CaseSpec = {
     density_ratio: number | null
     uneven_density: boolean
     reason: string
+    n_duplicate_windows: number
+    n_flagged_outliers: number
+    variable: boolean
+    session_duplicate_windows: number
+    session_variable: boolean
   }
 }
 
@@ -125,6 +130,28 @@ const RECIPES: Record<string, ReadingSpec[]> = {
       window_end_s: 40 + 4 * k,
     })),
   ],
+  // The same window re-delivered: one observation, not three.
+  duplicate_window_redelivered: [
+    { value: 72, window_start_s: 0, window_end_s: 10 },
+    { value: 72, window_start_s: 0, window_end_s: 10 },
+    { value: 72, window_start_s: 0, window_end_s: 10 },
+    { value: 74, window_start_s: 10, window_end_s: 20 },
+    { value: 76, window_start_s: 20, window_end_s: 30 },
+    { value: 78, window_start_s: 30, window_end_s: 40 },
+    { value: 80, window_start_s: 40, window_end_s: 50 },
+  ],
+  // One reading far from the rest: FLAGGED, never removed, so the mean includes it.
+  outlier_flagged_not_removed: [70, 71, 72, 71, 70, 155].map((v, i) => ({
+    value: v,
+    window_start_s: 10 * i,
+    window_end_s: 10 * i + 10,
+  })),
+  // A steady session: no variability warning and no outlier crying wolf.
+  steady_session_no_warning: [72, 73, 72, 71, 73, 72].map((v, i) => ({
+    value: v,
+    window_start_s: 10 * i,
+    window_end_s: 10 * i + 10,
+  })),
 }
 
 function run(specs: ReadingSpec[], lifecycle: string) {
@@ -186,6 +213,11 @@ describe('session aggregation parity with the Python implementation', () => {
         density_ratio: round(summary.densityRatio),
         uneven_density: summary.unevenDensity,
         reason: hr.reason,
+        n_duplicate_windows: hr.nDuplicateWindows,
+        n_flagged_outliers: hr.nFlaggedOutliers,
+        variable: hr.variable,
+        session_duplicate_windows: summary.nDuplicateWindows,
+        session_variable: summary.variable,
       }).toEqual(spec.expected)
     })
   }

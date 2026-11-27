@@ -270,7 +270,34 @@ average of the readings that passed the existing quality checks** — with the n
 of accepted and rejected readings, the observed acceptance rate, the median and the
 range beside it.
 
+#### What a measurement session looks like
+
+1. **Ready.** Before the camera opens, four preconditions are listed with their own
+   state: camera availability, face detection, ROI tracking and signal quality. This
+   exists so "camera not working" is never the only thing a user can learn.
+2. **Collecting.** While capture runs, the screen shows accepted and rejected counts,
+   a progress bar toward the target, and the current signal status. Rejected windows
+   are explained; raw waveforms stay out of the way.
+3. **Result.** When the aggregate becomes available the session can be finished, and
+   the screen becomes one prominent number: **Average pulse rate**, with median, range,
+   accepted readings and a plain session-quality band beneath it. Individual readings
+   are behind **View individual readings**; DSP detail is behind **advanced details**.
+
+Controls are **Start measurement**, **Pause**, **Resume**, **Finish session** and
+**New session**. Pause keeps the camera open but stops recording, so no window is
+analysed while paused and resuming is instant. Finishing releases the camera and
+freezes the session; it cannot be finished twice. **New session** clears the
+collector, restarts reading ids and returns to Ready, so nothing from a previous
+session can survive into the next.
+
 - Readings are append-only. A rejected reading is kept and shown with its reason.
+- A window re-delivered (same metric, algorithm and window bounds) is **not** a new
+  observation: it is recorded, marked `duplicate_window` and excluded from every
+  statistic, so one moment cannot be counted twice.
+- A reading far from the rest is **flagged and kept**, never trimmed. Both the mean
+  (which includes it) and the median (which shrugs it off) are shown, so the
+  disagreement is visible rather than hidden. See
+  [the aggregation rules](docs/SESSION_AGGREGATION.md).
 - Heart rate and respiratory rate are summarised separately and never pooled.
 - GREEN/POS/CHROM are kept as separate series; only the agreement-checked consensus
   is presented as the result.
@@ -291,6 +318,10 @@ range beside it.
   statistic, is in [the aggregation analysis](docs/AGGREGATION_ANALYSIS.md).
 - HRV/RMSSD, SpO₂, blood pressure and anemia image features are not aggregated:
   there is no validated estimator for them here.
+
+User instructions for the session workflow are in
+[docs/USER_GUIDE_SESSION.md](docs/USER_GUIDE_SESSION.md); the rules behind the numbers
+are in [docs/SESSION_AGGREGATION.md](docs/SESSION_AGGREGATION.md).
 
 An average reduces random variation; it does not establish accuracy, and this is not
 a medical measurement. Details, including the exact acceptance rules and the export

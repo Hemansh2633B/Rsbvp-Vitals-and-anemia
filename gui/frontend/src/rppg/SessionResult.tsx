@@ -7,6 +7,7 @@
 import { useId, useState } from 'react'
 import {
   CONSENSUS,
+  DUPLICATE_WINDOW,
   METRICS,
   type Measurement,
   type MetricAggregate,
@@ -84,7 +85,9 @@ function AggregateCard({ aggregate, readings }: { aggregate: MetricAggregate; re
   const hasResult = aggregate.verdict === 'available'
   return (
     <section className={`session-metric ${hasResult ? 'is-available' : 'is-unavailable'}`}>
-      <div className="session-metric-head">{aggregate.label}</div>
+      <div className="session-metric-head">
+        {aggregate.metric === 'heart_rate' ? 'Average pulse rate' : aggregate.label}
+      </div>
       {hasResult ? (
         <>
           <div className="session-value" data-testid={`session-value-${aggregate.metric}`}>
@@ -92,16 +95,18 @@ function AggregateCard({ aggregate, readings }: { aggregate: MetricAggregate; re
             <span className="session-unit">{metric.unit}</span>
           </div>
           <p className="session-note">
-            Session average of {aggregate.nAccepted} accepted reading
-            {aggregate.nAccepted === 1 ? '' : 's'}. {metric.note}
+            This result is calculated from the {aggregate.nAccepted} valid reading
+            {aggregate.nAccepted === 1 ? '' : 's'} collected during this session. {metric.note}
           </p>
         </>
       ) : (
         <>
           <div className="session-value unavailable" data-testid={`session-value-${aggregate.metric}`}>
-            Insufficient data
+            Not enough reliable readings
           </div>
-          <p className="session-note">{aggregate.reason}</p>
+          <p className="session-note">
+            Not enough reliable readings were collected. Please try again. {aggregate.reason}
+          </p>
         </>
       )}
       <ReadingChart readings={readings.filter(r => r.metric === aggregate.metric && r.algorithm === CONSENSUS)}
@@ -135,11 +140,11 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
 
   return (
     <section className="panel session-result" aria-labelledby="session-result-heading">
-      <h2 id="session-result-heading">Session result</h2>
+      <h2 id="session-result-heading">Your session result</h2>
       <p className="muted small">
-        One session, many short analysis windows. The session average uses only the readings that
-        passed the quality checks, so it moves far less than the live number. It is still an
-        estimate from a camera, not a medical measurement.
+        One session, many short analysis windows. The average uses only the readings that passed the
+        quality checks, so it moves far less than the live number. It is still an estimate from a
+        camera, not a medical measurement.
       </p>
 
       <p className={`completion ${summary.completion}`} role="status">
@@ -151,13 +156,26 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
       {presentable.length === 0 ? (
         <div className="session-metric is-unavailable">
           <div className="session-value unavailable">Insufficient data</div>
-          <p className="session-note">
-            {summary.primaryReadings.length === 0
-              ? 'No readings yet. Start the camera and hold still in even light.'
-              : `${summary.nAcceptedTotal} of ${summary.primaryReadings.length} readings passed the quality checks. ${
-                  summary.metrics.find(m => m.metric === 'heart_rate')?.reason ?? ''
-                }`}
-          </p>
+          {/* The brief's required wording, in the state that actually needs it.
+              Previously this text lived only on the "available" card, so a user
+              whose session failed was told the least. */}
+          {summary.primaryReadings.length === 0 ? (
+            <p className="session-note">
+              Not enough reliable readings were collected. Please try again. No readings
+              were recorded yet: start the camera and hold still in even light.
+            </p>
+          ) : (
+            <>
+              <p className="session-note">
+                Not enough reliable readings were collected. Please try again.{' '}
+                {summary.nAcceptedTotal} of {summary.primaryReadings.length} readings passed the
+                quality checks.
+              </p>
+              <p className="muted small">
+                {summary.metrics.find(m => m.metric === 'heart_rate')?.reason ?? ''}
+              </p>
+            </>
+          )}
           <p className="muted small">
             A session average is not shown until there is enough independent evidence, because a
             number from one or two windows would suggest a precision that does not exist. Counting
@@ -172,6 +190,28 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
         </div>
       )}
 
+      {summary.variable && summary.resultAvailable && (
+        <p className="variability-warning" role="status">
+          Your readings varied during this session. Consider repeating the measurement under steady
+          conditions. The average is shown with that variation included; nothing was discarded for
+          differing from it.
+        </p>
+      )}
+      {summary.nDuplicateWindows > 0 && (
+        <p className="muted small duplicate-note">
+          {summary.nDuplicateWindows} reading
+          {summary.nDuplicateWindows === 1 ? ' repeated a window' : 's repeated windows'} that had
+          already been counted. They are listed below and exported, but are not counted twice.
+        </p>
+      )}
+      {summary.nFlaggedOutliers > 0 && (
+        <p className="muted small outlier-note">
+          {summary.nFlaggedOutliers === 1 ? 'One reading differed' : `${summary.nFlaggedOutliers} readings differed`}{' '}
+          considerably from the rest. They are <strong>included</strong> in the average and marked in
+          the list below — that is why the median is shown too, since it is less affected by them.
+        </p>
+      )}
+
       <div className="session-quality" aria-label="Measurement quality">
         <div className="quality-cell">
           <span className="quality-label">Accepted</span>
@@ -181,6 +221,12 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
           <span className="quality-label">Rejected</span>
           <span className="quality-value">{summary.nRejectedTotal}</span>
         </div>
+        {summary.nDuplicateWindows > 0 && (
+          <div className="quality-cell">
+            <span className="quality-label">Repeated</span>
+            <span className="quality-value">{summary.nDuplicateWindows}</span>
+          </div>
+        )}
         <div className="quality-cell">
           <span className="quality-label">Acceptance</span>
           <span className="quality-value">
@@ -283,25 +329,42 @@ export function SessionResult({ summary, sessionId, onExportReadings, onExportAg
             <thead>
               <tr>
                 <th scope="col">#</th>
-                <th scope="col">Value</th>
+                <th scope="col">Time</th>
+                <th scope="col">BPM</th>
+                <th scope="col">ROI</th>
+                <th scope="col">Method</th>
+                <th scope="col">Signal</th>
                 <th scope="col">Status</th>
-                <th scope="col">Reason</th>
-                <th scope="col">At (s)</th>
               </tr>
             </thead>
             <tbody>
               {summary.primaryReadings.map(r => {
                 const spec = METRICS[r.metric]
+                const flagged = summary.metrics.some(a => a.flaggedOutlierIds.includes(r.id))
+                const duplicate = r.finalRejectionReason === DUPLICATE_WINDOW
                 return (
-                  <tr key={r.id} className={r.accepted ? 'accepted' : 'rejected'}>
-                    <td>{r.id}</td>
+                  <tr key={r.id} className={r.accepted ? 'accepted' : duplicate ? 'duplicate' : 'rejected'}>
                     <td>
-                      {r.value === null ? '—' : `${fmt(r.value, spec.decimals)} ${spec.unit}`}
-                      <span className="muted small"> {spec.shortLabel}</span>
+                      {r.id}
+                      {flagged && <span className="row-flag" title="Differed from the rest; still included"> !</span>}
                     </td>
-                    <td>{r.accepted ? 'Accepted' : 'Rejected'}</td>
-                    <td>{r.accepted ? '—' : r.finalRejectionReason}</td>
-                    <td>{r.sessionElapsedS === null ? '—' : r.sessionElapsedS.toFixed(1)}</td>
+                    <td>
+                      {r.sessionElapsedS === null ? '—' : `${r.sessionElapsedS.toFixed(1)}s`}
+                      <span className="muted small"> {r.recordedUtc.slice(11, 19)}</span>
+                    </td>
+                    <td>
+                      {r.value === null ? '—' : fmt(r.value, spec.decimals)}
+                      <span className="muted small"> {spec.unit}</span>
+                    </td>
+                    <td>{r.roi === 'all' ? 'All regions' : r.roi.replaceAll('_', ' ')}</td>
+                    <td>{r.algorithm}</td>
+                    <td>{r.qualityVerdict === 'valid' ? 'acceptable' : 'unusable'}</td>
+                    <td>
+                      {r.accepted ? 'Accepted' : duplicate ? 'Repeated window' : 'Rejected'}
+                      {!r.accepted && r.finalRejectionReason && (
+                        <span className="muted small"> — {r.finalRejectionReason.replaceAll('_', ' ')}</span>
+                      )}
+                    </td>
                   </tr>
                 )
               })}
