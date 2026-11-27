@@ -696,7 +696,11 @@ class LiveSession:
             self._track_position(current_center, elapsed)
 
         if rgb_sample is not None:
-            self.rgb_times.append(elapsed)
+            # Frame-based timestamps (not wall-clock ``elapsed``) so a brief
+            # face-detection dropout does not inject a gap into the timestamp
+            # stream. Wall-clock gaps are the #1 cause of spurious
+            # ``irregular_timestamps`` rejections in the quality gate.
+            self.rgb_times.append(self.frame_count / TARGET_FPS)
             self.rgb_values.append(rgb_sample)
             while (len(self.rgb_times) > 2
                    and self.rgb_times[-1] - self.rgb_times[0] > LIVE_RGB_WINDOW_SECONDS):
